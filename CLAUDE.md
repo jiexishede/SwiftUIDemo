@@ -125,12 +125,778 @@ func exampleFunction(param: String) -> Bool {
 }
 ```
 
+## Software Design Principles / 软件设计原则
+
+### SOLID Principles / SOLID 原则
+
+Code must follow SOLID principles / 代码必须遵循 SOLID 原则:
+
+#### 1. Single Responsibility Principle (SRP) / 单一职责原则
+- Each class/struct should have only one reason to change / 每个类/结构体应该只有一个改变的理由
+- Separate concerns into different types / 将不同的关注点分离到不同的类型中
+
+#### 2. Open/Closed Principle (OCP) / 开闭原则
+- Classes should be open for extension but closed for modification / 类应该对扩展开放，对修改关闭
+- Use protocols and extensions in Swift / 在 Swift 中使用协议和扩展
+
+#### 3. Liskov Substitution Principle (LSP) / 里氏替换原则
+- Subtypes must be substitutable for their base types / 子类型必须能够替换其基类型
+- Protocol implementations should fulfill the protocol's contract / 协议实现应该履行协议的契约
+
+#### 4. Interface Segregation Principle (ISP) / 接口隔离原则
+- Clients should not depend on interfaces they don't use / 客户端不应该依赖它们不使用的接口
+- Create smaller, focused protocols / 创建更小、更专注的协议
+
+#### 5. Dependency Inversion Principle (DIP) / 依赖倒置原则
+- Depend on abstractions, not concretions / 依赖抽象，而不是具体实现
+- Use dependency injection / 使用依赖注入
+
+### Design Patterns Usage / 设计模式使用
+
+#### Important Principle / 重要原则
+⚠️ **NEVER use design patterns just for the sake of using them** / **永远不要为了使用设计模式而使用设计模式**
+- Only apply patterns when they solve real problems / 只在解决实际问题时应用模式
+- Consider the complexity vs benefit trade-off / 考虑复杂性与收益的权衡
+- Patterns should emerge from requirements, not be forced / 模式应该从需求中自然产生，而不是强制使用
+
+#### Common Design Patterns with Detailed Explanations / 常用设计模式及详细说明
+
+##### 1. Singleton Pattern / 单例模式
+```swift
+/**
+ * SINGLETON PATTERN - 单例模式
+ * 
+ * PURPOSE / 目的:
+ * - Ensures only one instance of a class exists throughout the app lifecycle
+ * - 确保整个应用生命周期中只存在一个类的实例
+ * 
+ * WHEN TO USE / 何时使用:
+ * - Network managers that need to maintain connection pools
+ * - 需要维护连接池的网络管理器
+ * - Cache managers that need to prevent duplicate caches
+ * - 需要防止重复缓存的缓存管理器
+ * - User session managers that must be consistent app-wide
+ * - 必须在应用范围内保持一致的用户会话管理器
+ * 
+ * BENEFITS / 好处:
+ * - Memory efficiency: Only one instance exists
+ * - 内存效率：只存在一个实例
+ * - Global access point: Easy to access from anywhere
+ * - 全局访问点：从任何地方都易于访问
+ * - State consistency: All parts of app use same instance
+ * - 状态一致性：应用的所有部分使用同一实例
+ * 
+ * DRAWBACKS / 缺点:
+ * - Makes unit testing harder (consider dependency injection)
+ * - 使单元测试更困难（考虑依赖注入）
+ * - Can create hidden dependencies
+ * - 可能创建隐藏的依赖关系
+ * 
+ * HOW TO USE THIS PATTERN / 如何使用此模式:
+ * 
+ * // Getting the singleton instance / 获取单例实例
+ * let manager = NetworkManager.shared
+ * 
+ * // Using the singleton / 使用单例
+ * manager.fetchData { result in
+ *     // Handle result / 处理结果
+ * }
+ * 
+ * // DO NOT try to create new instance / 不要尝试创建新实例
+ * // let manager = NetworkManager() // ❌ This will fail / 这会失败
+ */
+class NetworkManager {
+    // Static property ensures single instance / 静态属性确保单一实例
+    static let shared = NetworkManager()
+    
+    // Properties for the singleton / 单例的属性
+    private var cache: [String: Data] = [:]
+    private let session = URLSession.shared
+    
+    // Private init prevents external instantiation / 私有初始化防止外部实例化
+    private init() {
+        // Initialize only once when first accessed
+        // 首次访问时只初始化一次
+        print("NetworkManager initialized")
+        
+        // Setup configuration that should happen once
+        // 设置应该只发生一次的配置
+        setupURLSession()
+        configureCache()
+    }
+    
+    // USAGE EXAMPLE / 使用示例:
+    // NetworkManager.shared.request(url: "https://api.example.com/data")
+    func request(url: String, completion: @escaping (Result<Data, Error>) -> Void) {
+        // Implementation using the shared session
+        // 使用共享会话的实现
+    }
+    
+    private func setupURLSession() {
+        // Configure session once / 配置会话一次
+    }
+    
+    private func configureCache() {
+        // Setup cache once / 设置缓存一次
+    }
+}
+
+// REAL WORLD USAGE EXAMPLE / 真实使用示例:
+/*
+class UserProfileView: View {
+    var body: some View {
+        Button("Fetch Profile") {
+            // Using the singleton from anywhere in the app
+            // 从应用的任何地方使用单例
+            NetworkManager.shared.request(url: "/profile") { result in
+                switch result {
+                case .success(let data):
+                    // Process data / 处理数据
+                    print("Profile fetched")
+                case .failure(let error):
+                    // Handle error / 处理错误
+                    print("Error: \(error)")
+                }
+            }
+        }
+    }
+}
+*/
+```
+
+##### 2. Factory Pattern / 工厂模式
+```swift
+/**
+ * FACTORY PATTERN - 工厂模式
+ * 
+ * PURPOSE / 目的:
+ * - Create objects without exposing instantiation logic
+ * - 创建对象而不暴露实例化逻辑
+ * - Decide which class to instantiate at runtime
+ * - 在运行时决定实例化哪个类
+ * 
+ * BENEFITS / 好处:
+ * - Loose coupling between creator and products
+ * - 创建者和产品之间的松耦合
+ * - Single place to maintain object creation logic
+ * - 单一位置维护对象创建逻辑
+ * - Easy to add new product types
+ * - 易于添加新的产品类型
+ * 
+ * WHEN TO USE / 何时使用:
+ * - Creating different view types based on data
+ * - 基于数据创建不同的视图类型
+ * - Building UI components with complex initialization
+ * - 构建具有复杂初始化的 UI 组件
+ * - Creating parsers for different file formats
+ * - 为不同文件格式创建解析器
+ */
+
+// PROTOCOL DEFINITION / 协议定义
+protocol ViewFactory {
+    associatedtype ViewType: View
+    func makeView() -> ViewType
+}
+
+// CONCRETE FACTORY IMPLEMENTATIONS / 具体工厂实现
+struct CardViewFactory: ViewFactory {
+    let cardType: CardType
+    let data: CardData
+    
+    enum CardType {
+        case standard, premium, featured
+    }
+    
+    /**
+     * Factory method that creates appropriate card view
+     * 创建适当卡片视图的工厂方法
+     * 
+     * WHY THIS PATTERN / 为什么使用此模式:
+     * - Different card types have different styling requirements
+     * - 不同的卡片类型有不同的样式要求
+     * - Centralizes card creation logic in one place
+     * - 将卡片创建逻辑集中在一个地方
+     * - Easy to add new card types without modifying existing code
+     * - 易于添加新卡片类型而无需修改现有代码
+     * 
+     * USAGE EXAMPLE / 使用示例:
+     * 
+     * let factory = CardViewFactory(cardType: .premium, data: myData)
+     * let cardView = factory.makeView()
+     * 
+     * // In a SwiftUI View / 在 SwiftUI 视图中
+     * VStack {
+     *     ForEach(items) { item in
+     *         CardViewFactory(
+     *             cardType: item.isPremium ? .premium : .standard,
+     *             data: item.cardData
+     *         ).makeView()
+     *     }
+     * }
+     */
+    func makeView() -> some View {
+        Group {
+            switch cardType {
+            case .standard:
+                StandardCardView(data: data)
+                    .cardStyle()
+                
+            case .premium:
+                PremiumCardView(data: data)
+                    .cardStyle(backgroundColor: .gold)
+                    .overlay(
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                            .offset(x: -10, y: -10),
+                        alignment: .topTrailing
+                    )
+                
+            case .featured:
+                FeaturedCardView(data: data)
+                    .cardStyle(shadowRadius: 10)
+                    .scaleEffect(1.05)
+            }
+        }
+    }
+}
+
+// USAGE IN REAL APP / 在实际应用中的使用
+struct ContentListView: View {
+    @State private var items: [Item] = []
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(items) { item in
+                    // Factory decides which view to create
+                    // 工厂决定创建哪个视图
+                    makeCardView(for: item)
+                }
+            }
+            .padding()
+        }
+    }
+    
+    /**
+     * Helper method using factory pattern
+     * 使用工厂模式的辅助方法
+     * 
+     * This abstracts the decision logic of which card to create
+     * 这抽象了创建哪个卡片的决策逻辑
+     */
+    @ViewBuilder
+    private func makeCardView(for item: Item) -> some View {
+        let factory = CardViewFactory(
+            cardType: determineCardType(for: item),
+            data: item.toCardData()
+        )
+        factory.makeView()
+    }
+    
+    private func determineCardType(for item: Item) -> CardViewFactory.CardType {
+        if item.isFeatured { return .featured }
+        if item.isPremium { return .premium }
+        return .standard
+    }
+}
+```
+
+##### 3. Observer Pattern / 观察者模式
+```swift
+// Use case: One-to-many dependency notifications / 用例：一对多依赖通知
+// Benefits: Loose coupling, dynamic subscription / 好处：松耦合，动态订阅
+// When to use: Event systems, data binding, notifications / 何时使用：事件系统、数据绑定、通知
+import Combine
+
+class DataModel: ObservableObject {
+    @Published var data: [String] = []
+    
+    // Why this pattern: SwiftUI views need to react to data changes
+    // Observer pattern via @Published enables automatic UI updates
+    // 为什么使用此模式：SwiftUI 视图需要响应数据变化
+    // 通过 @Published 的观察者模式实现自动 UI 更新
+}
+```
+
+##### 4. Strategy Pattern / 策略模式
+```swift
+// Use case: Interchangeable algorithms / 用例：可互换的算法
+// Benefits: Runtime algorithm selection, clean separation / 好处：运行时算法选择，清晰分离
+// When to use: Sorting, validation, pricing calculations / 何时使用：排序、验证、价格计算
+protocol SortStrategy {
+    func sort<T: Comparable>(_ array: [T]) -> [T]
+}
+
+struct QuickSort: SortStrategy {
+    // Why this pattern: Different sorting algorithms for different data sizes
+    // Strategy pattern allows switching algorithms based on context
+    // 为什么使用此模式：不同数据大小需要不同的排序算法
+    // 策略模式允许根据上下文切换算法
+    func sort<T: Comparable>(_ array: [T]) -> [T] {
+        // Quick sort implementation
+        return array.sorted()
+    }
+}
+```
+
+##### 5. Decorator Pattern / 装饰器模式
+```swift
+// Use case: Adding responsibilities dynamically / 用例：动态添加职责
+// Benefits: Flexible alternative to subclassing / 好处：子类化的灵活替代方案
+// When to use: View modifiers, middleware, feature toggles / 何时使用：视图修饰符、中间件、功能开关
+struct LoggingDecorator<T>: ViewModifier {
+    let action: T
+    
+    // Why this pattern: Adding logging without modifying original views
+    // Decorators compose behaviors cleanly and are reusable
+    // 为什么使用此模式：在不修改原始视图的情况下添加日志
+    // 装饰器清晰地组合行为且可重用
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                print("View appeared with action: \(action)")
+            }
+    }
+}
+```
+
+##### 6. Adapter Pattern / 适配器模式
+```swift
+// Use case: Making incompatible interfaces work together / 用例：使不兼容的接口协同工作
+// Benefits: Reuse existing code, clean integration / 好处：重用现有代码，清晰集成
+// When to use: Third-party library integration, legacy code / 何时使用：第三方库集成、遗留代码
+protocol ModernInterface {
+    func request() async throws -> Data
+}
+
+class LegacyAPIAdapter: ModernInterface {
+    private let legacyAPI: LegacyAPI
+    
+    // Why this pattern: Legacy API uses callbacks, modern code uses async/await
+    // Adapter bridges the gap without changing either side
+    // 为什么使用此模式：遗留 API 使用回调，现代代码使用 async/await
+    // 适配器在不改变任何一方的情况下弥合差距
+    func request() async throws -> Data {
+        // Convert callback to async
+    }
+}
+```
+
+##### 7. Repository Pattern / 仓储模式
+```swift
+// Use case: Data access abstraction / 用例：数据访问抽象
+// Benefits: Testability, flexibility in data sources / 好处：可测试性，数据源的灵活性
+// When to use: Data persistence, API calls, caching / 何时使用：数据持久化、API 调用、缓存
+protocol UserRepository {
+    func fetchUser(id: String) async throws -> User
+    func saveUser(_ user: User) async throws
+}
+
+class UserRepositoryImpl: UserRepository {
+    // Why this pattern: Separates data access from business logic
+    // Easy to swap between network, cache, or mock implementations
+    // 为什么使用此模式：将数据访问与业务逻辑分离
+    // 易于在网络、缓存或模拟实现之间切换
+}
+```
+
+##### 8. Coordinator Pattern / 协调器模式
+```swift
+// Use case: Navigation flow management / 用例：导航流程管理
+// Benefits: Decoupled navigation, reusable views / 好处：解耦导航，可重用视图
+// When to use: Complex navigation, deep linking / 何时使用：复杂导航、深度链接
+protocol Coordinator {
+    func start()
+    func navigate(to destination: Destination)
+}
+
+class AppCoordinator: Coordinator {
+    // Why this pattern: Views shouldn't know about navigation logic
+    // Coordinator centralizes flow control and makes it testable
+    // 为什么使用此模式：视图不应该知道导航逻辑
+    // 协调器集中流程控制并使其可测试
+}
+```
+
+### Pattern Selection Guidelines / 模式选择指南
+
+Before using any pattern, ask / 使用任何模式前，请询问：
+1. What problem am I solving? / 我在解决什么问题？
+2. Is the added complexity justified? / 增加的复杂性是否合理？
+3. Will this make the code more maintainable? / 这会使代码更易维护吗？
+4. Is there a simpler solution? / 是否有更简单的解决方案？
+
+### Anti-Patterns to Avoid / 要避免的反模式
+- Over-engineering / 过度工程化
+- Premature optimization / 过早优化
+- Pattern obsession / 模式痴迷
+- Unnecessary abstraction / 不必要的抽象
+
 ## Code Style Requirements / 代码风格要求
 
-### SwiftLint Compliance / SwiftLint 合规性
+### SwiftLint Integration / SwiftLint 集成
+- **MUST** integrate SwiftLint code checking library / **必须**集成 SwiftLint 代码检查库
 - **MUST** strictly follow SwiftLint code standards / **必须**严格遵守 SwiftLint 代码标准
 - Run `swiftlint` before committing any code / 提交任何代码前运行 `swiftlint`
 - Fix all warnings and errors reported by SwiftLint / 修复 SwiftLint 报告的所有警告和错误
+
+### SwiftUI Component Encapsulation Rules / SwiftUI 组件封装规则
+
+#### ViewModifier Encapsulation / ViewModifier 封装
+- **MUST** encapsulate reusable UI behaviors as ViewModifiers / **必须**将可复用的 UI 行为封装为 ViewModifier
+- Create custom ViewModifiers for common styling patterns / 为常见的样式模式创建自定义 ViewModifier
+- Use ViewModifiers to reduce code duplication / 使用 ViewModifier 减少代码重复
+
+#### Component Method Design / 组件方法设计
+- SwiftUI component methods that use `.onXX` pattern should return `some View` / SwiftUI 组件的 `.onXX` 方法应返回 `some View`
+- Methods can return other Swift components / 方法可以返回其他 Swift 组件
+- Use modifiers within these methods for composition / 在这些方法中使用 modifier 进行组合
+
+#### Maximum Reusability Principle / 最大可复用性原则
+- **ALWAYS** encapsulate repeating patterns into reusable components / **始终**将重复的模式封装为可复用组件
+- **ALWAYS** create custom ViewModifiers for common styling / **始终**为常见样式创建自定义 ViewModifier
+- **ALWAYS** extract complex logic into separate structures / **始终**将复杂逻辑提取到独立结构中
+- **PREFER** composition over duplication / **优先**使用组合而非重复
+
+### ViewModifier Examples with Super Detailed Comments / ViewModifier 超详细注释示例
+
+```swift
+/**
+ * CUSTOM VIEW MODIFIER - 自定义视图修饰符
+ * 
+ * PURPOSE / 目的:
+ * - Encapsulate reusable styling and behavior patterns
+ * - 封装可复用的样式和行为模式
+ * 
+ * BENEFITS / 好处:
+ * - Write once, use everywhere (DRY principle)
+ * - 一次编写，到处使用（DRY 原则）
+ * - Consistent UI across the app
+ * - 整个应用的 UI 一致性
+ * - Easy to update styling in one place
+ * - 易于在一个地方更新样式
+ * 
+ * HOW TO CREATE / 如何创建:
+ * 1. Create struct conforming to ViewModifier
+ *    创建符合 ViewModifier 的结构体
+ * 2. Implement body(content:) method
+ *    实现 body(content:) 方法
+ * 3. Add View extension for convenience
+ *    添加 View 扩展以便使用
+ */
+struct CardStyle: ViewModifier {
+    // Optional parameters for customization / 可选参数用于自定义
+    var backgroundColor: Color = .white
+    var cornerRadius: CGFloat = 10
+    var shadowRadius: CGFloat = 5
+    var padding: CGFloat = 16
+    
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(backgroundColor)
+            .cornerRadius(cornerRadius)
+            .shadow(color: Color.black.opacity(0.1), radius: shadowRadius, x: 0, y: 2)
+    }
+}
+
+// CONVENIENCE EXTENSION / 便利扩展
+extension View {
+    /**
+     * Apply card styling to any view
+     * 为任何视图应用卡片样式
+     * 
+     * USAGE EXAMPLES / 使用示例:
+     * 
+     * // Basic usage / 基础用法
+     * Text("Hello").cardStyle()
+     * 
+     * // With custom parameters / 带自定义参数
+     * VStack { ... }.cardStyle(backgroundColor: .blue, shadowRadius: 10)
+     * 
+     * // Chain with other modifiers / 与其他修饰符链式调用
+     * Image("profile")
+     *     .resizable()
+     *     .cardStyle()
+     *     .frame(width: 200, height: 200)
+     */
+    func cardStyle(
+        backgroundColor: Color = .white,
+        cornerRadius: CGFloat = 10,
+        shadowRadius: CGFloat = 5,
+        padding: CGFloat = 16
+    ) -> some View {
+        modifier(CardStyle(
+            backgroundColor: backgroundColor,
+            cornerRadius: cornerRadius,
+            shadowRadius: shadowRadius,
+            padding: padding
+        ))
+    }
+}
+
+/**
+ * LOADING OVERLAY MODIFIER - 加载遮罩修饰符
+ * 
+ * PURPOSE / 目的:
+ * - Show loading indicator over any view
+ * - 在任何视图上显示加载指示器
+ * 
+ * USE CASES / 使用场景:
+ * - API calls in progress / API 调用进行中
+ * - Data processing / 数据处理
+ * - File uploads/downloads / 文件上传/下载
+ */
+struct LoadingOverlay: ViewModifier {
+    @Binding var isLoading: Bool
+    var message: String = "Loading..."
+    var backgroundColor: Color = Color.black.opacity(0.3)
+    
+    func body(content: Content) -> some View {
+        ZStack {
+            content
+                .disabled(isLoading) // Disable interaction when loading / 加载时禁用交互
+            
+            if isLoading {
+                backgroundColor
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.5)
+                    
+                    Text(message)
+                        .font(.caption)
+                        .foregroundColor(.white)
+                }
+                .padding(24)
+                .background(Color.black.opacity(0.7))
+                .cornerRadius(12)
+            }
+        }
+    }
+}
+```
+
+### Reusable Component Examples with Super Detailed Comments / 可复用组件超详细注释示例
+
+```swift
+/**
+ * REUSABLE LOADING VIEW COMPONENT - 可复用加载视图组件
+ * 
+ * PURPOSE / 目的:
+ * - Standardized loading indicator across the app
+ * - 应用中标准化的加载指示器
+ * 
+ * WHEN TO USE / 何时使用:
+ * - Standalone loading screens / 独立的加载屏幕
+ * - Empty state while fetching data / 获取数据时的空状态
+ * - Pull-to-refresh indicators / 下拉刷新指示器
+ * 
+ * USAGE EXAMPLES / 使用示例:
+ * 
+ * // Basic usage / 基础用法
+ * if isLoading {
+ *     LoadingView(message: "Fetching data...")
+ * }
+ * 
+ * // With custom styling / 带自定义样式
+ * LoadingView(
+ *     message: "Please wait",
+ *     style: .large,
+ *     tintColor: .blue
+ * )
+ */
+struct LoadingView: View {
+    let message: String
+    var style: ProgressViewStyle = .automatic
+    var tintColor: Color = .accentColor
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: tintColor))
+                .scaleEffect(style == .large ? 1.5 : 1.0)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    enum ProgressViewStyle {
+        case automatic, large, small
+    }
+}
+
+/**
+ * VIEW EXTENSION WITH onXXX PATTERN - 带有 onXXX 模式的视图扩展
+ * 
+ * PURPOSE / 目的:
+ * - Add conditional behavior to any view
+ * - 为任何视图添加条件行为
+ * - Chain-able API design
+ * - 可链式调用的 API 设计
+ * 
+ * NAMING CONVENTION / 命名约定:
+ * - Start with "on" for event-based modifiers
+ * - 以 "on" 开头表示基于事件的修饰符
+ * - Use descriptive names: onLoading, onError, onEmpty
+ * - 使用描述性名称：onLoading, onError, onEmpty
+ */
+extension View {
+    /**
+     * Show loading overlay on any view
+     * 在任何视图上显示加载遮罩
+     * 
+     * USAGE EXAMPLES / 使用示例:
+     * 
+     * struct ContentView: View {
+     *     @State private var isLoading = false
+     *     
+     *     var body: some View {
+     *         VStack {
+     *             // Your content / 你的内容
+     *         }
+     *         .onLoading(isLoading, message: "Fetching data...")
+     *         .onAppear {
+     *             fetchData()
+     *         }
+     *     }
+     * }
+     * 
+     * CHAINING EXAMPLE / 链式调用示例:
+     * 
+     * MyCustomView()
+     *     .onLoading(isLoading)
+     *     .onError(hasError, message: errorMessage)
+     *     .onEmpty(items.isEmpty, message: "No items found")
+     */
+    func onLoading(_ isLoading: Bool, message: String = "Loading...") -> some View {
+        self.overlay(
+            isLoading ? LoadingView(message: message) : nil
+        )
+    }
+    
+    /**
+     * Show error state overlay
+     * 显示错误状态遮罩
+     * 
+     * USAGE / 使用:
+     * VStack { ... }
+     *     .onError(viewModel.hasError, message: viewModel.errorMessage)
+     */
+    func onError(_ hasError: Bool, message: String, retry: (() -> Void)? = nil) -> some View {
+        self.overlay(
+            hasError ? ErrorView(message: message, retry: retry) : nil
+        )
+    }
+    
+    /**
+     * Show empty state when no data
+     * 无数据时显示空状态
+     * 
+     * USAGE / 使用:
+     * List(items) { ... }
+     *     .onEmpty(items.isEmpty, message: "No items to display")
+     */
+    func onEmpty(_ isEmpty: Bool, message: String, action: (() -> Void)? = nil) -> some View {
+        self.overlay(
+            isEmpty ? EmptyStateView(message: message, action: action) : nil
+        )
+    }
+}
+
+/**
+ * ERROR VIEW COMPONENT - 错误视图组件
+ * 
+ * PURPOSE / 目的:
+ * - Consistent error presentation
+ * - 一致的错误展示
+ * - Optional retry functionality
+ * - 可选的重试功能
+ */
+struct ErrorView: View {
+    let message: String
+    let retry: (() -> Void)?
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundColor(.red)
+            
+            Text(message)
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            
+            if let retry = retry {
+                Button("Retry", action: retry)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+}
+
+/**
+ * EMPTY STATE VIEW COMPONENT - 空状态视图组件
+ * 
+ * COMPLETE USAGE EXAMPLE / 完整使用示例:
+ * 
+ * struct ProductListView: View {
+ *     @State private var products: [Product] = []
+ *     @State private var isLoading = false
+ *     @State private var errorMessage: String?
+ *     
+ *     var body: some View {
+ *         List(products) { product in
+ *             ProductRow(product: product)
+ *         }
+ *         // Chain multiple state modifiers / 链式调用多个状态修饰符
+ *         .onLoading(isLoading, message: "Loading products...")
+ *         .onError(errorMessage != nil, message: errorMessage ?? "") {
+ *             // Retry action / 重试操作
+ *             fetchProducts()
+ *         }
+ *         .onEmpty(products.isEmpty && !isLoading, message: "No products available") {
+ *             // Refresh action / 刷新操作
+ *             fetchProducts()
+ *         }
+ *     }
+ * }
+ */
+struct EmptyStateView: View {
+    let message: String
+    let action: (() -> Void)?
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "tray")
+                .font(.system(size: 50))
+                .foregroundColor(.secondary)
+            
+            Text(message)
+                .font(.headline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            if let action = action {
+                Button("Refresh", action: action)
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+```
 
 ### SwiftUI View Structure Rules / SwiftUI 视图结构规则
 
@@ -261,15 +1027,118 @@ xcodebuild -project ReduxSwiftUIDemo.xcodeproj -scheme ReduxSwiftUIDemo -destina
 swift test
 ```
 
+## Development Process / 开发流程
+
+### Requirements Discussion First / 需求讨论优先
+We need to discuss requirements first, then list TODOs, and finally write code with detailed bilingual comments.
+我们需要先讨论需求，需求讨论确定后列出TODO，最后再写出附带中英文详细注释的代码。
+
+### Development Workflow / 开发工作流
+1. **Discuss Requirements** / **讨论需求**
+   - Understand what needs to be built / 理解需要构建什么
+   - Clarify any ambiguities / 澄清任何歧义
+   - Propose improvements if needed / 如需要则提出改进建议
+
+2. **Create TODO List** / **创建 TODO 列表**
+   - Break down the task into manageable steps / 将任务分解为可管理的步骤
+   - Prioritize tasks / 优先级排序任务
+   - Track progress systematically / 系统地跟踪进度
+
+3. **Write Code with Detailed Comments** / **编写带详细注释的代码**
+   - Include bilingual comments (Chinese + English) / 包含双语注释（中文+英文）
+   - Add comprehensive usage examples in file headers / 在文件头部添加全面的使用示例
+   - Document design patterns used and why / 记录使用的设计模式及原因
+
+### Code Documentation Requirements / 代码文档要求
+
+#### File Header Comments / 文件头部注释
+Every source file MUST include detailed header comments with:
+每个源文件必须包含详细的头部注释，包括：
+
+```swift
+/**
+ * FileName.swift
+ * Component description / 组件描述
+ * 
+ * DESIGN PATTERNS USED / 使用的设计模式:
+ * 1. Pattern Name (模式名称)
+ *    - Why: Reason for using this pattern / 为什么：使用此模式的原因
+ *    - Benefits: What benefits it provides / 好处：提供的好处
+ *    - Implementation: How it's implemented / 实现：如何实现
+ * 
+ * SOLID PRINCIPLES / SOLID 原则:
+ * - SRP: How it follows Single Responsibility / 如何遵循单一职责
+ * - OCP: How it's open for extension / 如何对扩展开放
+ * - LSP: How substitution works / 如何实现替换
+ * - ISP: How interfaces are segregated / 如何隔离接口
+ * - DIP: How dependencies are inverted / 如何倒置依赖
+ * 
+ * USAGE EXAMPLES / 使用示例:
+ * ```
+ * // Example 1: Basic usage / 基础用法
+ * let component = MyComponent()
+ * component.doSomething()
+ * 
+ * // Example 2: Advanced usage / 高级用法
+ * let customComponent = MyComponent(config: customConfig)
+ * customComponent.performAction { result in
+ *     // Handle result / 处理结果
+ * }
+ * ```
+ * 
+ * DEPENDENCIES / 依赖:
+ * - List any external dependencies / 列出任何外部依赖
+ * 
+ * NOTES / 注意事项:
+ * - Any special considerations / 任何特殊考虑
+ */
+```
+
+### Component Design Guidelines / 组件设计指南
+
+#### Reusable Components / 可复用组件
+- Code should be designed as reusable components / 代码应设计为可复用组件
+- Encapsulate into small classes, structs, protocols / 封装成小的 class、struct、protocol
+- Each component should have a single, clear purpose / 每个组件应有单一、明确的目的
+
+#### Design Pattern Usage / 设计模式使用
+- Use design patterns ONLY when they fit the requirements / 仅在符合需求时使用设计模式
+- Don't force patterns where they don't belong / 不要强制使用不合适的模式
+- Always document WHY a pattern is used / 始终记录为什么使用某个模式
+- Include super detailed comments explaining benefits / 包含超级详细的注释解释好处
+
 ## Notes for AI Assistant / AI 助手注意事项
 
 When modifying this project / 修改此项目时:
+
+### Code Quality / 代码质量
 1. **ALWAYS check nesting levels in SwiftUI views** / **始终检查 SwiftUI 视图中的嵌套级别**
 2. **ALWAYS refactor views exceeding 2 levels of nesting** / **始终重构超过 2 级嵌套的视图**
 3. **ALWAYS run swiftlint after making changes** / **进行更改后始终运行 swiftlint**
 4. **ALWAYS extract complex UI into smaller components** / **始终将复杂的 UI 提取为更小的组件**
 5. **ALWAYS use bilingual comments (Chinese + English)** / **始终使用双语注释（中文+英文）**
 6. **ALWAYS build project and auto-fix errors until successful** / **始终构建项目并自动修复错误直到成功**
-7. **NEVER create deeply nested view hierarchies** / **永远不要创建深层嵌套的视图层次结构**
-8. **NEVER submit code with compilation errors** / **永远不要提交有编译错误的代码**
-9. **PREFER computed properties and separate view structs over inline nested views** / **优先使用计算属性和单独的视图结构体而不是内联嵌套视图**
+
+### Reusability & Encapsulation / 可复用性和封装
+7. **ALWAYS encapsulate reusable patterns as ViewModifiers** / **始终将可复用模式封装为 ViewModifier**
+8. **ALWAYS create reusable components for repeated UI patterns** / **始终为重复的 UI 模式创建可复用组件**
+9. **ALWAYS use composition and modifiers to maximize reusability** / **始终使用组合和 modifier 来最大化可复用性**
+
+### Design Principles / 设计原则
+10. **ALWAYS follow SOLID principles** / **始终遵循 SOLID 原则**
+11. **ALWAYS use design patterns appropriately with detailed comments** / **始终适当使用设计模式并提供详细注释**
+12. **ALWAYS explain why a pattern is used and its benefits** / **始终解释为什么使用某个模式及其好处**
+13. **ALWAYS consider simpler solutions before applying patterns** / **在应用模式之前始终考虑更简单的解决方案**
+
+### Things to Avoid / 要避免的事项
+14. **NEVER create deeply nested view hierarchies** / **永远不要创建深层嵌套的视图层次结构**
+15. **NEVER submit code with compilation errors** / **永远不要提交有编译错误的代码**
+16. **NEVER duplicate code when it can be encapsulated** / **永远不要在可以封装的情况下重复代码**
+17. **NEVER use design patterns just for the sake of using them** / **永远不要为了使用设计模式而使用设计模式**
+18. **NEVER violate SOLID principles** / **永远不要违反 SOLID 原则**
+
+### Preferences / 偏好
+19. **PREFER computed properties and separate view structs over inline nested views** / **优先使用计算属性和单独的视图结构体而不是内联嵌套视图**
+20. **PREFER ViewModifiers for styling and behavior patterns** / **优先使用 ViewModifier 来实现样式和行为模式**
+21. **PREFER simple solutions over complex patterns when appropriate** / **在适当时优先选择简单解决方案而非复杂模式**
+22. **PREFER dependency injection over hard dependencies** / **优先使用依赖注入而非硬依赖**

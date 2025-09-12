@@ -12,11 +12,34 @@ DerivedData/
 *.dSYM
 
 # Swift Package Manager / Swift 包管理器
+# SPM 下载的第三方库源代码 / Third-party library source code downloaded by SPM
 .build/
 .swiftpm/
-Package.resolved
-.resolved
 SourcePackages/
+.build/checkouts/
+.build/repositories/
+DerivedData/SourcePackages/
+build/SourcePackages/
+
+# 保留 Package.resolved 以锁定版本 / Keep Package.resolved to lock versions
+# 如果你想团队使用相同版本，请注释下一行 / Comment next line if you want team to use same versions
+# Package.resolved
+
+# SPM 缓存 / SPM Cache
+.swiftpm/xcode/package.xcworkspace/
+.swiftpm/xcode/xcuserdata/
+.swiftpm/config/registries.json
+.swiftpm/artifacts/
+.swiftpm/Package.resolved
+.swiftpm/playgrounds/
+.swiftpm/dependency-cache/
+.swiftpm/manifest-cache/
+.swiftpm/repository-cache/
+.swiftpm/container.db
+
+# Xcode 自动生成的 SPM 相关文件 / Xcode auto-generated SPM files
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+*.xcworkspace/xcshareddata/swiftpm/
 
 # Xcode User Data / Xcode 用户数据
 *.xcuserstate

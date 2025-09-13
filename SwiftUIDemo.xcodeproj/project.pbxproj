@@ -195,6 +195,10 @@
 			);
 			mainGroup = 6ABD27292E72E9BD00AEA742;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6A4A80B72E75467900B2E086 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				6A4A80B82E754F8000B2E086 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6ABD27332E72E9BD00AEA742 /* Products */;
 			projectDirPath = "";
@@ -550,6 +554,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6A4A80B72E75467900B2E086 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.22.2;
+			};
+		};
+		6A4A80B82E754F8000B2E086 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.61.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 6ABD272A2E72E9BD00AEA742 /* Project object */;
 }

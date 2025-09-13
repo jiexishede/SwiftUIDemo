@@ -32,6 +32,8 @@ struct AppFeature {
                     state.path.append(.networkRequest(ReduxPageStateBeRequestFeature.State()))
                 case "refreshableList":
                     state.path.append(.refreshableList(RefreshableListFeature.State()))
+                case "smartScroll":
+                    state.path.append(.smartScroll)
                 default:
                     break
                 }
@@ -53,12 +55,14 @@ struct AppFeature {
             case counter(CounterFeature.State)
             case networkRequest(ReduxPageStateBeRequestFeature.State)
             case refreshableList(RefreshableListFeature.State)
+            case smartScroll
         }
         
         enum Action {
             case counter(CounterFeature.Action)
             case networkRequest(ReduxPageStateBeRequestFeature.Action)
             case refreshableList(RefreshableListFeature.Action)
+            case smartScroll
         }
         
         var body: some ReducerOf<Self> {
@@ -100,6 +104,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "Refreshable List",
             subtitle: "Pull-to-refresh, load more, empty & error states",
             systemImage: "arrow.clockwise.square"
+        ),
+        DemoItem(
+            id: "smartScroll",
+            title: "智能滚动视图 / Smart Scroll",
+            subtitle: "横向滚动与竖向滚动智能切换 / Intelligent scroll direction switching",
+            systemImage: "scroll"
         )
     ]
 }

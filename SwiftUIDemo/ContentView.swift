@@ -44,6 +44,8 @@ struct ContentView: View {
             if let store = store.scope(state: \.refreshableList, action: \.refreshableList) {
                 RefreshableListView(store: store)
             }
+        case .smartScroll:
+            SmartScrollDemoView()
         }
     }
 }
@@ -202,6 +204,8 @@ struct iOS15DestinationView: View {
                     }
                 )
             )
+        case "smartScroll":
+            childStore = AnyView(SmartScrollDemoView())
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

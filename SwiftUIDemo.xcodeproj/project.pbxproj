@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6A4A80BA2E75521F00B2E086 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 6A4A80B92E75521F00B2E086 /* ComposableArchitecture */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6ABD27422E72E9BE00AEA742 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6A4A80BA2E75521F00B2E086 /* ComposableArchitecture in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = SwiftUIDemo;
 			packageProductDependencies = (
+				6A4A80B92E75521F00B2E086 /* ComposableArchitecture */,
 			);
 			productName = SwiftUIDemo;
 			productReference = 6ABD27322E72E9BD00AEA742 /* SwiftUIDemo.app */;
@@ -573,6 +579,14 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6A4A80B92E75521F00B2E086 /* ComposableArchitecture */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6A4A80B72E75467900B2E086 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			productName = ComposableArchitecture;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6ABD272A2E72E9BD00AEA742 /* Project object */;
 }

@@ -34,7 +34,7 @@ struct SmartVerticalScrollView<Content: View>: View {
                                     .preference(
                                         key: ScrollContentPreferenceKey.self,
                                         value: ScrollContentData(
-                                            offset: geometry.frame(in: .named("scroll")).origin,
+                                            offset: geometry.frame(in: .named("vertical_scroll")).origin,
                                             size: geometry.size
                                         )
                                     )
@@ -43,7 +43,7 @@ struct SmartVerticalScrollView<Content: View>: View {
                 }
                 .id("scrollContent")
             }
-            .coordinateSpace(name: "scroll")
+            .coordinateSpace(name: "vertical_scroll")
             .onPreferenceChange(ScrollContentPreferenceKey.self) { data in
                 scrollPosition = data.offset
                 contentHeight = data.size.height

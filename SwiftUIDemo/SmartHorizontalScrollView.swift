@@ -38,13 +38,13 @@ struct SmartHorizontalScrollView<Content: View>: View {
                                 Color.clear
                                     .preference(
                                         key: ScrollOffsetPreferenceKey.self,
-                                        value: innerGeometry.frame(in: .named("scroll")).origin
+                                        value: innerGeometry.frame(in: .named("horizontal_scroll")).origin
                                     )
                             }
                         )
                         .id("content")
                 }
-                .coordinateSpace(name: "scroll")
+                .coordinateSpace(name: "horizontal_scroll")
                 .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
                     scrollOffset = value
                 }

@@ -54,6 +54,12 @@ struct ContentView: View {
             if let store = store.scope(state: \.originalDialogDemo, action: \.originalDialogDemo) {
                 OriginalDialogDemoView(store: store)
             }
+        case .networkErrorDemo:
+            if let store = store.scope(state: \.networkErrorDemo, action: \.networkErrorDemo) {
+                NetworkErrorDemoView(store: store)
+            }
+        case .networkStatus:
+            NetworkStatusDemoView()
         }
     }
 }

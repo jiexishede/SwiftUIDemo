@@ -432,7 +432,7 @@ struct ModernRefreshableScrollView: View {
     
     private var itemsList: some View {
         ForEach(viewStore.items) { item in
-            ListItemView(item: item)
+            RefreshableListItemView(item: item)
         }
     }
     
@@ -483,7 +483,7 @@ struct LegacyRefreshableScrollView: View {
             
             // 列表项 / List items
             ForEach(viewStore.items) { item in
-                ListItemView(item: item)
+                RefreshableListItemView(item: item)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
             }
@@ -752,7 +752,7 @@ struct EmptyListView: View {
 
 // MARK: - List Item View
 // 列表项视图 / List Item View
-struct ListItemView: View {
+struct RefreshableListItemView: View {
     let item: MockItem
     
     var body: some View {

@@ -1272,10 +1272,16 @@ struct ExpandableContentSheet: View {
 /**
  * Dynamic Form Sheet / 动态表单弹窗
  * Form with add/remove fields / 可增减字段的表单
+ * 
+ * KEYBOARD HANDLING / 键盘处理:
+ * - Sheet automatically moves up when keyboard appears / 键盘出现时弹窗自动上移
+ * - Content remains visible above keyboard / 内容保持在键盘上方可见
+ * - Smooth animation synchronized with keyboard / 与键盘同步的平滑动画
  */
 struct DynamicFormSheet: View {
-    @State private var fields: [String] = ["字段 1 / Field 1"]
+    @State private var fields: [String] = ["字段 1 / Field 1", "字段 2 / Field 2"]
     @State private var textValues: [String: String] = [:]
+    @FocusState private var focusedField: String?
     
     var body: some View {
         VStack(spacing: 16) {
@@ -1290,11 +1296,33 @@ struct DynamicFormSheet: View {
                         HStack {
                             TextField(field, text: binding(for: field))
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .focused($focusedField, equals: field)
+                                .submitLabel(.next)
+                                .onSubmit {
+                                    // Move to next field / 移动到下一个字段
+                                    if index < fields.count - 1 {
+                                        focusedField = fields[index + 1]
+                                    } else {
+                                        focusedField = nil
+                                    }
+                                }
+                                .background(
+                                    GeometryReader { geometry in
+                                        Color.clear
+                                            .preference(
+                                                key: FocusedFieldFrameKey.self,
+                                                value: focusedField == field ? geometry.frame(in: .global) : nil
+                                            )
+                                    }
+                                )
                             
                             Button(action: {
                                 withAnimation {
                                     fields.remove(at: index)
                                     textValues.removeValue(forKey: field)
+                                    if focusedField == field {
+                                        focusedField = nil
+                                    }
                                 }
                             }) {
                                 Image(systemName: "minus.circle.fill")
@@ -1321,7 +1349,12 @@ struct DynamicFormSheet: View {
             .frame(maxHeight: 300)
             .padding(.horizontal)
             
+            // Submit button with keyboard dismiss / 带键盘收起的提交按钮
             Button(action: {
+                // Dismiss keyboard first / 先收起键盘
+                focusedField = nil
+                
+                // Then submit / 然后提交
                 print("表单提交 / Form submitted")
                 print("字段数量 / Field count: \(fields.count)")
                 for field in fields {
@@ -1334,9 +1367,16 @@ struct DynamicFormSheet: View {
             .buttonStyle(.borderedProminent)
             .padding(.horizontal)
             
+            // Tip about keyboard / 键盘提示
+            Text("💡 点击输入框查看键盘避让效果 / Tap input to see keyboard avoidance")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
             footerText(
-                primary: "表单高度动态变化 / Form height changes dynamically",
-                secondary: "最多显示300点高度 / Max 300 points height"
+                primary: "键盘出现时自动上移 / Auto-moves when keyboard appears",
+                secondary: "保持内容可见 / Keeps content visible"
             )
         }
         .padding(.vertical)
@@ -1740,7 +1780,7 @@ struct DynamicCardsSheet: View {
                 statisticsSection
                 
                 footerText(
-                    primary: "高度根据内容智能调整 / Height adjusts smartly based on content",
+                    primary: "键盘出现时弹窗自动上移 / Sheet moves up with keyboard",
                     secondary: "当前卡片数: \(cards.count) / Current cards: \(cards.count)"
                 )
             }

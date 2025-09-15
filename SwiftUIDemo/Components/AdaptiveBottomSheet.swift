@@ -32,6 +32,7 @@
  */
 
 import SwiftUI
+import Combine
 
 // MARK: - Height Strategy / 高度策略
 
@@ -60,6 +61,19 @@ struct BottomSheetHeightKey: PreferenceKey {
     }
 }
 
+/**
+ * PreferenceKey for tracking focused field frame / 用于跟踪聚焦字段框架的偏好键
+ * 
+ * For smart keyboard management / 用于智能键盘管理
+ */
+struct FocusedFieldFrameKey: PreferenceKey {
+    static var defaultValue: CGRect? = nil
+    
+    static func reduce(value: inout CGRect?, nextValue: () -> CGRect?) {
+        value = nextValue() ?? value
+    }
+}
+
 // MARK: - Adaptive Bottom Sheet View / 自适应底部弹窗视图
 
 struct AdaptiveBottomSheet<Content: View>: View {
@@ -75,12 +89,19 @@ struct AdaptiveBottomSheet<Content: View>: View {
     @State private var dragOffset: CGFloat = 0
     @GestureState private var isDragging = false
     
+    // Smart keyboard handling / 智能键盘处理
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var keyboardAnimationDuration: Double = 0.25
+    @State private var focusedFieldFrame: CGRect? = nil
+    let useSmartKeyboard: Bool
+    
     init(
         isPresented: Binding<Bool>,
         height: BottomSheetHeight = .automatic,
         cornerRadius: CGFloat = 20,
         backgroundColor: Color = Color(.systemBackground),
         dragIndicator: Bool = true,
+        useSmartKeyboard: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self._isPresented = isPresented
@@ -88,6 +109,7 @@ struct AdaptiveBottomSheet<Content: View>: View {
         self.cornerRadius = cornerRadius
         self.backgroundColor = backgroundColor
         self.dragIndicator = dragIndicator
+        self.useSmartKeyboard = useSmartKeyboard
         self.content = content()
     }
     
@@ -133,16 +155,35 @@ struct AdaptiveBottomSheet<Content: View>: View {
                     .background(backgroundColor)
                     .cornerRadius(cornerRadius, corners: [.topLeft, .topRight])
                     .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
-                    .offset(y: max(0, dragOffset))
+                    .offset(y: calculateSmartOffset(in: geometry))
                     .gesture(dragGesture)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .onPreferenceChange(BottomSheetHeightKey.self) { height in
                         contentHeight = height
                     }
+                    .onAppear {
+                        if useSmartKeyboard {
+                            setupSmartKeyboardObservers()
+                        }
+                    }
+                    .onDisappear {
+                        if useSmartKeyboard {
+                            removeSmartKeyboardObservers()
+                        }
+                    }
+                    .background(
+                        GeometryReader { contentGeometry in
+                            Color.clear
+                                .onAppear {
+                                    // Track content frame for smart keyboard / 跟踪内容框架以实现智能键盘
+                                }
+                        }
+                    )
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPresented)
             .animation(.interactiveSpring(), value: dragOffset)
+            .animation(.easeOut(duration: keyboardAnimationDuration), value: keyboardHeight)
         }
         .ignoresSafeArea(.container, edges: .bottom)
     }
@@ -232,6 +273,107 @@ struct AdaptiveBottomSheet<Content: View>: View {
                     }
                 }
             }
+    }
+    
+    // MARK: - Smart Keyboard Offset Calculation / 智能键盘偏移计算
+    
+    /**
+     * Calculate smart vertical offset / 计算智能垂直偏移
+     * 
+     * SMART LOGIC / 智能逻辑:
+     * 1. Only move if TextField would be hidden / 仅在输入框会被遮挡时移动
+     * 2. Calculate minimum movement needed / 计算所需的最小移动
+     * 3. Respect sheet boundaries / 尊重弹窗边界
+     */
+    private func calculateSmartOffset(in geometry: GeometryProxy) -> CGFloat {
+        // Base offset from dragging / 拖动的基础偏移
+        let baseOffset = max(0, dragOffset)
+        
+        if !useSmartKeyboard {
+            // Fallback to simple keyboard offset / 回退到简单的键盘偏移
+            return baseOffset - keyboardHeight
+        }
+        
+        // Smart keyboard offset / 智能键盘偏移
+        guard let fieldFrame = focusedFieldFrame,
+              keyboardHeight > 0 else {
+            return baseOffset
+        }
+        
+        // Calculate positions / 计算位置
+        let sheetTop = geometry.frame(in: .global).minY
+        let fieldBottomRelativeToSheet = fieldFrame.maxY - sheetTop
+        let sheetHeight = calculatedHeight(in: geometry)
+        let visibleSheetHeight = sheetHeight - keyboardHeight
+        
+        // Check if field would be hidden / 检查字段是否会被遮挡
+        if fieldBottomRelativeToSheet > visibleSheetHeight {
+            // Calculate minimum offset needed / 计算所需的最小偏移
+            let overlap = fieldBottomRelativeToSheet - visibleSheetHeight
+            let keyboardOffset = -(overlap + 30)  // 30pt padding / 30点内边距
+            
+            // Ensure sheet doesn't go too high / 确保弹窗不会太高
+            let maxUpwardOffset = -(sheetHeight * 0.3)  // Max 30% up / 最多上移 30%
+            return baseOffset + max(keyboardOffset, maxUpwardOffset)
+        }
+        
+        return baseOffset
+    }
+    
+    /**
+     * Setup smart keyboard observers / 设置智能键盘观察者
+     */
+    private func setupSmartKeyboardObservers() {
+        // Keyboard will show / 键盘将显示
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillShowNotification,
+            object: nil,
+            queue: .main
+        ) { notification in
+            guard let userInfo = notification.userInfo,
+                  let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+                  let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else {
+                return
+            }
+            
+            keyboardAnimationDuration = duration
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardHeight = keyboardFrame.height
+            }
+        }
+        
+        // Keyboard will hide / 键盘将隐藏
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillHideNotification,
+            object: nil,
+            queue: .main
+        ) { notification in
+            guard let userInfo = notification.userInfo,
+                  let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else {
+                return
+            }
+            
+            keyboardAnimationDuration = duration
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardHeight = 0
+            }
+        }
+    }
+    
+    /**
+     * Remove smart keyboard observers / 移除智能键盘观察者
+     */
+    private func removeSmartKeyboardObservers() {
+        NotificationCenter.default.removeObserver(
+            self,
+            name: UIResponder.keyboardWillShowNotification,
+            object: nil
+        )
+        NotificationCenter.default.removeObserver(
+            self,
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
     }
 }
 

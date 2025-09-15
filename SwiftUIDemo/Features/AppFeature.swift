@@ -38,6 +38,10 @@ struct AppFeature {
                     state.path.append(.dialogDemo(DialogDemoFeature.State()))
                 case "originalDialogDemo":
                     state.path.append(.originalDialogDemo(OriginalDialogDemoFeature.State()))
+                case "networkErrorDemo":
+                    state.path.append(.networkErrorDemo(NetworkErrorDemoFeature.State()))
+                case "networkStatus":
+                    state.path.append(.networkStatus)
                 default:
                     break
                 }
@@ -62,6 +66,8 @@ struct AppFeature {
             case smartScroll
             case dialogDemo(DialogDemoFeature.State)
             case originalDialogDemo(OriginalDialogDemoFeature.State)
+            case networkErrorDemo(NetworkErrorDemoFeature.State)
+            case networkStatus
         }
         
         enum Action {
@@ -71,6 +77,8 @@ struct AppFeature {
             case smartScroll
             case dialogDemo(DialogDemoFeature.Action)
             case originalDialogDemo(OriginalDialogDemoFeature.Action)
+            case networkErrorDemo(NetworkErrorDemoFeature.Action)
+            case networkStatus
         }
         
         var body: some ReducerOf<Self> {
@@ -88,6 +96,9 @@ struct AppFeature {
             }
             Scope(state: \.originalDialogDemo, action: \.originalDialogDemo) {
                 OriginalDialogDemoFeature()
+            }
+            Scope(state: \.networkErrorDemo, action: \.networkErrorDemo) {
+                NetworkErrorDemoFeature()
             }
         }
     }
@@ -136,6 +147,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "原始弹窗 / Original Dialog",
             subtitle: "队列优先级与LIFO演示 / Queue priority & LIFO demo",
             systemImage: "bubble.left.and.bubble.right"
+        ),
+        DemoItem(
+            id: "networkStatus",
+            title: "网络状态监控 / Network Monitor",
+            subtitle: "实时检测断网与连接类型 / Real-time connectivity detection",
+            systemImage: "wifi"
         )
     ]
 }

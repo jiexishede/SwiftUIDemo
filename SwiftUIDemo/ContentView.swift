@@ -60,6 +60,8 @@ struct ContentView: View {
             }
         case .networkStatus:
             NetworkStatusDemoView()
+        case .networkAwareDemo:
+            NetworkAwareDemoView()
         }
     }
 }

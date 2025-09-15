@@ -68,6 +68,7 @@ struct AppFeature {
             case originalDialogDemo(OriginalDialogDemoFeature.State)
             case networkErrorDemo(NetworkErrorDemoFeature.State)
             case networkStatus
+            case networkAwareDemo
         }
         
         enum Action {
@@ -79,6 +80,7 @@ struct AppFeature {
             case originalDialogDemo(OriginalDialogDemoFeature.Action)
             case networkErrorDemo(NetworkErrorDemoFeature.Action)
             case networkStatus
+            case networkAwareDemo
         }
         
         var body: some ReducerOf<Self> {

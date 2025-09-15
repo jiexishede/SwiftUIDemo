@@ -347,7 +347,7 @@ final class NetworkMonitor: ObservableObject {
  * View modifier for network-aware UI
  * 网络感知 UI 的视图修饰符
  */
-struct NetworkAwareModifier: ViewModifier {
+struct NetworkMonitorModifier: ViewModifier {
     @ObservedObject private var monitor = NetworkMonitor.shared
     let showBanner: Bool
     let autoRetry: Bool
@@ -412,6 +412,6 @@ extension View {
      * ```
      */
     func networkAware(showBanner: Bool = true, autoRetry: Bool = false) -> some View {
-        modifier(NetworkAwareModifier(showBanner: showBanner, autoRetry: autoRetry))
+        modifier(NetworkMonitorModifier(showBanner: showBanner, autoRetry: autoRetry))
     }
 }

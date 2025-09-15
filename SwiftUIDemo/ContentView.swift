@@ -50,6 +50,10 @@ struct ContentView: View {
             if let store = store.scope(state: \.dialogDemo, action: \.dialogDemo) {
                 DialogDemoView(store: store)
             }
+        case .originalDialogDemo:
+            if let store = store.scope(state: \.originalDialogDemo, action: \.originalDialogDemo) {
+                OriginalDialogDemoView(store: store)
+            }
         }
     }
 }
@@ -215,6 +219,14 @@ struct iOS15DestinationView: View {
                 DialogDemoView(
                     store: Store(initialState: DialogDemoFeature.State()) {
                         DialogDemoFeature()
+                    }
+                )
+            )
+        case "originalDialogDemo":
+            childStore = AnyView(
+                OriginalDialogDemoView(
+                    store: Store(initialState: OriginalDialogDemoFeature.State()) {
+                        OriginalDialogDemoFeature()
                     }
                 )
             )

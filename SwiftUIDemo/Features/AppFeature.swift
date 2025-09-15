@@ -36,6 +36,8 @@ struct AppFeature {
                     state.path.append(.smartScroll)
                 case "dialogDemo":
                     state.path.append(.dialogDemo(DialogDemoFeature.State()))
+                case "originalDialogDemo":
+                    state.path.append(.originalDialogDemo(OriginalDialogDemoFeature.State()))
                 default:
                     break
                 }
@@ -59,6 +61,7 @@ struct AppFeature {
             case refreshableList(RefreshableListFeature.State)
             case smartScroll
             case dialogDemo(DialogDemoFeature.State)
+            case originalDialogDemo(OriginalDialogDemoFeature.State)
         }
         
         enum Action {
@@ -67,6 +70,7 @@ struct AppFeature {
             case refreshableList(RefreshableListFeature.Action)
             case smartScroll
             case dialogDemo(DialogDemoFeature.Action)
+            case originalDialogDemo(OriginalDialogDemoFeature.Action)
         }
         
         var body: some ReducerOf<Self> {
@@ -81,6 +85,9 @@ struct AppFeature {
             }
             Scope(state: \.dialogDemo, action: \.dialogDemo) {
                 DialogDemoFeature()
+            }
+            Scope(state: \.originalDialogDemo, action: \.originalDialogDemo) {
+                OriginalDialogDemoFeature()
             }
         }
     }
@@ -123,6 +130,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "弹窗演示 / Dialog Demo",
             subtitle: "防连点按钮与底部弹窗 / Debounced buttons & bottom sheets",
             systemImage: "rectangle.bottomthird.inset.filled"
+        ),
+        DemoItem(
+            id: "originalDialogDemo",
+            title: "原始弹窗 / Original Dialog",
+            subtitle: "队列优先级与LIFO演示 / Queue priority & LIFO demo",
+            systemImage: "bubble.left.and.bubble.right"
         )
     ]
 }

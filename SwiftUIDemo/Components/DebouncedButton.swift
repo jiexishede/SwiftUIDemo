@@ -88,20 +88,22 @@ struct DisabledDebounceModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .disabled(isDisabled)
-            .onTapGesture {
-                guard !isDisabled else { return }
-                
-                // Perform action / 执行操作
-                action()
-                
-                // Disable button / 禁用按钮
-                isDisabled = true
-                
-                // Re-enable after duration / 持续时间后重新启用
-                DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                    isDisabled = false
+            .simultaneousGesture(
+                TapGesture().onEnded { _ in
+                    guard !isDisabled else { return }
+                    
+                    // Perform action / 执行操作
+                    action()
+                    
+                    // Disable button / 禁用按钮
+                    isDisabled = true
+                    
+                    // Re-enable after duration / 持续时间后重新启用
+                    DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                        isDisabled = false
+                    }
                 }
-            }
+            )
     }
 }
 
@@ -131,26 +133,28 @@ struct TaskDebounceModifier: ViewModifier {
             content
                 .disabled(isProcessing)
                 .opacity(isProcessing && showLoading ? 0.6 : 1.0)
-                .onTapGesture {
-                    // Cancel previous task if exists / 取消之前的任务（如果存在）
-                    currentTask?.cancel()
-                    
-                    // Create new task / 创建新任务
-                    currentTask = Task {
-                        isProcessing = true
+                .simultaneousGesture(
+                    TapGesture().onEnded { _ in
+                        // Cancel previous task if exists / 取消之前的任务（如果存在）
+                        currentTask?.cancel()
                         
-                        // Perform async action / 执行异步操作
-                        await action()
-                        
-                        // Wait for debounce duration / 等待防连点持续时间
-                        try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-                        
-                        // Check if not cancelled / 检查是否未被取消
-                        if !Task.isCancelled {
-                            isProcessing = false
+                        // Create new task / 创建新任务
+                        currentTask = Task {
+                            isProcessing = true
+                            
+                            // Perform async action / 执行异步操作
+                            await action()
+                            
+                            // Wait for debounce duration / 等待防连点持续时间
+                            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+                            
+                            // Check if not cancelled / 检查是否未被取消
+                            if !Task.isCancelled {
+                                isProcessing = false
+                            }
                         }
                     }
-                }
+                )
             
             // Loading indicator / 加载指示器
             if isProcessing && showLoading {
@@ -206,9 +210,11 @@ struct CombineDebounceModifier: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .onTapGesture {
-                model.trigger()
-            }
+            .simultaneousGesture(
+                TapGesture().onEnded { _ in
+                    model.trigger()
+                }
+            )
     }
 }
 
@@ -249,15 +255,17 @@ struct CooldownDebounceModifier: ViewModifier {
                         }
                     }
                 )
-                .onTapGesture {
-                    guard !isOnCooldown else { return }
-                    
-                    // Perform action / 执行操作
-                    action()
-                    
-                    // Start cooldown / 开始冷却
-                    startCooldown()
-                }
+                .simultaneousGesture(
+                    TapGesture().onEnded { _ in
+                        guard !isOnCooldown else { return }
+                        
+                        // Perform action / 执行操作
+                        action()
+                        
+                        // Start cooldown / 开始冷却
+                        startCooldown()
+                    }
+                )
             
             // Cooldown timer text / 冷却计时器文本
             if isOnCooldown {

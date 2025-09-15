@@ -53,10 +53,16 @@ public struct DialogDemoFeature {
     
     /// Bottom sheet types / 底部弹窗类型
     public enum BottomSheetType: String, CaseIterable {
+        case minimal = "Minimal"
+        case smallTable = "Small Table"
         case tableView = "Table View"
+        case largeList = "Large List"
         case formView = "Form View"
         case chartView = "Chart View"
         case mediaGallery = "Media Gallery"
+        case settings = "Settings"
+        case userProfile = "User Profile"
+        case longContent = "Long Content"
     }
     
     // MARK: - Action / 动作

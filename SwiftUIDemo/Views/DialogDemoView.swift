@@ -95,53 +95,131 @@ struct DialogDemoView: View {
         VStack(spacing: 16) {
             sectionTitle("列表项演示 / List Items Demo")
             
-            // Item 1: Table View with Disabled Strategy / 表格视图 - 禁用策略
-            listItem(
-                title: "表格数据 / Table Data",
-                subtitle: "使用禁用策略防连点 / Disabled strategy",
-                icon: "tablecells",
-                color: .blue,
-                strategy: .disabled,
-                viewStore: viewStore
-            ) {
-                viewStore.send(.showBottomSheet(.tableView))
+            // Scrollable list with many items / 可滚动的列表，包含多个项目
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(spacing: 12) {
+                    // Item 1: Minimal content (very short) / 最小内容（非常短）
+                    listItem(
+                        title: "快速操作 / Quick Action",
+                        subtitle: "最小高度弹窗 / Minimal height sheet",
+                        icon: "bolt.fill",
+                        color: .yellow,
+                        strategy: .disabled,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.minimal))
+                    }
+                    
+                    // Item 2: Small table / 小表格
+                    listItem(
+                        title: "小型列表 / Small List",
+                        subtitle: "3个项目 / 3 items - Disabled strategy",
+                        icon: "list.bullet.rectangle",
+                        color: .cyan,
+                        strategy: .disabled,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.smallTable))
+                    }
+                    
+                    // Item 3: Medium table / 中等表格
+                    listItem(
+                        title: "表格数据 / Table Data",
+                        subtitle: "8个项目 / 8 items - Task strategy",
+                        icon: "tablecells",
+                        color: .blue,
+                        strategy: .taskBased,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.tableView))
+                    }
+                    
+                    // Item 4: Large list / 大列表
+                    listItem(
+                        title: "大型列表 / Large List",
+                        subtitle: "15个项目 / 15 items - Cooldown strategy",
+                        icon: "list.bullet.indent",
+                        color: .indigo,
+                        strategy: .cooldown,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.largeList))
+                    }
+                    
+                    // Item 5: Form View / 表单视图
+                    listItem(
+                        title: "表单输入 / Form Input",
+                        subtitle: "中等高度 / Medium height - Combine strategy",
+                        icon: "doc.text",
+                        color: .green,
+                        strategy: .combine,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.formView))
+                    }
+                    
+                    // Item 6: Chart View / 图表视图
+                    listItem(
+                        title: "数据图表 / Data Chart",
+                        subtitle: "固定百分比高度 / Fixed percentage",
+                        icon: "chart.bar",
+                        color: .orange,
+                        strategy: .disabled,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.chartView))
+                    }
+                    
+                    // Item 7: Media Gallery / 媒体画廊
+                    listItem(
+                        title: "媒体画廊 / Media Gallery",
+                        subtitle: "固定高度 / Fixed height",
+                        icon: "photo.stack",
+                        color: .purple,
+                        strategy: .taskBased,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.mediaGallery))
+                    }
+                    
+                    // Item 8: Settings panel / 设置面板
+                    listItem(
+                        title: "设置面板 / Settings",
+                        subtitle: "多个选项 / Multiple options",
+                        icon: "gearshape.fill",
+                        color: .gray,
+                        strategy: .cooldown,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.settings))
+                    }
+                    
+                    // Item 9: User profile / 用户资料
+                    listItem(
+                        title: "用户资料 / User Profile",
+                        subtitle: "详细信息 / Detailed info",
+                        icon: "person.circle.fill",
+                        color: .pink,
+                        strategy: .combine,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.userProfile))
+                    }
+                    
+                    // Item 10: Long content / 长内容
+                    listItem(
+                        title: "长文本内容 / Long Text",
+                        subtitle: "可滚动内容 / Scrollable content",
+                        icon: "doc.richtext",
+                        color: .brown,
+                        strategy: .disabled,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.longContent))
+                    }
+                }
             }
-            
-            // Item 2: Form View with Task Strategy / 表单视图 - 任务策略
-            listItem(
-                title: "表单输入 / Form Input",
-                subtitle: "使用任务策略防连点 / Task-based strategy",
-                icon: "doc.text",
-                color: .green,
-                strategy: .taskBased,
-                viewStore: viewStore
-            ) {
-                viewStore.send(.showBottomSheet(.formView))
-            }
-            
-            // Item 3: Chart View with Cooldown Strategy / 图表视图 - 冷却策略
-            listItem(
-                title: "数据图表 / Data Chart",
-                subtitle: "使用冷却计时器策略 / Cooldown timer strategy",
-                icon: "chart.bar",
-                color: .orange,
-                strategy: .cooldown,
-                viewStore: viewStore
-            ) {
-                viewStore.send(.showBottomSheet(.chartView))
-            }
-            
-            // Item 4: Media Gallery with Combine Strategy / 媒体画廊 - Combine策略
-            listItem(
-                title: "媒体画廊 / Media Gallery",
-                subtitle: "使用 Combine 策略防连点 / Combine strategy",
-                icon: "photo.stack",
-                color: .purple,
-                strategy: .combine,
-                viewStore: viewStore
-            ) {
-                viewStore.send(.showBottomSheet(.mediaGallery))
-            }
+            .frame(maxHeight: 400) // Limit the scroll view height / 限制滚动视图高度
         }
     }
     
@@ -295,6 +373,26 @@ struct DialogDemoView: View {
 extension View {
     func bottomSheets(viewStore: ViewStore<DialogDemoFeature.State, DialogDemoFeature.Action>) -> some View {
         self
+            // Minimal sheet / 最小弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .minimal },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                MinimalSheetContent()
+            }
+            // Small table sheet / 小表格弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .smallTable },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                SmallTableSheetContent()
+            }
             // Table view sheet / 表格视图弹窗
             .adaptiveBottomSheet(
                 isPresented: viewStore.binding(
@@ -304,6 +402,16 @@ extension View {
                 height: .automatic
             ) {
                 TableViewSheetContent()
+            }
+            // Large list sheet / 大列表弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .largeList },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                LargeListSheetContent()
             }
             // Form view sheet / 表单视图弹窗
             .adaptiveBottomSheet(
@@ -335,20 +443,352 @@ extension View {
             ) {
                 MediaGallerySheetContent()
             }
+            // Settings sheet / 设置弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .settings },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                SettingsSheetContent()
+            }
+            // User profile sheet / 用户资料弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .userProfile },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                UserProfileSheetContent()
+            }
+            // Long content sheet / 长内容弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .longContent },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .percentage(0.9)
+            ) {
+                LongContentSheetContent()
+            }
     }
 }
 
 // MARK: - Sheet Content Views / 弹窗内容视图
 
 /**
+ * Minimal Sheet Content / 最小弹窗内容
+ * Demonstrates the smallest possible sheet / 演示最小的弹窗
+ */
+struct MinimalSheetContent: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "bolt.fill")
+                .font(.largeTitle)
+                .foregroundColor(.yellow)
+            
+            Text("快速操作 / Quick Action")
+                .font(.headline)
+            
+            Button("完成 / Done") {
+                // Action
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+    }
+}
+
+/**
+ * Small Table Sheet Content / 小表格弹窗内容
+ * Just 3 items / 只有3个项目
+ */
+struct SmallTableSheetContent: View {
+    let items = ["Apple", "Banana", "Orange"]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            headerText(
+                title: "小型列表 / Small List",
+                subtitle: "只有3个项目 / Only 3 items"
+            )
+            
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    HStack {
+                        Text(item)
+                            .font(.body)
+                        Spacer()
+                        Text("$\(index + 1)")
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    
+                    if index < items.count - 1 {
+                        Divider()
+                    }
+                }
+            }
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
+            .padding(.horizontal)
+            
+            footerText(
+                primary: "最小高度演示 / Minimal height demo",
+                secondary: "自动适应内容 / Auto-fit content"
+            )
+        }
+        .padding(.vertical)
+    }
+}
+
+/**
+ * Large List Sheet Content / 大列表弹窗内容
+ * Many items to show height adaptation up to 85% screen / 许多项目展示高度适应至屏幕85%
+ */
+struct LargeListSheetContent: View {
+    let items = [
+        "Apple", "Banana", "Orange", "Grape", "Watermelon",
+        "Strawberry", "Pineapple", "Mango", "Kiwi", "Peach",
+        "Pear", "Cherry", "Blueberry", "Raspberry", "Lemon",
+        "Coconut", "Papaya", "Guava", "Pomegranate", "Fig",
+        "Date", "Apricot", "Plum", "Blackberry", "Cranberry",
+        "Grapefruit", "Lime", "Tangerine", "Cantaloupe", "Honeydew",
+        "Dragon Fruit", "Lychee", "Passion Fruit", "Star Fruit", "Jackfruit",
+        "Durian", "Rambutan", "Mangosteen", "Persimmon", "Kumquat"
+    ]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            headerText(
+                title: "大型列表 / Large List",
+                subtitle: "40个项目，展示85%屏幕高度 / 40 items, shows up to 85% screen"
+            )
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                            
+                            Text(item)
+                                .font(.body)
+                            
+                            Spacer()
+                            
+                            Text("#\(index + 1)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        
+                        if index < items.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
+            }
+            // No fixed height - let adaptive bottom sheet handle it
+            // 无固定高度 - 让自适应底部弹窗处理
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
+            .padding(.horizontal)
+            
+            footerText(
+                primary: "内容可滚动 / Content scrollable",
+                secondary: "高度自动限制 / Height auto-limited"
+            )
+        }
+        .padding(.vertical)
+    }
+}
+
+/**
+ * Settings Sheet Content / 设置弹窗内容
+ * Multiple toggle options / 多个开关选项
+ */
+struct SettingsSheetContent: View {
+    @State private var notifications = true
+    @State private var darkMode = false
+    @State private var autoSave = true
+    @State private var syncData = false
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            headerText(
+                title: "设置 / Settings",
+                subtitle: "应用偏好设置 / App preferences"
+            )
+            
+            VStack(spacing: 0) {
+                Toggle("通知 / Notifications", isOn: $notifications)
+                    .padding()
+                Divider()
+                Toggle("深色模式 / Dark Mode", isOn: $darkMode)
+                    .padding()
+                Divider()
+                Toggle("自动保存 / Auto Save", isOn: $autoSave)
+                    .padding()
+                Divider()
+                Toggle("数据同步 / Sync Data", isOn: $syncData)
+                    .padding()
+            }
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
+            .padding(.horizontal)
+            
+            Button("保存设置 / Save Settings") {
+                // Save action
+            }
+            .buttonStyle(.borderedProminent)
+            
+            footerText(
+                primary: "设置立即生效 / Settings apply immediately",
+                secondary: "可随时更改 / Can be changed anytime"
+            )
+        }
+        .padding(.vertical)
+    }
+}
+
+/**
+ * User Profile Sheet Content / 用户资料弹窗内容
+ * Detailed user information / 详细的用户信息
+ */
+struct UserProfileSheetContent: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            // Avatar / 头像
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 80))
+                .foregroundColor(.pink)
+            
+            Text("John Doe")
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            Text("john.doe@example.com")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            // Stats / 统计
+            HStack(spacing: 40) {
+                VStack {
+                    Text("128")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("关注 / Following")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                VStack {
+                    Text("1.2K")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("粉丝 / Followers")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                VStack {
+                    Text("89")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("帖子 / Posts")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Actions / 操作
+            HStack(spacing: 16) {
+                Button("编辑 / Edit") {
+                    // Edit action
+                }
+                .buttonStyle(.bordered)
+                
+                Button("分享 / Share") {
+                    // Share action
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            
+            footerText(
+                primary: "加入时间：2024年1月 / Joined: Jan 2024",
+                secondary: "最后活跃：今天 / Last active: Today"
+            )
+        }
+        .padding()
+    }
+}
+
+/**
+ * Long Content Sheet Content / 长内容弹窗内容
+ * Scrollable text content / 可滚动的文本内容
+ */
+struct LongContentSheetContent: View {
+    let longText = """
+    这是一段很长的文本内容，用于演示底部弹窗如何处理超长内容。
+    This is a long text content to demonstrate how bottom sheet handles very long content.
+    
+    当内容超过屏幕高度时，弹窗会自动限制高度并提供滚动功能。
+    When content exceeds screen height, the sheet automatically limits height and provides scrolling.
+    
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    
+    这种设计确保了用户体验的一致性，无论内容多长都能正常显示。
+    This design ensures consistent user experience regardless of content length.
+    
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+    
+    底部弹窗会根据内容自动调整高度，但不会超过屏幕的90%。
+    The bottom sheet automatically adjusts height based on content, but won't exceed 90% of screen.
+    
+    更多内容...
+    More content...
+    
+    Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+    """
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            headerText(
+                title: "长文本内容 / Long Text Content",
+                subtitle: "可滚动查看全部 / Scroll to view all"
+            )
+            
+            ScrollView {
+                Text(longText)
+                    .font(.body)
+                    .padding()
+            }
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
+            .padding(.horizontal)
+            
+            footerText(
+                primary: "共 \(longText.count) 字符 / \(longText.count) characters",
+                secondary: "上下滑动查看更多 / Swipe to see more"
+            )
+        }
+        .padding(.vertical)
+    }
+}
+
+/**
  * Table View Sheet Content / 表格视图弹窗内容
  * Demonstrates automatic height calculation / 演示自动高度计算
  */
 struct TableViewSheetContent: View {
-    let items = ["Apple", "Banana", "Orange", "Grape", "Watermelon"]
+    let items = ["Apple", "Banana", "Orange", "Grape", "Watermelon", "Strawberry", "Pineapple", "Mango"]
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             // Top text / 顶部文字
             headerText(
                 title: "表格数据展示 / Table Data Display",
@@ -357,7 +797,7 @@ struct TableViewSheetContent: View {
             
             // Table content / 表格内容
             VStack(spacing: 0) {
-                ForEach(items, id: \.self) { item in
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                     HStack {
                         Image(systemName: "circle.fill")
                             .font(.caption)
@@ -372,11 +812,13 @@ struct TableViewSheetContent: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    .padding()
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
                     .background(Color(.systemBackground))
                     
-                    if item != items.last {
+                    if index < items.count - 1 {
                         Divider()
+                            .padding(.leading)
                     }
                 }
             }
@@ -390,7 +832,8 @@ struct TableViewSheetContent: View {
                 secondary: "下拉可关闭此弹窗 / Pull down to dismiss"
             )
         }
-        .padding(.vertical)
+        .padding(.top, 20)
+        .padding(.bottom, 10)
     }
 }
 

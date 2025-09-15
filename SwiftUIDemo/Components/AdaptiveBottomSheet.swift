@@ -116,6 +116,8 @@ struct AdaptiveBottomSheet<Content: View>: View {
                         
                         // Main content with height measurement / 带高度测量的主内容
                         content
+                            .frame(maxHeight: calculateMaxContentHeight(in: geometry))
+                            .fixedSize(horizontal: false, vertical: true) // Allow content to expand vertically / 允许内容垂直扩展
                             .background(
                                 GeometryReader { contentGeometry in
                                     Color.clear
@@ -145,7 +147,16 @@ struct AdaptiveBottomSheet<Content: View>: View {
         .ignoresSafeArea(.container, edges: .bottom)
     }
     
-    // MARK: - Calculated Height / 计算高度
+    // MARK: - Height Calculations / 高度计算
+    
+    /**
+     * Calculate maximum content height / 计算最大内容高度
+     */
+    private func calculateMaxContentHeight(in geometry: GeometryProxy) -> CGFloat {
+        let maxHeight = geometry.size.height * 0.85
+        let indicatorHeight: CGFloat = dragIndicator ? 30 : 0
+        return maxHeight - indicatorHeight - geometry.safeAreaInsets.bottom
+    }
     
     /**
      * Calculate sheet height based on strategy / 根据策略计算弹窗高度
@@ -154,8 +165,21 @@ struct AdaptiveBottomSheet<Content: View>: View {
         switch height {
         case .automatic:
             // Use measured content height with safety bounds / 使用测量的内容高度并设置安全边界
-            let safeHeight = min(contentHeight + (dragIndicator ? 30 : 0), geometry.size.height * 0.9)
-            return max(200, safeHeight) // Minimum 200 points / 最小 200 点
+            let indicatorHeight: CGFloat = dragIndicator ? 30 : 0
+            let measuredHeight = contentHeight + indicatorHeight
+            
+            // Set reasonable bounds / 设置合理的边界
+            let minHeight: CGFloat = 150
+            let maxHeight: CGFloat = geometry.size.height * 0.85
+            
+            // Return appropriate height / 返回适当的高度
+            if measuredHeight < minHeight {
+                return minHeight
+            } else if measuredHeight > maxHeight {
+                return maxHeight
+            } else {
+                return measuredHeight
+            }
             
         case .fixed(let height):
             return height

@@ -46,6 +46,10 @@ struct ContentView: View {
             }
         case .smartScroll:
             SmartScrollDemoView()
+        case .dialogDemo:
+            if let store = store.scope(state: \.dialogDemo, action: \.dialogDemo) {
+                DialogDemoView(store: store)
+            }
         }
     }
 }
@@ -206,6 +210,14 @@ struct iOS15DestinationView: View {
             )
         case "smartScroll":
             childStore = AnyView(SmartScrollDemoView())
+        case "dialogDemo":
+            childStore = AnyView(
+                DialogDemoView(
+                    store: Store(initialState: DialogDemoFeature.State()) {
+                        DialogDemoFeature()
+                    }
+                )
+            )
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

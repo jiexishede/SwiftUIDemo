@@ -34,6 +34,8 @@ struct AppFeature {
                     state.path.append(.refreshableList(RefreshableListFeature.State()))
                 case "smartScroll":
                     state.path.append(.smartScroll)
+                case "dialogDemo":
+                    state.path.append(.dialogDemo(DialogDemoFeature.State()))
                 default:
                     break
                 }
@@ -56,6 +58,7 @@ struct AppFeature {
             case networkRequest(ReduxPageStateBeRequestFeature.State)
             case refreshableList(RefreshableListFeature.State)
             case smartScroll
+            case dialogDemo(DialogDemoFeature.State)
         }
         
         enum Action {
@@ -63,6 +66,7 @@ struct AppFeature {
             case networkRequest(ReduxPageStateBeRequestFeature.Action)
             case refreshableList(RefreshableListFeature.Action)
             case smartScroll
+            case dialogDemo(DialogDemoFeature.Action)
         }
         
         var body: some ReducerOf<Self> {
@@ -74,6 +78,9 @@ struct AppFeature {
             }
             Scope(state: \.refreshableList, action: \.refreshableList) {
                 RefreshableListFeature()
+            }
+            Scope(state: \.dialogDemo, action: \.dialogDemo) {
+                DialogDemoFeature()
             }
         }
     }
@@ -110,6 +117,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "智能滚动视图 / Smart Scroll",
             subtitle: "横向滚动与竖向滚动智能切换 / Intelligent scroll direction switching",
             systemImage: "scroll"
+        ),
+        DemoItem(
+            id: "dialogDemo",
+            title: "弹窗演示 / Dialog Demo",
+            subtitle: "防连点按钮与底部弹窗 / Debounced buttons & bottom sheets",
+            systemImage: "rectangle.bottomthird.inset.filled"
         )
     ]
 }

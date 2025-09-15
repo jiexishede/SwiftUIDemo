@@ -649,7 +649,7 @@ struct RefreshErrorView: View {
 
 // MARK: - Scroll Offset Preference Key
 // 滚动偏移偏好键 / Scroll Offset Preference Key
-struct ScrollOffsetPreferenceKey: PreferenceKey {
+struct RefreshableListScrollOffsetKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {

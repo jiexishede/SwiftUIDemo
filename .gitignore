@@ -1,18 +1,39 @@
-# Xcode Build Files / Xcode 构建文件
+# Xcode
+#
+# gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
+
+## User settings
+xcuserdata/
+
+## Xcode Build Files / Xcode 构建文件
 build/
 DerivedData/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
-# Build products / 构建产物
-*.app
+## Obj-C/Swift specific
+*.hmap
 *.ipa
 *.dSYM.zip
 *.dSYM
 
-# Swift Package Manager / Swift 包管理器
-# SPM 下载的第三方库源代码 / Third-party library source code downloaded by SPM
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+#
+# Add this line if you want to avoid checking in source code from Swift Package Manager dependencies.
+# Packages/
+# Package.pins
+# Package.resolved
+# *.xcodeproj
+#
+# Xcode automatically generates this directory with a .xcworkspacedata file and xcuserdata
+# hence it is not needed unless you have added a package configuration file to your project
+# .swiftpm
+
 .build/
 .swiftpm/
 SourcePackages/
@@ -21,11 +42,7 @@ SourcePackages/
 DerivedData/SourcePackages/
 build/SourcePackages/
 
-# 保留 Package.resolved 以锁定版本 / Keep Package.resolved to lock versions
-# 如果你想团队使用相同版本，请注释下一行 / Comment next line if you want team to use same versions
-# Package.resolved
-
-# SPM 缓存 / SPM Cache
+# SPM Cache / SPM 缓存
 .swiftpm/xcode/package.xcworkspace/
 .swiftpm/xcode/xcuserdata/
 .swiftpm/config/registries.json
@@ -37,19 +54,49 @@ build/SourcePackages/
 .swiftpm/repository-cache/
 .swiftpm/container.db
 
-# Xcode 自动生成的 SPM 相关文件 / Xcode auto-generated SPM files
+# Xcode auto-generated SPM files / Xcode 自动生成的 SPM 相关文件
 *.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
 *.xcworkspace/xcshareddata/swiftpm/
+
+# CocoaPods
+#
+# We recommend against adding the Pods directory to your .gitignore. However
+# you should judge for yourself, the pros and cons are mentioned at:
+# https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
+#
+# Pods/
+#
+# Add this line if you want to avoid checking in source code from the Xcode workspace
+# *.xcworkspace
+
+# Carthage
+#
+# Add this line if you want to avoid checking in source code from Carthage dependencies.
+# Carthage/Checkouts
+
+Carthage/Build/
+
+# fastlane
+#
+# It is recommended to not store the screenshots in the git repo.
+# Instead, use fastlane to re-generate the screenshots whenever they are needed.
+# For more information about the recommended setup visit:
+# https://docs.fastlane.tools/best-practices/source-control/#source-control
+
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# macOS
+.DS_Store
+Thumbs.db
 
 # Xcode User Data / Xcode 用户数据
 *.xcuserstate
 *.xcuserdatad/
 *.xcworkspace/xcuserdata/
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
-
-# OS Files / 操作系统文件
-.DS_Store
-Thumbs.db
 
 # Temporary Files / 临时文件
 *.swp
@@ -70,20 +117,6 @@ Thumbs.db
 docs/generated/
 .jazzy/
 
-# Carthage (if used) / Carthage（如果使用）
-Carthage/Build/
-Carthage/Checkouts/
-
-# CocoaPods (if used) / CocoaPods（如果使用）
-Pods/
-*.xcworkspace
-
-# Fastlane (if used) / Fastlane（如果使用）
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots/**/*.png
-fastlane/test_output
-
 # ModuleCache / 模块缓存
 ModuleCache.noindex/
 Index.noindex/
@@ -103,10 +136,6 @@ XCBuildData/
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
-
-# Swift Playground / Swift Playground
-timeline.xctimeline
-playground.xcworkspace
 
 # Network / 网络相关
 *.orig

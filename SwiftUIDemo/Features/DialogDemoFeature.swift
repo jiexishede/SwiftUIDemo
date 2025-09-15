@@ -44,8 +44,19 @@ public struct DialogDemoFeature {
         /// Loading state / 加载状态
         var isLoading: Bool = false
         
+        /// Active bottom sheet / 活动的底部弹窗
+        var activeSheet: BottomSheetType? = nil
+        
         /// Initialize state / 初始化状态
         public init() {}
+    }
+    
+    /// Bottom sheet types / 底部弹窗类型
+    public enum BottomSheetType: String, CaseIterable {
+        case tableView = "Table View"
+        case formView = "Form View"
+        case chartView = "Chart View"
+        case mediaGallery = "Media Gallery"
     }
     
     // MARK: - Action / 动作
@@ -69,6 +80,12 @@ public struct DialogDemoFeature {
         
         /// Dismiss custom dialog / 关闭自定义对话框
         case dismissCustomDialog
+        
+        /// Show bottom sheet / 显示底部弹窗
+        case showBottomSheet(BottomSheetType)
+        
+        /// Dismiss bottom sheet / 关闭底部弹窗
+        case dismissBottomSheet
     }
     
     // MARK: - Dialog Type / 对话框类型
@@ -86,6 +103,9 @@ public struct DialogDemoFeature {
         case custom = "Custom"
         case queue = "Queue Demo"
         case multipleDefer = "Multiple Defer Demo"
+        case actionSheet = "Action Sheet"
+        case fullScreen = "Full Screen"
+        case customPopup = "Custom Popup"
         
         /// Icon for dialog type / 对话框类型的图标
         var icon: String {
@@ -101,6 +121,9 @@ public struct DialogDemoFeature {
             case .custom: return "slider.horizontal.3"
             case .queue: return "rectangle.stack"
             case .multipleDefer: return "arrow.uturn.backward.circle"
+            case .actionSheet: return "rectangle.grid.1x2"
+            case .fullScreen: return "rectangle.fill"
+            case .customPopup: return "sparkles"
             }
         }
         
@@ -118,6 +141,9 @@ public struct DialogDemoFeature {
             case .custom: return "Custom configuration / 自定义配置"
             case .queue: return "Queue management demo / 队列管理演示"
             case .multipleDefer: return "Swift defer-like LIFO demo / Swift defer式LIFO演示"
+            case .actionSheet: return "iOS action sheet / iOS 操作表"
+            case .fullScreen: return "Full screen modal / 全屏模态弹窗"
+            case .customPopup: return "Custom popup style / 自定义弹出样式"
             }
         }
     }
@@ -161,6 +187,14 @@ public struct DialogDemoFeature {
                 state.showCustomDialog = false
                 state.customDialogConfig = nil
                 return .none
+                
+            case .showBottomSheet(let type):
+                state.activeSheet = type
+                return .none
+                
+            case .dismissBottomSheet:
+                state.activeSheet = nil
+                return .none
             }
         }
     }
@@ -203,6 +237,15 @@ public struct DialogDemoFeature {
             
         case .multipleDefer:
             showMultipleDeferDemo()
+            
+        case .actionSheet:
+            showActionSheetDialog(state: &state)
+            
+        case .fullScreen:
+            showFullScreenDialog(state: &state)
+            
+        case .customPopup:
+            showCustomPopupDialog(state: &state)
         }
     }
     
@@ -595,10 +638,157 @@ public struct DialogDemoFeature {
             ) {
                 DialogManager.shared.dismissCurrentDialog()
             })
-            .setAnimationStyle(.spring)
             .setCornerRadius(20)
             .setShadowRadius(15)
             .setDismissOnDrag(true)
             .build()
+    }
+    
+    /// Show action sheet dialog / 显示操作表对话框
+    private func showActionSheetDialog(state: inout State) {
+        let actionSheet = OptionsDialogTemplate(
+            title: "选择操作 / Choose Action",
+            message: "您想要执行什么操作？/ What would you like to do?",
+            options: [
+                .init(
+                    title: "拍照 / Take Photo",
+                    icon: Image(systemName: "camera"),
+                    action: {
+                        DialogManager.shared.showAlert(
+                            title: "Camera",
+                            message: "Camera opened / 相机已打开"
+                        )
+                    }
+                ),
+                .init(
+                    title: "从相册选择 / Choose from Library",
+                    icon: Image(systemName: "photo.on.rectangle"),
+                    action: {
+                        DialogManager.shared.showAlert(
+                            title: "Photo Library",
+                            message: "Photo library opened / 相册已打开"
+                        )
+                    }
+                ),
+                .init(
+                    title: "删除照片 / Delete Photo",
+                    icon: Image(systemName: "trash"),
+                    style: .destructive,
+                    action: {
+                        DialogManager.shared.showAlert(
+                            title: "Delete",
+                            message: "Photo deleted / 照片已删除"
+                        )
+                    }
+                )
+            ]
+        )
+        DialogManager.shared.show(configuration: actionSheet.configuration)
+    }
+    
+    /// Show full screen dialog / 显示全屏对话框
+    private func showFullScreenDialog(state: inout State) {
+        let fullScreen = DialogConfiguration.Builder()
+            .setTitle("全屏模态 / Full Screen Modal")
+            .setContent(.customView(
+                VStack(spacing: 20) {
+                    Image(systemName: "rectangle.fill")
+                        .font(.system(size: 80))
+                        .foregroundColor(.teal)
+                    
+                    Text("这是一个全屏模态弹窗")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text("This is a full screen modal dialog")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                    
+                    Text("全屏弹窗适合展示重要内容或需要用户专注的任务")
+                        .multilineTextAlignment(.center)
+                        .padding()
+                    
+                    Text("Full screen modals are good for important content or tasks requiring focus")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        DialogManager.shared.dismissCurrentDialog()
+                    }) {
+                        Text("关闭 / Close")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
+                }
+                .padding()
+            ))
+            .build()
+        DialogManager.shared.show(configuration: fullScreen)
+    }
+    
+    /// Show custom popup dialog / 显示自定义弹出对话框
+    private func showCustomPopupDialog(state: inout State) {
+        let popup = DialogConfiguration.Builder()
+            .setTitle("✨ 自定义弹出 / Custom Popup")
+            .setContent(.customView(
+                VStack(spacing: 16) {
+                    // Animated gradient background / 动画渐变背景
+                    LinearGradient(
+                        colors: [.pink, .purple, .blue],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(height: 100)
+                    .cornerRadius(12)
+                    .overlay(
+                        Text("🎨")
+                            .font(.system(size: 50))
+                    )
+                    
+                    Text("独特的视觉体验")
+                        .font(.headline)
+                    
+                    Text("Unique Visual Experience")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 20) {
+                        Button(action: {
+                            DialogManager.shared.dismissCurrentDialog()
+                            DialogManager.shared.showAlert(
+                                title: "Success",
+                                message: "Liked! / 已点赞！"
+                            )
+                        }) {
+                            Label("喜欢", systemImage: "heart.fill")
+                                .foregroundColor(.pink)
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Button(action: {
+                            DialogManager.shared.dismissCurrentDialog()
+                            DialogManager.shared.showAlert(
+                                title: "Success",
+                                message: "Shared! / 已分享！"
+                            )
+                        }) {
+                            Label("分享", systemImage: "square.and.arrow.up")
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding()
+            ))
+            .setAnimationStyle(.spring)
+            .setCornerRadius(25)
+            .setShadowRadius(20)
+            .build()
+        DialogManager.shared.show(configuration: popup)
     }
 }

@@ -217,6 +217,66 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.longContent))
                     }
+                    
+                    // Item 11: Expandable Content / 可展开内容
+                    listItem(
+                        title: "可展开内容 / Expandable",
+                        subtitle: "点击展开更多 / Tap to expand",
+                        icon: "arrow.up.arrow.down.circle",
+                        color: .teal,
+                        strategy: .taskBased,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.expandableContent))
+                    }
+                    
+                    // Item 12: Dynamic Form / 动态表单
+                    listItem(
+                        title: "动态表单 / Dynamic Form",
+                        subtitle: "增减字段 / Add/remove fields",
+                        icon: "doc.badge.plus",
+                        color: .mint,
+                        strategy: .cooldown,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.dynamicForm))
+                    }
+                    
+                    // Item 13: Async Loading / 异步加载
+                    listItem(
+                        title: "异步加载 / Async Loading",
+                        subtitle: "加载后更新高度 / Height updates after load",
+                        icon: "arrow.triangle.2.circlepath",
+                        color: .cyan,
+                        strategy: .combine,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.asyncLoading))
+                    }
+                    
+                    // Item 14: Nested Scrolls / 嵌套滚动
+                    listItem(
+                        title: "嵌套滚动 / Nested Scrolls",
+                        subtitle: "多层滚动视图 / Multiple scroll layers",
+                        icon: "square.stack.3d.up",
+                        color: .indigo,
+                        strategy: .disabled,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.nestedScrolls))
+                    }
+                    
+                    // Item 15: Mixed Content / 混合内容
+                    listItem(
+                        title: "混合内容 / Mixed Content",
+                        subtitle: "图文表单组合 / Images, text & forms",
+                        icon: "square.grid.2x2",
+                        color: .orange,
+                        strategy: .taskBased,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.mixedContent))
+                    }
                 }
             }
             .frame(maxHeight: 400) // Limit the scroll view height / 限制滚动视图高度
@@ -472,6 +532,56 @@ extension View {
                 height: .percentage(0.9)
             ) {
                 LongContentSheetContent()
+            }
+            // Expandable content sheet / 可展开内容弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .expandableContent },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                ExpandableContentSheet()
+            }
+            // Dynamic form sheet / 动态表单弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .dynamicForm },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                DynamicFormSheet()
+            }
+            // Async loading sheet / 异步加载弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .asyncLoading },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                AsyncLoadingSheet()
+            }
+            // Nested scrolls sheet / 嵌套滚动弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .nestedScrolls },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                NestedScrollsSheet()
+            }
+            // Mixed content sheet / 混合内容弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .mixedContent },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                MixedContentSheet()
             }
     }
 }
@@ -1066,6 +1176,412 @@ private func footerText(primary: String, secondary: String) -> some View {
     }
     .padding(.horizontal)
     .padding(.bottom)
+}
+
+/**
+ * Expandable Content Sheet / 可展开内容弹窗
+ * Demonstrates dynamic height changes / 演示动态高度变化
+ */
+struct ExpandableContentSheet: View {
+    @State private var isExpanded = false
+    @State private var expandedSections: Set<Int> = []
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            headerText(
+                title: "可展开内容 / Expandable Content",
+                subtitle: "点击项目展开详情 / Tap items to expand"
+            )
+            
+            VStack(spacing: 12) {
+                ForEach(0..<4, id: \.self) { index in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3)) {
+                                if expandedSections.contains(index) {
+                                    expandedSections.remove(index)
+                                } else {
+                                    expandedSections.insert(index)
+                                }
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: expandedSections.contains(index) ? "chevron.down.circle.fill" : "chevron.right.circle")
+                                    .foregroundColor(.accentColor)
+                                Text("部分 \(index + 1) / Section \(index + 1)")
+                                    .fontWeight(.medium)
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        if expandedSections.contains(index) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("这是展开的内容 / This is expanded content")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("更多详细信息... / More details...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("额外的说明文字 / Additional description")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 28)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(10)
+                }
+            }
+            .padding(.horizontal)
+            
+            footerText(
+                primary: "高度自动调整 / Height auto-adjusts",
+                secondary: "根据展开状态变化 / Based on expansion state"
+            )
+        }
+        .padding(.vertical)
+    }
+}
+
+/**
+ * Dynamic Form Sheet / 动态表单弹窗
+ * Form with add/remove fields / 可增减字段的表单
+ */
+struct DynamicFormSheet: View {
+    @State private var fields: [String] = ["字段 1 / Field 1"]
+    @State private var textValues: [String: String] = [:]
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            headerText(
+                title: "动态表单 / Dynamic Form",
+                subtitle: "添加或删除字段 / Add or remove fields"
+            )
+            
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(Array(fields.enumerated()), id: \.offset) { index, field in
+                        HStack {
+                            TextField(field, text: binding(for: field))
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            
+                            Button(action: {
+                                withAnimation {
+                                    fields.remove(at: index)
+                                    textValues.removeValue(forKey: field)
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
+                    
+                    Button(action: {
+                        withAnimation {
+                            let newField = "字段 \(fields.count + 1) / Field \(fields.count + 1)"
+                            fields.append(newField)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("添加字段 / Add Field")
+                        }
+                        .foregroundColor(.accentColor)
+                    }
+                    .padding(.top, 8)
+                }
+            }
+            .frame(maxHeight: 300)
+            .padding(.horizontal)
+            
+            Button("提交表单 / Submit Form") {
+                // Submit action
+            }
+            .buttonStyle(.borderedProminent)
+            
+            footerText(
+                primary: "表单高度动态变化 / Form height changes dynamically",
+                secondary: "最多显示300点高度 / Max 300 points height"
+            )
+        }
+        .padding(.vertical)
+    }
+    
+    private func binding(for field: String) -> Binding<String> {
+        Binding(
+            get: { textValues[field] ?? "" },
+            set: { textValues[field] = $0 }
+        )
+    }
+}
+
+/**
+ * Async Loading Sheet / 异步加载弹窗
+ * Content that loads asynchronously / 异步加载的内容
+ */
+struct AsyncLoadingSheet: View {
+    @State private var isLoading = true
+    @State private var loadedItems: [String] = []
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            headerText(
+                title: "异步加载 / Async Loading",
+                subtitle: "内容加载后更新高度 / Height updates after loading"
+            )
+            
+            if isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.5)
+                    
+                    Text("加载中... / Loading...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(height: 100)
+                .frame(maxWidth: .infinity)
+                .onAppear {
+                    // Simulate async loading / 模拟异步加载
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            loadedItems = [
+                                "加载项 1 / Loaded Item 1",
+                                "加载项 2 / Loaded Item 2",
+                                "加载项 3 / Loaded Item 3",
+                                "加载项 4 / Loaded Item 4",
+                                "加载项 5 / Loaded Item 5",
+                                "加载项 6 / Loaded Item 6"
+                            ]
+                            isLoading = false
+                        }
+                    }
+                }
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(loadedItems.enumerated()), id: \.offset) { index, item in
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(item)
+                            Spacer()
+                        }
+                        .padding()
+                        
+                        if index < loadedItems.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                
+                Button("重新加载 / Reload") {
+                    withAnimation {
+                        isLoading = true
+                        loadedItems = []
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            loadedItems = [
+                                "新项目 1 / New Item 1",
+                                "新项目 2 / New Item 2",
+                                "新项目 3 / New Item 3",
+                                "新项目 4 / New Item 4"
+                            ]
+                            isLoading = false
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+            
+            footerText(
+                primary: "加载完成后高度变化 / Height changes after load",
+                secondary: "展示异步内容处理 / Shows async content handling"
+            )
+        }
+        .padding(.vertical)
+    }
+}
+
+/**
+ * Nested Scrolls Sheet / 嵌套滚动弹窗
+ * Multiple scroll views nested / 多个嵌套的滚动视图
+ */
+struct NestedScrollsSheet: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            headerText(
+                title: "嵌套滚动 / Nested Scrolls",
+                subtitle: "多层滚动视图 / Multiple scroll layers"
+            )
+            
+            // Vertical tabs / 垂直标签
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(0..<8, id: \.self) { index in
+                        VStack {
+                            Image(systemName: "folder.fill")
+                                .font(.title2)
+                            Text("Tab \(index + 1)")
+                                .font(.caption)
+                        }
+                        .frame(width: 80, height: 80)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(10)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .frame(height: 100)
+            
+            // Nested vertical scroll / 嵌套垂直滚动
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(0..<3, id: \.self) { section in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("部分 \(section + 1) / Section \(section + 1)")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    ForEach(0..<5, id: \.self) { item in
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.accentColor.opacity(0.2))
+                                            .frame(width: 100, height: 60)
+                                            .overlay(
+                                                Text("\(section)-\(item)")
+                                                    .font(.caption)
+                                            )
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 200)
+            
+            footerText(
+                primary: "复杂滚动布局 / Complex scroll layout",
+                secondary: "水平和垂直滚动组合 / Horizontal and vertical scrolls"
+            )
+        }
+        .padding(.vertical)
+    }
+}
+
+/**
+ * Mixed Content Sheet / 混合内容弹窗
+ * Various content types combined / 各种内容类型组合
+ */
+struct MixedContentSheet: View {
+    @State private var sliderValue: Double = 50
+    @State private var toggleValue = false
+    @State private var selectedSegment = 0
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                headerText(
+                    title: "混合内容 / Mixed Content",
+                    subtitle: "图文表单组合 / Images, text & forms"
+                )
+                
+                // Image section / 图片部分
+                HStack(spacing: 12) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 100, height: 100)
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.white.opacity(0.8))
+                            )
+                    }
+                }
+                
+                // Segmented control / 分段控制
+                Picker("Options", selection: $selectedSegment) {
+                    Text("选项 1").tag(0)
+                    Text("选项 2").tag(1)
+                    Text("选项 3").tag(2)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
+                
+                // Form controls / 表单控件
+                VStack(spacing: 16) {
+                    HStack {
+                        Text("滑块 / Slider")
+                        Spacer()
+                        Text("\(Int(sliderValue))%")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $sliderValue, in: 0...100)
+                        .accentColor(.blue)
+                    
+                    Toggle("开关选项 / Toggle Option", isOn: $toggleValue)
+                }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                
+                // Text section / 文本部分
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("描述文本 / Description")
+                        .font(.headline)
+                    Text("这是一段混合内容的描述，展示了如何在底部弹窗中组合不同类型的内容元素。")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("This is a mixed content description showing how to combine different types of content elements in a bottom sheet.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                
+                // Action buttons / 操作按钮
+                HStack(spacing: 12) {
+                    Button("取消 / Cancel") {
+                        // Cancel action
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button("确认 / Confirm") {
+                        // Confirm action
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                
+                footerText(
+                    primary: "复杂布局示例 / Complex layout example",
+                    secondary: "自动适应内容高度 / Auto-adapts to content height"
+                )
+            }
+            .padding(.vertical)
+        }
+    }
 }
 
 // MARK: - Preview / 预览

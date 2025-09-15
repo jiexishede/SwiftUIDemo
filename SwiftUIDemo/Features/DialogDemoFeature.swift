@@ -63,6 +63,12 @@ public struct DialogDemoFeature {
         case settings = "Settings"
         case userProfile = "User Profile"
         case longContent = "Long Content"
+        // New dynamic height demos / 新的动态高度演示
+        case expandableContent = "Expandable Content"
+        case dynamicForm = "Dynamic Form"
+        case asyncLoading = "Async Loading"
+        case nestedScrolls = "Nested Scrolls"
+        case mixedContent = "Mixed Content"
     }
     
     // MARK: - Action / 动作

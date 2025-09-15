@@ -153,8 +153,10 @@ struct DynamicHeightCalculationExample {
         let cardHeight: CGFloat = cards.reduce(0) { total, card in
             // Different height based on expansion state
             // 根据展开状态的不同高度
-            let isExpanded = false // Check if card is expanded / 检查卡片是否展开
-            return total + (isExpanded ? 150 : 80)
+            // Example: In real implementation, this would be based on actual state
+            // 示例：在实际实现中，这将基于实际状态
+            let singleCardHeight: CGFloat = 80 // Default height for collapsed cards / 折叠卡片的默认高度
+            return total + singleCardHeight
         }
         
         // Conditional form height / 条件表单高度

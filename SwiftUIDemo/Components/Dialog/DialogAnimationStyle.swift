@@ -272,7 +272,7 @@ public struct ShakeAnimationModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .offset(x: offset)
-            .onChange(of: animationTrigger) { newValue in
+            .compatibleOnChange(of: animationTrigger) { newValue in
                 if newValue {
                     performShake()
                 }

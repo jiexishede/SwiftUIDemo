@@ -351,7 +351,7 @@ fileprivate struct InputFieldView: View {
             .onSubmit {
                 submit()
             }
-            .onChange(of: text) { newValue in
+            .compatibleOnChange(of: text) { newValue in
                 validateInput(newValue)
             }
             

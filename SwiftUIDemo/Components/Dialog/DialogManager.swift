@@ -145,7 +145,6 @@ public final class DialogManager: ObservableObject {
         configuration: DialogConfiguration,
         completion: (() -> Void)? = nil
     ) {
-        var modifiedConfig = configuration
         // Force priority to deferred / 强制优先级为延迟
         let builder = DialogConfiguration.Builder()
             .setTitle(configuration.title)
@@ -175,7 +174,6 @@ public final class DialogManager: ObservableObject {
         configuration: DialogConfiguration,
         completion: (() -> Void)? = nil
     ) {
-        var modifiedConfig = configuration
         // Force priority to immediate / 强制优先级为立即
         let builder = DialogConfiguration.Builder()
             .setTitle(configuration.title)
@@ -410,7 +408,7 @@ public final class DialogManager: ObservableObject {
     private func setupDismissalHandler(for id: UUID, completion: @escaping () -> Void) {
         // Monitor when this specific dialog is dismissed / 监控特定对话框何时关闭
         $currentDialog
-            .sink { [weak self] dialog in
+            .sink { dialog in
                 if dialog?.id != id {
                     completion()
                     // Note: Subscription will be automatically removed when needed

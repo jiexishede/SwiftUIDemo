@@ -10,6 +10,35 @@
 
 import SwiftUI
 
+// MARK: - iOS Version Compatibility Extension / iOS 版本兼容性扩展
+
+public extension View {
+    /**
+     * Cross-version compatible onChange modifier
+     * 跨版本兼容的 onChange 修饰符
+     * 
+     * This wrapper handles the deprecation warning for iOS 17+
+     * 此包装器处理 iOS 17+ 的弃用警告
+     */
+    @ViewBuilder
+    func compatibleOnChange<Value: Equatable>(
+        of value: Value,
+        perform action: @escaping (Value) -> Void
+    ) -> some View {
+        if #available(iOS 17.0, *) {
+            // iOS 17+ uses new onChange with oldValue and newValue
+            // iOS 17+ 使用带有 oldValue 和 newValue 的新 onChange
+            self.onChange(of: value) { _, newValue in
+                action(newValue)
+            }
+        } else {
+            // iOS 15-16 uses single value parameter
+            // iOS 15-16 使用单个值参数
+            self.onChange(of: value, perform: action)
+        }
+    }
+}
+
 /**
  * DESIGN PATTERNS USED / 使用的设计模式:
  * 1. Decorator Pattern (装饰器模式)
@@ -74,7 +103,7 @@ public struct DialogPresentationModifier: ViewModifier {
                     .zIndex(999)
                 }
             }
-            .onChange(of: isPresented) { newValue in
+            .compatibleOnChange(of: isPresented) { newValue in
                 if !newValue {
                     onDismiss?()
                 }
@@ -168,7 +197,7 @@ public struct LoadingDialogModifier: ViewModifier {
     
     public func body(content: Content) -> some View {
         content
-            .onChange(of: isPresented) { newValue in
+            .compatibleOnChange(of: isPresented) { newValue in
                 if newValue {
                     // Show loading dialog / 显示加载对话框
                     loadingDialogId = DialogManager.shared.showLoading(
@@ -218,7 +247,7 @@ public struct ErrorDialogModifier: ViewModifier {
     
     public func body(content: Content) -> some View {
         content
-            .onChange(of: errorMessage) { newErrorMessage in
+            .compatibleOnChange(of: errorMessage) { newErrorMessage in
                 if let message = newErrorMessage {
                     // Create a simple error struct for display / 创建用于显示的简单错误结构
                     struct DisplayError: LocalizedError {
@@ -247,7 +276,7 @@ public struct DeferredDialogModifier: ViewModifier {
     
     public func body(content: Content) -> some View {
         content
-            .onChange(of: isPresented) { newValue in
+            .compatibleOnChange(of: isPresented) { newValue in
                 if newValue, let config = configuration {
                     DialogManager.shared.showDeferred(configuration: config)
                     isPresented = false
@@ -264,7 +293,7 @@ public struct ImmediateDialogModifier: ViewModifier {
     
     public func body(content: Content) -> some View {
         content
-            .onChange(of: isPresented) { newValue in
+            .compatibleOnChange(of: isPresented) { newValue in
                 if newValue, let config = configuration {
                     DialogManager.shared.showImmediate(configuration: config)
                     isPresented = false

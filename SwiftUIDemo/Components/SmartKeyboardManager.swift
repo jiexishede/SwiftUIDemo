@@ -161,7 +161,7 @@ struct SmartKeyboardModifier: ViewModifier {
                     focusedFieldFrame = frame
                     updateOffset(windowHeight: geometry.size.height)
                 }
-                .onChange(of: keyboard.keyboardInfo) { _ in
+                .compatibleOnChange(of: keyboard.keyboardInfo) { _ in
                     updateOffset(windowHeight: geometry.size.height)
                 }
                 .onAppear {

@@ -277,6 +277,18 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.mixedContent))
                     }
+                    
+                    // Item 16: Dynamic Cards / 动态卡片
+                    listItem(
+                        title: "动态卡片 / Dynamic Cards",
+                        subtitle: "智能高度计算 / Smart height calculation",
+                        icon: "rectangle.stack.badge.plus",
+                        color: .purple,
+                        strategy: .disabled,
+                        viewStore: viewStore
+                    ) {
+                        viewStore.send(.showBottomSheet(.dynamicCards))
+                    }
                 }
             }
             .frame(maxHeight: 400) // Limit the scroll view height / 限制滚动视图高度
@@ -582,6 +594,16 @@ extension View {
                 height: .automatic
             ) {
                 MixedContentSheet()
+            }
+            // Dynamic cards sheet / 动态卡片弹窗
+            .adaptiveBottomSheet(
+                isPresented: viewStore.binding(
+                    get: { $0.activeSheet == .dynamicCards },
+                    send: { _ in .dismissBottomSheet }
+                ),
+                height: .automatic
+            ) {
+                DynamicCardsSheet()
             }
     }
 }
@@ -1299,10 +1321,18 @@ struct DynamicFormSheet: View {
             .frame(maxHeight: 300)
             .padding(.horizontal)
             
-            Button("提交表单 / Submit Form") {
-                // Submit action
+            Button(action: {
+                print("表单提交 / Form submitted")
+                print("字段数量 / Field count: \(fields.count)")
+                for field in fields {
+                    print("\(field): \(textValues[field] ?? "空 / Empty")")
+                }
+            }) {
+                Text("提交表单 / Submit Form")
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .padding(.horizontal)
             
             footerText(
                 primary: "表单高度动态变化 / Form height changes dynamically",
@@ -1383,7 +1413,7 @@ struct AsyncLoadingSheet: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
                 
-                Button("重新加载 / Reload") {
+                Button(action: {
                     withAnimation {
                         isLoading = true
                         loadedItems = []
@@ -1395,13 +1425,23 @@ struct AsyncLoadingSheet: View {
                                 "新项目 1 / New Item 1",
                                 "新项目 2 / New Item 2",
                                 "新项目 3 / New Item 3",
-                                "新项目 4 / New Item 4"
+                                "新项目 4 / New Item 4",
+                                "新项目 5 / New Item 5",
+                                "新项目 6 / New Item 6",
+                                "新项目 7 / New Item 7",
+                                "新项目 8 / New Item 8"
                             ]
                             isLoading = false
                         }
                     }
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text("重新加载 / Reload")
+                    }
                 }
                 .buttonStyle(.bordered)
+                .disabled(isLoading)
             }
             
             footerText(
@@ -1490,6 +1530,8 @@ struct MixedContentSheet: View {
     @State private var sliderValue: Double = 50
     @State private var toggleValue = false
     @State private var selectedSegment = 0
+    @State private var showAlert = false
+    @State private var alertMessage = ""
     
     var body: some View {
         ScrollView {
@@ -1563,16 +1605,30 @@ struct MixedContentSheet: View {
                 
                 // Action buttons / 操作按钮
                 HStack(spacing: 12) {
-                    Button("取消 / Cancel") {
-                        // Cancel action
+                    Button(action: {
+                        // Reset values / 重置值
+                        sliderValue = 50
+                        toggleValue = false
+                        selectedSegment = 0
+                        alertMessage = "已重置所有设置 / All settings reset"
+                        showAlert = true
+                    }) {
+                        Text("重置 / Reset")
+                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
                     
-                    Button("确认 / Confirm") {
-                        // Confirm action
+                    Button(action: {
+                        // Save action / 保存操作
+                        alertMessage = "设置已保存 / Settings saved\n滑块: \(Int(sliderValue))%\n开关: \(toggleValue ? "开" : "关")\n选项: \(selectedSegment + 1)"
+                        showAlert = true
+                    }) {
+                        Text("保存 / Save")
+                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                 }
+                .padding(.horizontal)
                 
                 footerText(
                     primary: "复杂布局示例 / Complex layout example",
@@ -1581,6 +1637,446 @@ struct MixedContentSheet: View {
             }
             .padding(.vertical)
         }
+        .alert("提示 / Notice", isPresented: $showAlert) {
+            Button("确定 / OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+}
+
+/**
+ * Dynamic Cards Sheet / 动态卡片弹窗
+ * Advanced dynamic content with smart height calculation / 高级动态内容和智能高度计算
+ */
+struct DynamicCardsSheet: View {
+    // Card data model / 卡片数据模型
+    struct CardItem: Identifiable, Equatable {
+        let id = UUID()
+        var title: String
+        var description: String
+        var isExpanded: Bool = false
+        var priority: Priority
+        var tags: [String]
+        
+        enum Priority: Equatable {
+            case low, medium, high, urgent
+            
+            var color: Color {
+                switch self {
+                case .low: return .gray
+                case .medium: return .blue
+                case .high: return .orange
+                case .urgent: return .red
+                }
+            }
+            
+            var icon: String {
+                switch self {
+                case .low: return "flag"
+                case .medium: return "flag.fill"
+                case .high: return "exclamationmark.triangle"
+                case .urgent: return "exclamationmark.octagon.fill"
+                }
+            }
+        }
+    }
+    
+    // State variables / 状态变量
+    @State private var cards: [CardItem] = [
+        CardItem(
+            title: "任务 1 / Task 1",
+            description: "基础任务描述 / Basic task description",
+            priority: .medium,
+            tags: ["开发 / Dev", "UI"]
+        ),
+        CardItem(
+            title: "紧急修复 / Urgent Fix",
+            description: "需要立即处理的问题 / Issue needs immediate attention",
+            priority: .urgent,
+            tags: ["修复 / Fix", "Bug"]
+        )
+    ]
+    
+    @State private var showAddForm = false
+    @State private var newCardTitle = ""
+    @State private var newCardDescription = ""
+    @State private var newCardPriority: CardItem.Priority = .medium
+    @State private var filterPriority: CardItem.Priority? = nil
+    @State private var sortAscending = true
+    
+    // Computed properties for dynamic content / 动态内容的计算属性
+    private var filteredCards: [CardItem] {
+        let filtered = filterPriority == nil ? cards : cards.filter { $0.priority == filterPriority }
+        return sortAscending ? filtered : filtered.reversed()
+    }
+    
+    private var contentHeight: CGFloat {
+        // Dynamic height calculation based on content / 基于内容的动态高度计算
+        let baseHeight: CGFloat = 200  // Header and controls / 头部和控件
+        let cardHeight: CGFloat = cards.reduce(0) { total, card in
+            total + (card.isExpanded ? 150 : 80)
+        }
+        let addFormHeight: CGFloat = showAddForm ? 200 : 0
+        return min(baseHeight + cardHeight + addFormHeight, 600)  // Max 600 points / 最大600点
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Header / 头部
+                headerSection
+                
+                // Filter and Sort Controls / 过滤和排序控件
+                controlsSection
+                
+                // Cards List / 卡片列表
+                cardsSection
+                
+                // Add New Card Button/Form / 添加新卡片按钮/表单
+                addCardSection
+                
+                // Statistics / 统计
+                statisticsSection
+                
+                footerText(
+                    primary: "高度根据内容智能调整 / Height adjusts smartly based on content",
+                    secondary: "当前卡片数: \(cards.count) / Current cards: \(cards.count)"
+                )
+            }
+            .padding(.vertical)
+        }
+    }
+    
+    // MARK: - Header Section / 头部部分
+    private var headerSection: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "rectangle.stack.badge.plus")
+                    .font(.title2)
+                    .foregroundColor(.purple)
+                Text("动态卡片管理 / Dynamic Card Manager")
+                    .font(.headline)
+            }
+            
+            Text("添加、删除、筛选和排序卡片 / Add, remove, filter and sort cards")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    // MARK: - Controls Section / 控件部分
+    private var controlsSection: some View {
+        VStack(spacing: 12) {
+            // Priority Filter / 优先级过滤
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    FilterChip(
+                        title: "全部 / All",
+                        isSelected: filterPriority == nil,
+                        action: { filterPriority = nil }
+                    )
+                    
+                    ForEach([CardItem.Priority.urgent, .high, .medium, .low], id: \.self) { priority in
+                        FilterChip(
+                            title: priorityName(priority),
+                            isSelected: filterPriority == priority,
+                            color: priority.color,
+                            action: { filterPriority = priority }
+                        )
+                    }
+                }
+                .padding(.horizontal)
+            }
+            
+            // Sort Toggle / 排序切换
+            HStack {
+                Text("排序 / Sort:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Button(action: { sortAscending.toggle() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: sortAscending ? "arrow.up" : "arrow.down")
+                            .font(.caption)
+                        Text(sortAscending ? "升序 / Ascending" : "降序 / Descending")
+                            .font(.caption)
+                    }
+                }
+                .buttonStyle(.bordered)
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    // MARK: - Cards Section / 卡片部分
+    private var cardsSection: some View {
+        VStack(spacing: 8) {
+            ForEach(filteredCards) { card in
+                DynamicCardView(
+                    card: binding(for: card),
+                    onDelete: { removeCard(card) }
+                )
+                .transition(.asymmetric(
+                    insertion: .scale.combined(with: .opacity),
+                    removal: .scale.combined(with: .opacity)
+                ))
+            }
+        }
+        .padding(.horizontal)
+        .animation(.spring(response: 0.3), value: cards)
+    }
+    
+    // MARK: - Add Card Section / 添加卡片部分
+    private var addCardSection: some View {
+        VStack(spacing: 12) {
+            if !showAddForm {
+                Button(action: { withAnimation { showAddForm = true } }) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("添加新卡片 / Add New Card")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.horizontal)
+            } else {
+                // Add form / 添加表单
+                VStack(spacing: 12) {
+                    TextField("标题 / Title", text: $newCardTitle)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    TextField("描述 / Description", text: $newCardDescription)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    // Priority Picker / 优先级选择器
+                    Picker("优先级 / Priority", selection: $newCardPriority) {
+                        Text("低 / Low").tag(CardItem.Priority.low)
+                        Text("中 / Medium").tag(CardItem.Priority.medium)
+                        Text("高 / High").tag(CardItem.Priority.high)
+                        Text("紧急 / Urgent").tag(CardItem.Priority.urgent)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                    HStack(spacing: 12) {
+                        Button("取消 / Cancel") {
+                            withAnimation {
+                                showAddForm = false
+                                resetForm()
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Button("添加 / Add") {
+                            addNewCard()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(newCardTitle.isEmpty)
+                    }
+                }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .bottom).combined(with: .opacity)
+                ))
+            }
+        }
+    }
+    
+    // MARK: - Statistics Section / 统计部分
+    private var statisticsSection: some View {
+        HStack(spacing: 20) {
+            StatBox(
+                title: "总计 / Total",
+                value: "\(cards.count)",
+                color: .blue
+            )
+            
+            StatBox(
+                title: "紧急 / Urgent",
+                value: "\(cards.filter { $0.priority == .urgent }.count)",
+                color: .red
+            )
+            
+            StatBox(
+                title: "展开 / Expanded",
+                value: "\(cards.filter { $0.isExpanded }.count)",
+                color: .green
+            )
+        }
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Helper Methods / 辅助方法
+    
+    private func binding(for card: CardItem) -> Binding<CardItem> {
+        guard let index = cards.firstIndex(where: { $0.id == card.id }) else {
+            return .constant(card)
+        }
+        return $cards[index]
+    }
+    
+    private func removeCard(_ card: CardItem) {
+        withAnimation(.spring()) {
+            cards.removeAll { $0.id == card.id }
+        }
+    }
+    
+    private func addNewCard() {
+        let newCard = CardItem(
+            title: newCardTitle,
+            description: newCardDescription,
+            priority: newCardPriority,
+            tags: []
+        )
+        
+        withAnimation(.spring()) {
+            cards.append(newCard)
+            showAddForm = false
+            resetForm()
+        }
+    }
+    
+    private func resetForm() {
+        newCardTitle = ""
+        newCardDescription = ""
+        newCardPriority = .medium
+    }
+    
+    private func priorityName(_ priority: CardItem.Priority) -> String {
+        switch priority {
+        case .low: return "低 / Low"
+        case .medium: return "中 / Medium"
+        case .high: return "高 / High"
+        case .urgent: return "紧急 / Urgent"
+        }
+    }
+}
+
+// MARK: - Supporting Views / 支持视图
+
+/// Filter Chip Component / 过滤芯片组件
+struct FilterChip: View {
+    let title: String
+    let isSelected: Bool
+    var color: Color = .accentColor
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isSelected ? color : Color(.secondarySystemBackground))
+                .foregroundColor(isSelected ? .white : .primary)
+                .cornerRadius(15)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+/// Dynamic Card View Component / 动态卡片视图组件
+struct DynamicCardView: View {
+    @Binding var card: DynamicCardsSheet.CardItem
+    let onDelete: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Header / 头部
+            HStack {
+                Image(systemName: card.priority.icon)
+                    .foregroundColor(card.priority.color)
+                    .font(.caption)
+                
+                Text(card.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Spacer()
+                
+                Button(action: { withAnimation { card.isExpanded.toggle() } }) {
+                    Image(systemName: card.isExpanded ? "chevron.up.circle" : "chevron.down.circle")
+                        .foregroundColor(.secondary)
+                }
+                
+                Button(action: onDelete) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red.opacity(0.7))
+                }
+            }
+            
+            // Content / 内容
+            if card.isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(card.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    // Tags / 标签
+                    if !card.tags.isEmpty {
+                        HStack(spacing: 4) {
+                            ForEach(card.tags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.accentColor.opacity(0.2))
+                                    .cornerRadius(4)
+                            }
+                        }
+                    }
+                    
+                    // Action buttons / 操作按钮
+                    HStack(spacing: 8) {
+                        Button("编辑 / Edit") {
+                            print("编辑卡片: \(card.title)")
+                        }
+                        .font(.caption)
+                        .buttonStyle(.bordered)
+                        
+                        Button("完成 / Done") {
+                            print("完成卡片: \(card.title)")
+                        }
+                        .font(.caption)
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(10)
+    }
+}
+
+/// Statistics Box Component / 统计框组件
+struct StatBox: View {
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
     }
 }
 

@@ -69,6 +69,7 @@ public struct DialogDemoFeature {
         case asyncLoading = "Async Loading"
         case nestedScrolls = "Nested Scrolls"
         case mixedContent = "Mixed Content"
+        case dynamicCards = "Dynamic Cards"  // 新增动态卡片 / New dynamic cards
     }
     
     // MARK: - Action / 动作

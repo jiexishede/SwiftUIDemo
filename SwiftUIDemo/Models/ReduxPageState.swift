@@ -6,28 +6,218 @@
 //  增强的网络请求页面状态管理
 //
 
+/**
+ * 🎯 REDUX PAGE STATE - 页面状态管理核心组件
+ * ═══════════════════════════════════════════════════════════════
+ * 
+ * 🏭 架构定位 / Architecture Position:
+ * 
+ * ┌─────────────────────────────────────────────┐
+ * │              SwiftUI Views                  │
+ * ├─────────────────────────────────────────────┤
+ * │   TCA (The Composable Architecture)        │
+ * ├─────────────────────────────────────────────┤
+ * │        ReduxPageState (我们在这里)         │
+ * ├─────────────────────────────────────────────┤
+ * │          Network Service Layer              │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 🎨 设计模式详解 / Design Patterns Explained:
+ * 
+ * 1️⃣ STATE PATTERN (状态模式) 🎮
+ * ┌─────────────────────────────────────────────┐
+ * │ 核心思想:                                    │
+ * │ • 将页面状态抽象为有限状态机               │
+ * │ • 每个状态封装特定的数据和行为             │
+ * │ • 状态转换明确、可预测                    │
+ * │                                           │
+ * │ 状态转换图:                                │
+ * │ idle → loading → loaded/failed           │
+ * │   ↑                  ↓                    │
+ * │   └───────────────┘                    │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 2️⃣ ALGEBRAIC DATA TYPE (ADT - 代数数据类型) 🧮
+ * ┌─────────────────────────────────────────────┐
+ * │ 类型安全:                                    │
+ * │ • 枚举 (enum) 提供和类型 (Sum Type)         │
+ * │ • 关联值提供丰富的上下文信息              │
+ * │ • 编译时保证状态完整性                    │
+ * │                                           │
+ * │ 例子:                                      │
+ * │ case loading(LoadingType)  // 带类型信息   │
+ * │ case loaded(Content, LoadMoreState)       │
+ * │ case failed(FailureType, ErrorInfo)       │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 3️⃣ GENERIC PROGRAMMING (泛型编程) 🔄
+ * ┌─────────────────────────────────────────────┐
+ * │ 可复用性:                                   │
+ * │ • Content 泛型参数适配任何数据类型         │
+ * │ • Equatable 约束确保可比较性              │
+ * │ • 一套状态管理适用所有页面                │
+ * │                                           │
+ * │ 使用示例:                                  │
+ * │ ReduxPageState<[User]>    // 用户列表     │
+ * │ ReduxPageState<Product>   // 产品详情     │
+ * │ ReduxPageState<OrderData> // 订单数据     │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 🎯 SOLID 原则应用 / SOLID Principles Applied:
+ * 
+ * • SRP (单一职责): 只管理页面状态，不涉及具体业务
+ * • OCP (开闭原则): 通过泛型对扩展开放，对修改关闭
+ * • LSP (里氏替换): 所有子状态可互换使用
+ * • ISP (接口隔离): 每个状态只暴露必要的属性
+ * • DIP (依赖倒置): 依赖于抽象的 Content 类型
+ * 
+ * 🔥 核心功能 / Core Features:
+ * • 完整的页面状态生命周期管理
+ * • 细粒度的加载和错误状态分类
+ * • 支持下拉刷新和加载更多
+ * • 类型安全的错误处理
+ * • 计算属性提供便捷状态查询
+ */
+
 import Foundation
 
 // MARK: - Page State
-// 页面状态枚举 / Page State Enum
+
+/**
+ * 🎯 MAIN PAGE STATE ENUM - 主页面状态枚举
+ * 
+ * 设计模式 / Design Patterns:
+ * • STATE PATTERN: 每个 case 代表一个状态
+ * • COMPOSITE PATTERN: 状态内嵌子状态
+ * • TYPE SAFETY: 编译时保证状态完整性
+ * 
+ * 泛型约束 / Generic Constraints:
+ * • Content: Equatable - 允许状态比较和 SwiftUI 优化
+ * 
+ * 状态机图 / State Machine Diagram:
+ * 
+ *     ┌──────┐
+ *     │ idle │ ←─────────────────┐
+ *     └───┬──┘              │
+ *         │                    │
+ *    [首次加载]               [重置]
+ *         ↓                    │
+ *   ┌─────────┐               │
+ *   │ loading │               │
+ *   └──┬───┬──┘               │
+ *       │   │                  │
+ *   [成功] [失败]                │
+ *       │   │                  │
+ *       ↓   ↓                  │
+ *  ┌───────┐ ┌────────┐        │
+ *  │ loaded │ │ failed │───────┘
+ *  └───────┘ └────────┘
+ */
 public enum ReduxPageState<Content: Equatable>: Equatable {
-    /// 空闲状态，还未发起请求 / Initial state, no request made yet
+    /**
+     * 🛋 IDLE STATE - 空闲状态
+     * 
+     * 含义 / Meaning:
+     * • 初始状态，未发起任何请求
+     * • 或者是重置后的状态
+     * 
+     * 何时使用 / When to use:
+     * • 页面初次加载前
+     * • 用户手动重置页面
+     * • 需要清空所有数据
+     */
     case idle
-    /// 加载中，包含不同的加载类型 / Loading with different types
+    
+    /**
+     * ⏳ LOADING STATE - 加载状态
+     * 
+     * 关联值 / Associated Value:
+     * • LoadingType: 区分不同的加载场景
+     * 
+     * 设计思路 / Design Thinking:
+     * • 细分加载类型以提供更好的 UX
+     * • 不同加载类型可以显示不同 UI
+     */
     case loading(LoadingType)
-    /// 加载成功，包含内容和加载更多状态 / Successfully loaded with content and load more state
+    
+    /**
+     * ✅ LOADED STATE - 加载成功状态
+     * 
+     * 关联值 / Associated Values:
+     * • Content: 实际加载的数据（泛型）
+     * • LoadMoreState: 加载更多的子状态
+     * 
+     * 复合状态 / Composite State:
+     * • 主状态: 数据已加载
+     * • 子状态: 是否可以加载更多
+     */
     case loaded(Content, LoadMoreState)
-    /// 加载失败，包含失败类型和错误信息 / Failed with error type and error info
+    
+    /**
+     * ❌ FAILED STATE - 加载失败状态
+     * 
+     * 关联值 / Associated Values:
+     * • FailureType: 失败的场景分类
+     * • ErrorInfo: 详细的错误信息
+     * 
+     * 错误处理策略 / Error Handling Strategy:
+     * • 区分不同失败场景（初始/刷新/加载更多）
+     * • 提供可操作的错误信息
+     * • 支持重试机制
+     */
     case failed(FailureType, ErrorInfo)
 
     // MARK: - Loading Type
-    // 加载类型 / Loading Type
+    
+    /**
+     * 🔄 LOADING TYPE ENUM - 加载类型枚举
+     * 
+     * 设计模式 / Design Pattern: STRATEGY PATTERN
+     * • 不同加载类型对应不同 UI 策略
+     * 
+     * UI 对应关系 / UI Mapping:
+     * • initial → 全屏加载指示器
+     * • refresh → 下拉刷新动画
+     * • loadMore → 底部加载指示器
+     */
     public enum LoadingType: Equatable {
-        /// 首次加载 / First time loading
+        /**
+         * 🆕 INITIAL LOADING - 首次加载
+         * 
+         * 场景 / Scenario:
+         * • 页面第一次打开
+         * • 没有任何缓存数据
+         * 
+         * UI 建议 / UI Suggestion:
+         * • 显示全屏加载动画
+         * • 可以显示骨架屏 (Skeleton)
+         */
         case initial
-        /// 下拉刷新 / Pull to refresh
+        
+        /**
+         * 🔃 REFRESH LOADING - 下拉刷新
+         * 
+         * 场景 / Scenario:
+         * • 用户主动下拉刷新
+         * • 已有数据，需要更新
+         * 
+         * UI 建议 / UI Suggestion:
+         * • 保留现有内容
+         * • 顶部显示刷新指示器
+         */
         case refresh
-        /// 加载更多 / Loading more items
+        
+        /**
+         * ⬇️ LOAD MORE - 加载更多
+         * 
+         * 场景 / Scenario:
+         * • 滚动到底部
+         * • 分页加载下一页
+         * 
+         * UI 建议 / UI Suggestion:
+         * • 底部显示加载指示器
+         * • 保持列表滚动位置
+         */
         case loadMore
     }
 
@@ -109,9 +299,31 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
     }
 
     // MARK: - Computed Properties
-    // 计算属性 / Computed Properties
-
-    /// 是否正在加载 / Is loading
+    
+    /**
+     * 🧠 COMPUTED PROPERTIES - 计算属性
+     * 
+     * 设计模式 / Design Pattern: FACADE PATTERN
+     * • 简化复杂状态查询
+     * • 提供便捷访问接口
+     * 
+     * SOLID原则 / SOLID: ISP (接口隔离)
+     * • 每个计算属性只暴露一个特定信息
+     * • 使用者只需要关心需要的属性
+     */
+    
+    /**
+     * ⏳ IS LOADING - 是否正在加载
+     * 
+     * 逻辑解析 / Logic Analysis:
+     * 1. 检查主状态是否为 loading
+     * 2. 检查 loaded 状态下的 loadMore 子状态
+     * 
+     * 使用场景 / Usage Scenario:
+     * • 控制加载指示器显示
+     * • 禁用用户交互
+     * • 防止重复请求
+     */
     public var isLoading: Bool {
         if case .loading = self {
             return true

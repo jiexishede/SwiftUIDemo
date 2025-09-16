@@ -10,38 +10,112 @@ import SwiftUI
 import Combine
 
 /**
- * NETWORK AWARE MODIFIERS - 网络感知修饰符系统
+ * 🏗️ NETWORK AWARE MODIFIERS - 网络感知修饰符系统架构详解
  *
+ * 📋 核心设计理念 / Core Design Philosophy:
+ * ============================================
  * 这是一个将网络监控与页面状态管理完美结合的修饰符系统。
  * 通过链式调用，让视图自动响应网络状态变化，提供优雅的用户体验。
- *
+ * 
  * This is a modifier system that perfectly combines network monitoring with page state management.
  * Through chain calls, views automatically respond to network status changes, providing elegant user experience.
  *
- * DESIGN PATTERNS USED / 使用的设计模式:
+ * 🎨 设计模式详解 / Design Patterns In Detail:
+ * ============================================
  *
- * 1. Decorator Pattern (装饰器模式)
- *    - Why: 通过 ViewModifier 为视图添加网络感知能力，不改变原视图结构
- *    - Benefits: 可组合、可重用、关注点分离
- *    - Implementation: 每个修饰符处理特定的网络状态场景
+ * 1️⃣ DECORATOR PATTERN (装饰器模式) 📦
+ *    ├─ 核心思想: 动态地给对象添加额外的职责，而不改变其接口
+ *    ├─ 为什么使用: SwiftUI 的 ViewModifier 本质就是装饰器模式的实现
+ *    ├─ 实现方式: 
+ *    │  └─ NetworkAwareModifier 包装原始 View
+ *    │  └─ 添加网络监控功能而不修改原视图代码
+ *    ├─ 优势:
+ *    │  └─ ✅ 可组合性: 多个修饰符可以叠加使用
+ *    │  └─ ✅ 可重用性: 同一修饰符可应用于任何视图
+ *    │  └─ ✅ 关注点分离: 网络逻辑与业务逻辑分离
+ *    └─ 代码示例: struct NetworkAwareModifier: ViewModifier
  *
- * 2. Chain of Responsibility Pattern (责任链模式)
- *    - Why: 多个修饰符可以链式调用，每个处理特定职责
- *    - Benefits: 灵活组合、易于扩展、职责单一
- *    - Implementation: 通过 View 扩展方法实现链式调用
+ * 2️⃣ CHAIN OF RESPONSIBILITY PATTERN (责任链模式) ⛓️
+ *    ├─ 核心思想: 让多个对象都有机会处理请求，将这些对象连成一条链
+ *    ├─ 为什么使用: 不同的网络状态需要不同的处理逻辑
+ *    ├─ 实现方式:
+ *    │  └─ .networkAware() → .onNetworkConnected() → .autoRetryOnReconnect()
+ *    │  └─ 每个修饰符处理特定的网络场景
+ *    ├─ 优势:
+ *    │  └─ ✅ 灵活组合: 可按需组合不同的修饰符
+ *    │  └─ ✅ 易于扩展: 新增修饰符不影响现有代码
+ *    │  └─ ✅ 职责单一: 每个修饰符只处理一个场景
+ *    └─ 代码示例: View extension 中的链式方法调用
  *
- * 3. Observer Pattern (观察者模式)
- *    - Why: 自动响应网络状态变化
- *    - Benefits: 解耦、实时响应、自动更新
- *    - Implementation: 使用 @ObservedObject 监听 NetworkMonitor
+ * 3️⃣ OBSERVER PATTERN (观察者模式) 👁️
+ *    ├─ 核心思想: 定义对象间的一对多依赖关系，当一个对象状态改变时，所有依赖者都会收到通知
+ *    ├─ 为什么使用: 需要实时响应网络状态变化
+ *    ├─ 实现方式:
+ *    │  └─ @ObservedObject private var monitor = NetworkMonitor.shared
+ *    │  └─ 监听 isConnected、connectionType 等属性变化
+ *    ├─ 优势:
+ *    │  └─ ✅ 解耦: 视图与网络监控逻辑解耦
+ *    │  └─ ✅ 实时响应: 网络状态变化立即更新 UI
+ *    │  └─ ✅ 自动更新: 无需手动刷新视图
+ *    └─ 代码示例: onChange(of: monitor.isConnected)
  *
- * SOLID PRINCIPLES / SOLID 原则:
+ * 4️⃣ STRATEGY PATTERN (策略模式) 🎯
+ *    ├─ 核心思想: 定义一系列算法，把它们一个个封装起来，并且使它们可相互替换
+ *    ├─ 为什么使用: 不同的错误类型需要不同的处理策略
+ *    ├─ 实现方式:
+ *    │  └─ analyzeError() 方法根据错误代码选择不同策略
+ *    │  └─ 401 → 登录策略, 404 → 返回策略, 500 → 报告策略
+ *    └─ 代码示例: UniversalNetworkStateModifier.analyzeError()
  *
- * - SRP: 每个修饰符只负责一个特定的网络状态处理
- * - OCP: 通过扩展添加新功能，不修改现有代码
- * - LSP: 所有修饰符都遵循 ViewModifier 协议
- * - ISP: 提供细粒度的接口，用户只使用需要的功能
- * - DIP: 依赖抽象的 NetworkMonitor 协议，而非具体实现
+ * 5️⃣ TEMPLATE METHOD PATTERN (模板方法模式) 📝
+ *    ├─ 核心思想: 定义操作中的算法骨架，将某些步骤延迟到子类中实现
+ *    ├─ 为什么使用: 所有网络修饰符都有相似的处理流程
+ *    ├─ 实现方式:
+ *    │  └─ ViewModifier.body() 定义处理模板
+ *    │  └─ 具体修饰符实现各自的处理逻辑
+ *    └─ 代码示例: 所有 ViewModifier 的 body 方法
+ *
+ * 🏛️ SOLID 原则应用 / SOLID Principles Application:
+ * ============================================
+ *
+ * S - Single Responsibility Principle (单一职责原则) 📌
+ *     └─ 每个修饰符只负责一个特定的网络状态处理
+ *     └─ NetworkAwareModifier: 只负责基础网络监控
+ *     └─ OfflineIndicatorModifier: 只负责显示离线指示器
+ *     └─ AutoRetryOnReconnectModifier: 只负责自动重试
+ *
+ * O - Open/Closed Principle (开闭原则) 🔒
+ *     └─ 通过 View extension 添加新功能，不修改现有代码
+ *     └─ 新增修饰符不需要修改已有修饰符
+ *     └─ 示例: 添加 universalNetworkState 不影响其他修饰符
+ *
+ * L - Liskov Substitution Principle (里氏替换原则) 🔄
+ *     └─ 所有修饰符都遵循 ViewModifier 协议
+ *     └─ 任何期望 ViewModifier 的地方都可以使用我们的修饰符
+ *     └─ 子类型完全遵守父类型的契约
+ *
+ * I - Interface Segregation Principle (接口隔离原则) ✂️
+ *     └─ 提供细粒度的接口，用户只使用需要的功能
+ *     └─ 不强制使用所有网络功能
+ *     └─ 示例: 可以只用 .networkAware() 而不用其他修饰符
+ *
+ * D - Dependency Inversion Principle (依赖倒置原则) 🔀
+ *     └─ 依赖抽象的 NetworkMonitor 协议，而非具体实现
+ *     └─ 高层模块(修饰符)不依赖低层模块(具体网络实现)
+ *     └─ 通过依赖注入实现灵活性
+ *
+ * 🏗️ 架构层次 / Architecture Layers:
+ * ============================================
+ * 
+ * 表现层 (Presentation Layer)
+ *     ↓
+ * 修饰符层 (Modifier Layer) ← 我们在这里
+ *     ↓
+ * 状态管理层 (State Management Layer)
+ *     ↓
+ * 网络监控层 (Network Monitoring Layer)
+ *     ↓
+ * 系统网络层 (System Network Layer)
  *
  * USAGE EXAMPLES / 使用示例:
  * ```
@@ -72,36 +146,95 @@ import Combine
 // MARK: - Network Aware Base Modifier / 网络感知基础修饰符
 
 /**
- * Base network-aware modifier that monitors connectivity
- * 监控连接性的基础网络感知修饰符
+ * 🔧 BASE NETWORK-AWARE MODIFIER - 基础网络感知修饰符
+ * ═══════════════════════════════════════════════════════
+ * 
+ * 📌 职责定位 / Responsibility:
+ * 这是所有网络感知功能的基础构建块，提供最基本的网络状态监控和回调机制。
+ * This is the foundation building block of all network-aware features.
  *
- * 这是所有网络感知功能的基础，提供网络状态监控和回调。
- * This is the foundation of all network-aware features, providing network status monitoring and callbacks.
+ * 🎯 设计模式 / Design Pattern:
+ * ┌─────────────────────────────────────────────────────┐
+ * │ DECORATOR PATTERN (装饰器模式) 实现                   │
+ * ├─────────────────────────────────────────────────────┤
+ * │ • 角色: ConcreteDecorator (具体装饰器)               │
+ * │ • 职责: 为 View 添加网络监控功能                      │
+ * │ • 特点: 不改变原始 View 的接口和行为                  │
+ * └─────────────────────────────────────────────────────┘
+ *
+ * 🔄 数据流 / Data Flow:
+ * NetworkMonitor (Subject) 
+ *     ↓ [Published 属性变化]
+ * @ObservedObject (Observer)
+ *     ↓ [触发视图更新]
+ * onChange 修饰符
+ *     ↓ [执行回调]
+ * 用户自定义处理逻辑
  */
 struct NetworkAwareModifier: ViewModifier {
+    // 🔍 OBSERVER PATTERN (观察者模式) 实现
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 使用 @ObservedObject 属性包装器订阅 NetworkMonitor 的变化
+    // 当 NetworkMonitor 的 @Published 属性变化时，自动触发视图更新
+    // 💡 设计优势: 实现了视图与网络状态的自动同步，无需手动刷新
     @ObservedObject private var monitor = NetworkMonitor.shared
 
-    // Callbacks / 回调
+    // 📞 CALLBACK PATTERN (回调模式) 实现
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 使用可选闭包提供事件通知机制
+    // 💡 设计决策: 使用可选类型允许用户按需订阅感兴趣的事件
+    
+    /// 网络连接成功时的回调 / Callback when network connected
+    /// - 触发时机: isConnected 从 false 变为 true
+    /// - 使用场景: 恢复数据同步、刷新内容、显示成功提示
     var onConnected: (() -> Void)?
+    
+    /// 网络断开时的回调 / Callback when network disconnected  
+    /// - 触发时机: isConnected 从 true 变为 false
+    /// - 使用场景: 暂停操作、保存本地数据、显示离线提示
     var onDisconnected: (() -> Void)?
+    
+    /// 连接类型变化时的回调 / Callback when connection type changes
+    /// - 触发时机: connectionType 属性发生变化
+    /// - 使用场景: 调整数据质量、优化传输策略、更新 UI 指示器
     var onConnectionTypeChanged: ((NetworkMonitor.ConnectionType) -> Void)?
 
+    // 🎨 TEMPLATE METHOD PATTERN (模板方法模式) 体现
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ViewModifier 协议的 body 方法定义了修饰符的处理模板
     func body(content: Content) -> some View {
         content
-            // NetworkMonitor automatically starts monitoring on init / NetworkMonitor 在初始化时自动开始监控
-            // No need to manually start it / 无需手动启动
+            // 🔔 STATE CHANGE DETECTION (状态变化检测)
+            // ─────────────────────────────────────────
+            // onChange 是 SwiftUI 的响应式编程核心
+            // 监听 @Published 属性的变化并执行相应操作
             .onChange(of: monitor.isConnected) { _, isConnected in
-                // Handle connection state change / 处理连接状态变化
+                // 📊 DECISION TREE (决策树)
+                // ┌─ isConnected = true ──→ 执行 onConnected
+                // └─ isConnected = false ─→ 执行 onDisconnected
+                //
+                // 💡 设计优势: 简单的二元状态，逻辑清晰
+                // ⚠️ 注意事项: 回调在主线程执行，避免耗时操作
                 if isConnected {
-                    onConnected?()
+                    onConnected?()  // 使用可选链安全调用
                 } else {
                     onDisconnected?()
                 }
             }
             .onChange(of: monitor.connectionType) { _, newType in
-                // Handle connection type change / 处理连接类型变化
+                // 🔄 CONNECTION TYPE MONITORING (连接类型监控)
+                // ─────────────────────────────────────────────
+                // 监控网络类型变化 (WiFi ↔ Cellular ↔ Ethernet)
+                // 💡 应用场景:
+                // • WiFi → Cellular: 可能需要降低视频质量
+                // • Cellular → WiFi: 可以恢复高质量传输
+                // • 任何变化: 更新 UI 显示当前连接类型
                 onConnectionTypeChanged?(newType)
             }
+            // 🚀 自动启动说明 / Auto-start Explanation:
+            // NetworkMonitor 使用单例模式，在首次访问时自动初始化
+            // init() 方法中会自动调用 startMonitoring()
+            // 因此这里不需要手动启动监控
     }
 }
 
@@ -394,26 +527,85 @@ struct NetworkOfflineView: View {
 // MARK: - Universal Network State Modifier / 万能网络状态修饰符
 
 /**
- * 🌟 THE ULTIMATE MODIFIER - 终极修饰符
+ * 🌟 UNIVERSAL NETWORK STATE MODIFIER - 万能网络状态修饰符
+ * ═══════════════════════════════════════════════════════════════
  *
- * 这是处理所有网络和页面状态的终极解决方案。
- * 一个修饰符，搞定所有场景！
- *
+ * 🎯 核心价值 / Core Value:
+ * 这是处理所有网络和页面状态的终极解决方案 - "One Modifier to Rule Them All"
  * This is the ultimate solution for handling all network and page states.
- * One modifier to rule them all!
  *
- * INTELLIGENT ERROR HANDLING / 智能错误处理:
- * - Automatically detects error types / 自动检测错误类型
- * - Shows appropriate UI for each error / 为每种错误显示合适的 UI
- * - Provides context-aware retry options / 提供上下文感知的重试选项
+ * 🏗️ 架构设计 / Architecture Design:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │                    用户界面层 (UI Layer)                      │
+ * ├────────────────────────────────────────────────────────────┤
+ * │              UniversalNetworkStateModifier                  │
+ * │                        ↓                                    │
+ * │    ┌──────────────┬──────────────┬──────────────┐         │
+ * │    │ 网络监控      │ 状态管理      │ 错误处理      │         │
+ * │    │ Network      │ State        │ Error        │         │
+ * │    │ Monitoring   │ Management   │ Handling     │         │
+ * │    └──────────────┴──────────────┴──────────────┘         │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * 🎨 设计模式组合 / Design Pattern Composition:
+ *
+ * 1️⃣ FACADE PATTERN (外观模式) 🏛️
+ *    └─ 为复杂的网络状态管理系统提供统一的简单接口
+ *    └─ 隐藏内部复杂性，用户只需调用一个修饰符
+ *    └─ 示例: universalNetworkState() 一个方法搞定所有
+ *
+ * 2️⃣ STRATEGY PATTERN (策略模式) 🎯
+ *    └─ 根据不同的错误类型选择不同的处理策略
+ *    └─ analyzeError() 方法实现策略选择
+ *    └─ 401 → 登录策略, 404 → 返回策略, 500 → 报告策略
+ *
+ * 3️⃣ STATE PATTERN (状态模式) 🔄
+ *    └─ 根据 ReduxPageState 的不同状态展示不同 UI
+ *    └─ idle → 空视图, loading → 加载视图, failed → 错误视图
+ *    └─ 状态转换自动触发 UI 更新
+ *
+ * 4️⃣ TEMPLATE METHOD PATTERN (模板方法模式) 📝
+ *    └─ body() 方法定义处理流程模板
+ *    └─ 子方法实现具体步骤
+ *    └─ 确保处理流程的一致性
+ *
+ * 🔥 智能特性 / Intelligent Features:
+ * ┌─────────────────────────────────────────────────┐
+ * │ • 优先级处理: 网络断开 > 服务器错误 > 加载状态    │
+ * │ • 自动重试: 网络恢复时自动重试失败的请求          │
+ * │ • 智能分类: 根据错误代码自动分类并提供对应操作     │
+ * │ • 视觉反馈: 模糊效果、过渡动画、状态指示器        │
+ * └─────────────────────────────────────────────────┘
  */
 struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
+    // 📊 STATE MANAGEMENT (状态管理)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    /// Redux 页面状态 - 核心数据源
+    /// 遵循单一数据源原则 (Single Source of Truth)
     let state: ReduxPageState<T>
+    
+    /// 重试操作闭包 - 用户定义的重试逻辑
+    /// 设计决策: 使用闭包而非协议，提供更大的灵活性
     let onRetry: () -> Void
+    
+    /// 自动重试开关 - 网络恢复时是否自动重试
+    /// 默认开启，提供更好的用户体验
     let autoRetry: Bool
+    
+    /// 显示指示器开关 - 是否显示网络状态指示器
+    /// 可根据 UI 需求灵活配置
     let showIndicators: Bool
 
+    // 🔍 OBSERVER PATTERN (观察者模式)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    /// 网络监控器 - 实时监控网络状态
+    /// 使用单例模式确保全局一致性
     @ObservedObject private var monitor = NetworkMonitor.shared
+    
+    // 🎛️ LOCAL STATE (本地状态)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    /// 重试标记 - 防止重复重试
+    /// 使用 @State 确保视图更新时保持状态
     @State private var hasRetried = false
 
     func body(content: Content) -> some View {

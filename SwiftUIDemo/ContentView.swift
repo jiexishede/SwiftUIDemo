@@ -5,15 +5,144 @@
 //  Main list view with navigation
 //
 
+/**
+ * 🎯 MAIN NAVIGATION VIEW - 主导航视图
+ * ═══════════════════════════════════════════════════════════════
+ * 
+ * 🏭 导航架构 / Navigation Architecture:
+ * 
+ * ┌─────────────────────────────────────────────┐
+ * │           ContentView (Root)                │
+ * │                   │                         │
+ * │        iOS 16+    │    iOS 15              │
+ * │           ↓       ↓       ↓                │
+ * │   NavigationStackStore  NavigationView      │
+ * │           │                │                │
+ * │      DemoListView    DemoListViewIOS15      │
+ * │           │                │                │
+ * │    ┌──────┴──────┐   ┌────┴────┐         │
+ * │    │ Destination │   │ NavLink │         │
+ * │    │    Views    │   │  Views  │         │
+ * │    └────────────┘   └─────────┘         │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 🎨 设计模式详解 / Design Patterns Explained:
+ * 
+ * 1️⃣ ADAPTER PATTERN (适配器模式) 🔌
+ * ┌─────────────────────────────────────────────┐
+ * │ 版本适配:                                    │
+ * │ • iOS 16+: NavigationStackStore (TCA)      │
+ * │ • iOS 15: NavigationView (Legacy)          │
+ * │                                           │
+ * │ if #available(iOS 16.0, *) {              │
+ * │     // 现代导航 API                         │
+ * │ } else {                                  │
+ * │     // 兼容旧版本                           │
+ * │ }                                         │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 2️⃣ COORDINATOR PATTERN (协调器模式) 🗺️
+ * ┌─────────────────────────────────────────────┐
+ * │ 导航管理:                                   │
+ * │ • NavigationStackStore 管理导航栈         │
+ * │ • Path.State 定义所有可能的目的地        │
+ * │ • destinationView 决定导航目标            │
+ * │                                           │
+ * │ 职责分离:                                  │
+ * │ • View: 只发送 Action                      │
+ * │ • Store: 管理导航状态                      │
+ * │ • Reducer: 处理导航逻辑                   │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 3️⃣ FACTORY PATTERN (工厂模式) 🏭
+ * ┌─────────────────────────────────────────────┐
+ * │ 视图创建:                                   │
+ * │ • destinationView 是视图工厂方法          │
+ * │ • 根据 state 类型创建不同视图              │
+ * │ • @ViewBuilder 支持条件构建              │
+ * │                                           │
+ * │ switch store.state {                      │
+ * │     case .counter: CounterView()          │
+ * │     case .network: NetworkView()          │
+ * │ }                                         │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 4️⃣ LAZY INITIALIZATION (延迟初始化) ⏰
+ * ┌─────────────────────────────────────────────┐
+ * │ iOS 15 解决方案:                            │
+ * │ • @State private var childStore           │
+ * │ • onAppear 时创建新 Store                  │
+ * │ • 确保每次导航状态重置                    │
+ * │                                           │
+ * │ 为什么需要:                                │
+ * │ • iOS 15 NavigationLink 缓存问题         │
+ * │ • 防止状态持久化                        │
+ * └─────────────────────────────────────────────┘
+ * 
+ * 🎯 SOLID 原则应用 / SOLID Principles Applied:
+ * 
+ * • SRP (单一职责): ContentView 只负责导航结构
+ * • OCP (开闭原则): 添加新页面只需扩展 Path.State
+ * • LSP (里氏替换): 所有子视图遵循相同 Store 协议
+ * • ISP (接口隔离): 每个视图只依赖它需要的 Store
+ * • DIP (依赖倒置): 依赖 TCA 抽象而非具体实现
+ * 
+ * 🔥 核心功能 / Core Features:
+ * • iOS 版本适配 (15.0 & 16.0+)
+ * • TCA 导航集成
+ * • 模块化页面管理
+ * • 类型安全的导航
+ */
+
 import SwiftUI
 import ComposableArchitecture
 
 struct ContentView: View {
+    /**
+     * 🎬 STORE PROPERTY - Store 属性
+     * 
+     * 设计模式 / Design Pattern: DEPENDENCY INJECTION
+     * • Store 通过构造函数注入
+     * • 解耦视图和业务逻辑
+     * • 便于测试和重用
+     * 
+     * StoreOf<AppFeature> 类型:
+     * • 类型别名简化: Store<AppFeature.State, AppFeature.Action>
+     * • 包含应用全局状态和动作
+     */
     let store: StoreOf<AppFeature>
 
     var body: some View {
+        /**
+         * 🔄 VERSION ADAPTIVE NAVIGATION - 版本适配导航
+         * 
+         * 设计模式 / Design Pattern: ADAPTER PATTERN
+         * 
+         * #available 编译指令:
+         * • 编译时检查 iOS 版本
+         * • 确保 API 可用性
+         * • 避免运行时崩溃
+         * 
+         * 为什么需要适配:
+         * • iOS 16 引入 NavigationStack
+         * • iOS 15 只有 NavigationView
+         * • TCA 提供不同的集成方式
+         */
         // Version-adaptive navigation / 版本适配的导航
         if #available(iOS 16.0, *) {
+            /**
+             * 🆕 iOS 16+ NAVIGATION - iOS 16+ 导航
+             * 
+             * NavigationStackStore:
+             * • TCA 提供的导航容器
+             * • 管理导航栈状态
+             * • 支持类型安全的导航
+             * 
+             * scope 方法:
+             * • state: \.path - 提取导航路径状态
+             * • action: \.path - 提取导航动作
+             * • 创建子 Store 用于导航
+             */
             // iOS 16+ uses NavigationStackStore / iOS 16+ 使用 NavigationStackStore
             NavigationStackStore(self.store.scope(state: \.path, action: \.path)) {
                 DemoListView(store: store)

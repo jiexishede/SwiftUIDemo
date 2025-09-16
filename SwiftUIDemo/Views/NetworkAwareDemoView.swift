@@ -163,9 +163,8 @@ struct NetworkAwareDemoView: View {
                 // Apply network page state modifier / 应用网络页面状态修饰符
                 .networkPageState(
                     state: viewModel.pageState,
-                    loadingView: AnyView(customLoadingView),
-                    errorView: { error in
-                        AnyView(customErrorView(error: error))
+                    onRetry: {
+                        viewModel.retry()
                     }
                 )
                 .onNetworkRetry {
@@ -212,7 +211,7 @@ struct NetworkAwareDemoView: View {
             Text("自定义错误视图 / Custom Error View")
                 .font(.headline)
             
-            Text(error.description)
+            Text(error.message)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
             

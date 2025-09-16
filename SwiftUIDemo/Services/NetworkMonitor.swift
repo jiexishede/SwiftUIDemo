@@ -42,10 +42,10 @@ import SwiftUI
  *     }
  * ```
  */
-final class NetworkMonitor: ObservableObject {
+public final class NetworkMonitor: ObservableObject {
     // MARK: - Singleton / 单例
     
-    static let shared = NetworkMonitor()
+    public static let shared = NetworkMonitor()
     
     // MARK: - Published Properties / 发布的属性
     
@@ -56,7 +56,7 @@ final class NetworkMonitor: ObservableObject {
     
     // MARK: - Connection Type / 连接类型
     
-    enum ConnectionType {
+    public enum ConnectionType {
         case wifi
         case cellular
         case wiredEthernet

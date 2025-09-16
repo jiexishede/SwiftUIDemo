@@ -559,7 +559,7 @@ struct RefreshErrorBanner: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    Text(errorInfo.description)
+                    Text(errorInfo.message)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
@@ -618,7 +618,7 @@ struct RefreshErrorView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    Text(errorInfo.description)
+                    Text(errorInfo.message)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
@@ -862,6 +862,9 @@ struct LoadMoreView: View {
             
         case let .failed(errorInfo):
             failedView(errorInfo: errorInfo)
+            
+        case .empty:
+            EmptyView()  // 空数据时不显示任何内容 / Show nothing when empty
         }
     }
     
@@ -915,7 +918,7 @@ struct LoadMoreView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.red)
                     
-                    Text(errorInfo.description)
+                    Text(errorInfo.message)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)

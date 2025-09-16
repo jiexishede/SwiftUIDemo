@@ -88,10 +88,8 @@ struct NetworkAwareModifier: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .onAppear {
-                // Start monitoring if needed / 如果需要则开始监控
-                monitor.startMonitoring()
-            }
+            // NetworkMonitor automatically starts monitoring on init / NetworkMonitor 在初始化时自动开始监控
+            // No need to manually start it / 无需手动启动
             .onChange(of: monitor.isConnected) { _, isConnected in
                 // Handle connection state change / 处理连接状态变化
                 if isConnected {
@@ -116,15 +114,9 @@ struct NetworkAwareModifier: ViewModifier {
  * 根据网络状态和页面状态自动显示相应的 UI。
  * Automatically displays appropriate UI based on network status and page state.
  */
-struct NetworkPageStateModifier<Content: Equatable>: ViewModifier {
-    let pageState: ReduxPageState<Content>
+struct NetworkPageStateModifier<T: Equatable>: ViewModifier {
+    let pageState: ReduxPageState<T>
     @ObservedObject private var monitor = NetworkMonitor.shared
-    
-    // Custom views / 自定义视图
-    var loadingView: AnyView?
-    var errorView: ((ReduxPageState<Content>.ErrorInfo) -> AnyView)?
-    var emptyView: AnyView?
-    var offlineView: AnyView?
     
     // Callbacks / 回调
     var onRetry: (() -> Void)?
@@ -163,31 +155,20 @@ struct NetworkPageStateModifier<Content: Equatable>: ViewModifier {
     
     @ViewBuilder
     private var offlineOverlay: some View {
-        if let customOfflineView = offlineView {
-            customOfflineView
-        } else {
-            // Default offline view / 默认离线视图
-            NetworkOfflineView(onRetry: onRetry)
-        }
+        // Default offline view / 默认离线视图
+        NetworkOfflineView(onRetry: onRetry)
     }
     
     @ViewBuilder
-    private func loadingOverlay(type: ReduxPageState<Content>.LoadingType) -> some View {
+    private func loadingOverlay(type: ReduxPageState<T>.LoadingType) -> some View {
         if case .initial = type {
-            if let customLoadingView = loadingView {
-                customLoadingView
-            } else {
-                // Default loading view / 默认加载视图
-                LoadingStateView(
-                    message: "加载中... / Loading...",
-                    style: .standard
-                )
-            }
+            // Default loading view / 默认加载视图
+            UniversalLoadingView()
         }
     }
     
     @ViewBuilder
-    private func loadMoreOverlay(state: ReduxPageState<Content>.LoadMoreState) -> some View {
+    private func loadMoreOverlay(state: ReduxPageState<T>.LoadMoreState) -> some View {
         if case .loading = state {
             VStack {
                 Spacer()
@@ -205,19 +186,15 @@ struct NetworkPageStateModifier<Content: Equatable>: ViewModifier {
     
     @ViewBuilder
     private func errorOverlay(
-        failureType: ReduxPageState<Content>.FailureType,
-        error: ReduxPageState<Content>.ErrorInfo
+        failureType: ReduxPageState<T>.FailureType,
+        error: ReduxPageState<T>.ErrorInfo
     ) -> some View {
         if case .initial = failureType {
-            if let customErrorView = errorView {
-                customErrorView(error)
-            } else {
-                // Default error view / 默认错误视图
-                NetworkErrorView(
-                    error: error,
-                    onRetry: onRetry
-                )
-            }
+            // Default error view / 默认错误视图
+            NetworkErrorView(
+                error: error,
+                onRetry: onRetry
+            )
         }
     }
 }
@@ -362,7 +339,7 @@ struct NetworkSpeedIndicatorModifier: ViewModifier {
             return "wifi"
         case .cellular:
             return "antenna.radiowaves.left.and.right"
-        case .ethernet:
+        case .wiredEthernet:
             return "cable.connector"
         case .unknown:
             return "questionmark.circle"
@@ -435,8 +412,6 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
     let onRetry: () -> Void
     let autoRetry: Bool
     let showIndicators: Bool
-    let customLoadingView: AnyView?
-    let customEmptyView: AnyView?
     
     @ObservedObject private var monitor = NetworkMonitor.shared
     @State private var hasRetried = false
@@ -450,11 +425,9 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
                 .blur(radius: shouldBlur ? 2 : 0)
             
             // State-based overlay / 基于状态的覆盖层
-            if let overlayView = stateOverlay {
-                overlayView
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    .zIndex(100)
-            }
+            stateOverlay
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .zIndex(100)
             
             // Network indicators / 网络指示器
             if showIndicators {
@@ -492,7 +465,7 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
     }
     
     @ViewBuilder
-    private var stateOverlay: some View? {
+    private var stateOverlay: some View {
         // PRIORITY 1: Network offline / 优先级1：网络离线
         if !monitor.isConnected {
             UniversalErrorView(
@@ -514,19 +487,13 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
                 EmptyView()
                 
             case .loading(.initial):
-                if let custom = customLoadingView {
-                    custom
-                } else {
-                    UniversalLoadingView()
-                }
+                UniversalLoadingView()
                 
             case .loaded(_, let subState):
                 if subState == .empty {
-                    if let custom = customEmptyView {
-                        custom
-                    } else {
-                        UniversalEmptyView(onRefresh: onRetry)
-                    }
+                    UniversalEmptyView(onRefresh: onRetry)
+                } else {
+                    EmptyView() // Normal loaded state, no overlay needed
                 }
                 
             case .failed(_, let error):
@@ -799,9 +766,7 @@ struct UniversalEmptyView: View {
  */
 struct PriorityNetworkPageStateModifier<T: Equatable>: ViewModifier {
     let state: ReduxPageState<T>
-    let loadingView: AnyView?
-    let errorView: (ReduxPageState<T>.ErrorInfo) -> AnyView
-    let emptyView: AnyView?
+    let onRetry: (() -> Void)?
     @ObservedObject private var monitor = NetworkMonitor.shared
     
     func body(content: Content) -> some View {
@@ -812,7 +777,7 @@ struct PriorityNetworkPageStateModifier<T: Equatable>: ViewModifier {
             // 优先级1：首先检查网络连接
             if !monitor.isConnected {
                 NetworkOfflineView(
-                    onRetry: nil,
+                    onRetry: onRetry,
                     customMessage: "Network Required / 需要网络连接"
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
@@ -823,7 +788,7 @@ struct PriorityNetworkPageStateModifier<T: Equatable>: ViewModifier {
             else if case .failed(_, let error) = state,
                     error.code == "NETWORK_OFFLINE" || error.code == "NETWORK_ERROR" {
                 NetworkOfflineView(
-                    onRetry: nil,
+                    onRetry: onRetry,
                     customMessage: error.message
                 )
                 .transition(.opacity)
@@ -837,25 +802,17 @@ struct PriorityNetworkPageStateModifier<T: Equatable>: ViewModifier {
                     EmptyView()
                     
                 case .loading:
-                    if let loadingView = loadingView {
-                        loadingView
-                    } else {
-                        DefaultLoadingView()
-                    }
-                    .zIndex(50)
+                    UniversalLoadingView()
+                        .zIndex(50)
                     
                 case .loaded(_, let subState):
                     if subState == .empty {
-                        if let emptyView = emptyView {
-                            emptyView
-                        } else {
-                            DefaultEmptyView()
-                        }
-                        .zIndex(40)
+                        UniversalEmptyView(onRefresh: onRetry ?? {})
+                            .zIndex(40)
                     }
                     
                 case .failed(_, let error):
-                    errorView(error)
+                    NetworkErrorView(error: error, onRetry: onRetry)
                         .zIndex(60)
                 }
             }
@@ -919,17 +876,11 @@ public extension View {
      */
     func networkPageState<T: Equatable>(
         state: ReduxPageState<T>,
-        loadingView: AnyView? = nil,
-        errorView: ((ReduxPageState<T>.ErrorInfo) -> AnyView)? = nil,
-        emptyView: AnyView? = nil,
-        offlineView: AnyView? = nil
+        onRetry: (() -> Void)? = nil
     ) -> some View {
         modifier(NetworkPageStateModifier(
             pageState: state,
-            loadingView: loadingView,
-            errorView: errorView,
-            emptyView: emptyView,
-            offlineView: offlineView
+            onRetry: onRetry
         ))
     }
     
@@ -997,29 +948,36 @@ public extension View {
      *     )
      * ```
      */
+    @ViewBuilder
     func withNetworkAwareness<T: Equatable>(
         pageState: ReduxPageState<T>,
         onRetry: @escaping () -> Void,
         autoRetry: Bool = true,
         showIndicators: Bool = true
     ) -> some View {
-        var result = self
+        let baseView = self
             .networkAware()
             .networkPageState(state: pageState)
             .onNetworkRetry(onRetry)
         
         if autoRetry {
-            result = AnyView(result.autoRetryOnReconnect(onRetry))
+            if showIndicators {
+                baseView
+                    .autoRetryOnReconnect(onRetry)
+                    .showOfflineIndicator()
+                    .showNetworkSpeedIndicator()
+            } else {
+                baseView
+                    .autoRetryOnReconnect(onRetry)
+            }
         } else {
-            result = AnyView(result)
-        }
-        
-        if showIndicators {
-            return AnyView(result
-                .showOfflineIndicator()
-                .showNetworkSpeedIndicator())
-        } else {
-            return result
+            if showIndicators {
+                baseView
+                    .showOfflineIndicator()
+                    .showNetworkSpeedIndicator()
+            } else {
+                baseView
+            }
         }
     }
     
@@ -1045,23 +1003,11 @@ public extension View {
      */
     func priorityNetworkPageState<T: Equatable>(
         state: ReduxPageState<T>,
-        loadingView: AnyView? = nil,
-        errorView: ((ReduxPageState<T>.ErrorInfo) -> AnyView)? = nil,
-        emptyView: AnyView? = nil,
         onRetry: (() -> Void)? = nil
     ) -> some View {
         modifier(PriorityNetworkPageStateModifier(
             state: state,
-            loadingView: loadingView,
-            errorView: errorView ?? { error in
-                AnyView(
-                    DefaultErrorView(
-                        error: error,
-                        onRetry: onRetry
-                    )
-                )
-            },
-            emptyView: emptyView
+            onRetry: onRetry
         ))
     }
     
@@ -1117,17 +1063,13 @@ public extension View {
         state: ReduxPageState<T>,
         onRetry: @escaping () -> Void,
         autoRetry: Bool = true,
-        showIndicators: Bool = true,
-        customLoadingView: AnyView? = nil,
-        customEmptyView: AnyView? = nil
+        showIndicators: Bool = true
     ) -> some View {
         modifier(UniversalNetworkStateModifier(
             state: state,
             onRetry: onRetry,
             autoRetry: autoRetry,
-            showIndicators: showIndicators,
-            customLoadingView: customLoadingView,
-            customEmptyView: customEmptyView
+            showIndicators: showIndicators
         ))
     }
     
@@ -1137,45 +1079,6 @@ public extension View {
 
 // MARK: - Default Network Views / 默认网络视图
 
-/**
- * Default offline view shown when network is disconnected
- * 网络断开时显示的默认离线视图
- */
-struct NetworkOfflineView: View {
-    let onRetry: (() -> Void)?
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "wifi.slash")
-                .font(.system(size: 60))
-                .foregroundColor(.gray)
-            
-            Text("无网络连接 / No Network Connection")
-                .font(.title3)
-                .fontWeight(.semibold)
-            
-            Text("请检查您的网络设置并重试\nPlease check your network settings and try again")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            
-            if let onRetry = onRetry {
-                Button(action: onRetry) {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("重试 / Retry")
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
-    }
-}
 
 /**
  * Default network error view

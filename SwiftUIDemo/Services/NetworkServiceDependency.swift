@@ -96,7 +96,7 @@ extension NetworkServiceClient {
  * API endpoint configuration
  * API 端点配置
  */
-enum APIEndpoint {
+public enum APIEndpoint {
     case custom(URLRequest)
     case get(String, parameters: [String: Any]? = nil)
     case post(String, body: Data? = nil)

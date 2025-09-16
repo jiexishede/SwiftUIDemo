@@ -188,7 +188,7 @@ struct RefreshableListFeature {
                     state.pageState = .loaded(data, .loading)
                     // 加载更多时显示遮罩层 / Show overlay during load more
                     state.showLoadingOverlay = true
-                case .loading, .noMore:
+                case .loading, .noMore, .empty:
                     return .none
                 }
                 

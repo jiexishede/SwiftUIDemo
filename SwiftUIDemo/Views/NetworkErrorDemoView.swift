@@ -401,6 +401,8 @@ extension ReduxPageState {
                 return "All Loaded / 全部加载"
             case .failed:
                 return "Load More Failed / 加载更多失败"
+            case .empty:
+                return "Empty / 空数据"
             }
         case .failed(let type, _):
             switch type {

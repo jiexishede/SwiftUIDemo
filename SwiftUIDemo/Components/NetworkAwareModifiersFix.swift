@@ -73,7 +73,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
     let customEmptyView: AnyView?
     
     // NEW: Custom error configurations / 新增：自定义错误配置
-    let customErrorConfigs: [ReduxPageState<T>.ErrorType: ErrorDisplayConfig]
+    let customErrorConfigs: [String: ErrorDisplayConfig]  // Map error codes to configs / 将错误代码映射到配置
     let customOfflineConfig: ErrorDisplayConfig?
     
     @ObservedObject private var monitor = NetworkMonitor.shared
@@ -195,9 +195,9 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
     
     @ViewBuilder
     private func intelligentErrorView(for error: ReduxPageState<T>.ErrorInfo) -> some View {
-        // Check if custom config exists for this error type
-        // 检查是否存在此错误类型的自定义配置
-        if let customConfig = customErrorConfigs[error.type] {
+        // Check if custom config exists for this error code
+        // 检查是否存在此错误代码的自定义配置
+        if let customConfig = customErrorConfigs[error.code] {
             CustomizableErrorView(config: customConfig)
         } else {
             // Use default intelligent error analysis
@@ -208,12 +208,12 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
     }
     
     private func analyzeError(_ error: ReduxPageState<T>.ErrorInfo) -> ErrorDisplayConfig {
-        switch error.type {
-        case .networkConnection:
+        switch error.code {
+        case "NETWORK_OFFLINE", "NETWORK_CONNECTION":
             return ErrorDisplayConfig(
                 icon: "wifi.slash",
                 title: "Connection Lost / 连接丢失",
-                message: error.description,
+                message: error.message,
                 primaryActionTitle: "Check Network / 检查网络",
                 primaryAction: {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -223,82 +223,65 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                 secondaryAction: onRetry
             )
             
-        case .serverError:
-            if let code = error.code {
-                switch code {
-                case 401:
-                    return ErrorDisplayConfig(
-                        icon: "lock.shield",
-                        title: "Authentication Required / 需要认证",
-                        message: error.description,
-                        primaryActionTitle: "Login / 登录",
-                        primaryAction: {
-                            print("Navigate to login")
-                        },
-                        secondaryAction: onRetry
-                    )
-                case 404:
-                    return ErrorDisplayConfig(
-                        icon: "questionmark.folder",
-                        title: "Not Found / 未找到",
-                        message: error.description,
-                        primaryActionTitle: "Go Back / 返回",
-                        primaryAction: {
-                            print("Navigate back")
-                        },
-                        secondaryAction: onRetry
-                    )
-                case 500, 502, 503:
-                    return ErrorDisplayConfig(
-                        icon: "exclamationmark.icloud",
-                        title: "Server Error / 服务器错误",
-                        message: error.description,
-                        primaryActionTitle: "Report / 报告",
-                        primaryAction: {
-                            print("Report issue")
-                        },
-                        secondaryAction: onRetry
-                    )
-                default:
-                    return ErrorDisplayConfig(
-                        icon: "exclamationmark.triangle",
-                        title: "Error \(code)",
-                        message: error.description,
-                        secondaryAction: onRetry
-                    )
-                }
-            } else {
-                return ErrorDisplayConfig(
-                    icon: "exclamationmark.triangle",
-                    title: "Server Error / 服务器错误",
-                    message: error.description,
-                    secondaryAction: onRetry
-                )
-            }
+        case "UNAUTHORIZED", "401":
+            return ErrorDisplayConfig(
+                icon: "lock.shield",
+                title: "Authentication Required / 需要认证",
+                message: error.message,
+                primaryActionTitle: "Login / 登录",
+                primaryAction: {
+                    print("Navigate to login")
+                },
+                secondaryAction: onRetry
+            )
             
-        case .timeout:
+        case "NOT_FOUND", "404":
+            return ErrorDisplayConfig(
+                icon: "questionmark.folder",
+                title: "Not Found / 未找到",
+                message: error.message,
+                primaryActionTitle: "Go Back / 返回",
+                primaryAction: {
+                    print("Navigate back")
+                },
+                secondaryAction: onRetry
+            )
+            
+        case "SERVER_ERROR", "500", "502", "503":
+            return ErrorDisplayConfig(
+                icon: "exclamationmark.icloud",
+                title: "Server Error / 服务器错误",
+                message: error.message,
+                primaryActionTitle: "Report / 报告",
+                primaryAction: {
+                    print("Report issue")
+                },
+                secondaryAction: onRetry
+            )
+            
+        case "TIMEOUT":
             return ErrorDisplayConfig(
                 icon: "clock.badge.exclamationmark",
                 title: "Request Timeout / 请求超时",
-                message: error.description,
+                message: error.message,
                 secondaryAction: onRetry,
                 iconColor: .orange
             )
             
-        case .parsingError:
+        case "DECODING_ERROR", "PARSING_ERROR":
             return ErrorDisplayConfig(
                 icon: "doc.badge.ellipsis",
                 title: "Data Error / 数据错误",
-                message: error.description,
+                message: error.message,
                 secondaryAction: onRetry,
                 iconColor: .purple
             )
             
-        case .unknown:
+        default:
             return ErrorDisplayConfig(
                 icon: "questionmark.circle",
                 title: "Unknown Error / 未知错误",
-                message: error.description,
+                message: error.message,
                 secondaryAction: onRetry,
                 iconColor: .gray
             )
@@ -458,13 +441,13 @@ public extension View {
      *         state: viewModel.pageState,
      *         onRetry: { viewModel.refresh() },
      *         customErrorConfigs: [
-     *             .networkConnection: ErrorDisplayConfig(
+     *             "NETWORK_OFFLINE": ErrorDisplayConfig(
      *                 icon: "airplane.slash",
      *                 title: "飞行模式 / Airplane Mode",
      *                 message: "请关闭飞行模式 / Please turn off airplane mode",
      *                 iconColor: .orange
      *             ),
-     *             .serverError: ErrorDisplayConfig(
+     *             "SERVER_ERROR": ErrorDisplayConfig(
      *                 icon: "server.rack",
      *                 title: "服务器维护 / Server Maintenance",
      *                 message: "系统正在维护，请稍后再试 / System under maintenance",
@@ -487,7 +470,7 @@ public extension View {
         showIndicators: Bool = true,
         customLoadingView: AnyView? = nil,
         customEmptyView: AnyView? = nil,
-        customErrorConfigs: [ReduxPageState<T>.ErrorType: ErrorDisplayConfig] = [:],
+        customErrorConfigs: [String: ErrorDisplayConfig] = [:],
         customOfflineConfig: ErrorDisplayConfig? = nil
     ) -> some View {
         modifier(EnhancedUniversalNetworkStateModifier(

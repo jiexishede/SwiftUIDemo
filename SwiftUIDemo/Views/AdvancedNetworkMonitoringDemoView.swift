@@ -235,6 +235,31 @@ struct AdvancedNetworkMonitoringDemoView: View {
                 )
             }
             .foregroundColor(.primary)
+            
+            // Navigate to multi-component demo / 导航到多组件演示
+            NavigationLink(
+                destination: MultiComponentNetworkErrorDemoView(
+                    store: Store(
+                        initialState: MultiComponentNetworkErrorFeature.State()
+                    ) {
+                        MultiComponentNetworkErrorFeature()
+                    }
+                )
+            ) {
+                HStack {
+                    Image(systemName: "square.grid.3x3")
+                    Text("多组件错误演示 / Multi-Component Error Demo")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.purple.opacity(0.1))
+                )
+            }
+            .foregroundColor(.primary)
 
             if !viewModel.customMessages.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -710,106 +735,8 @@ struct MessageEditingSheet: View {
 
 // MARK: - Network Error Types / 网络错误类型
 
-/**
- * Comprehensive network error types for simulation
- * 用于模拟的综合网络错误类型
- */
-enum NetworkErrorType: String, CaseIterable {
-    case offline = "offline"
-    case timeout = "timeout"
-    case serverError = "serverError"
-    case unauthorized = "unauthorized"
-    case notFound = "notFound"
-    case badRequest = "badRequest"
-    case tooManyRequests = "tooManyRequests"
-    case maintenance = "maintenance"
-
-    var displayName: String {
-        switch self {
-        case .offline: return "离线"
-        case .timeout: return "超时"
-        case .serverError: return "服务器错误"
-        case .unauthorized: return "未授权"
-        case .notFound: return "未找到"
-        case .badRequest: return "请求错误"
-        case .tooManyRequests: return "请求过多"
-        case .maintenance: return "维护中"
-        }
-    }
-
-    var englishName: String {
-        switch self {
-        case .offline: return "Offline"
-        case .timeout: return "Timeout"
-        case .serverError: return "Server Error"
-        case .unauthorized: return "Unauthorized"
-        case .notFound: return "Not Found"
-        case .badRequest: return "Bad Request"
-        case .tooManyRequests: return "Too Many Requests"
-        case .maintenance: return "Maintenance"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .offline: return "wifi.slash"
-        case .timeout: return "clock.badge.exclamationmark"
-        case .serverError: return "server.rack"
-        case .unauthorized: return "lock.shield"
-        case .notFound: return "questionmark.folder"
-        case .badRequest: return "exclamationmark.triangle"
-        case .tooManyRequests: return "gauge.badge.minus"
-        case .maintenance: return "wrench.and.screwdriver"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .offline: return .red
-        case .timeout: return .orange
-        case .serverError: return .red
-        case .unauthorized: return .purple
-        case .notFound: return .blue
-        case .badRequest: return .yellow
-        case .tooManyRequests: return .pink
-        case .maintenance: return .gray
-        }
-    }
-
-    var errorCode: String {
-        switch self {
-        case .offline: return "NETWORK_OFFLINE"
-        case .timeout: return "TIMEOUT"
-        case .serverError: return "500"
-        case .unauthorized: return "401"
-        case .notFound: return "404"
-        case .badRequest: return "400"
-        case .tooManyRequests: return "429"
-        case .maintenance: return "503"
-        }
-    }
-
-    var defaultMessage: String {
-        switch self {
-        case .offline:
-            return "网络连接已断开，请检查您的网络设置。\nNetwork connection lost, please check your network settings."
-        case .timeout:
-            return "请求超时，请稍后重试。\nRequest timeout, please try again later."
-        case .serverError:
-            return "服务器遇到问题，我们正在修复中。\nServer encountered an issue, we're fixing it."
-        case .unauthorized:
-            return "您需要登录才能继续操作。\nYou need to log in to continue."
-        case .notFound:
-            return "请求的资源未找到。\nRequested resource not found."
-        case .badRequest:
-            return "请求格式有误，请检查后重试。\nInvalid request format, please check and retry."
-        case .tooManyRequests:
-            return "请求过于频繁，请稍后再试。\nToo many requests, please try again later."
-        case .maintenance:
-            return "系统正在维护中，请稍后访问。\nSystem under maintenance, please visit later."
-        }
-    }
-}
+// NetworkErrorType is now imported from Models/NetworkErrorType.swift
+// NetworkErrorType 现在从 Models/NetworkErrorType.swift 导入
 
 // MARK: - Advanced Network Demo ViewModel / 高级网络演示视图模型
 

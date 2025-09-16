@@ -755,7 +755,7 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
             return ErrorConfig(
                 icon: "lock.shield",
                 title: "Authentication Required / 需要认证",
-                message: "Please log in to continue / 请登录以继续",
+                message: error.message.isEmpty ? "Please log in to continue / 请登录以继续" : error.message,
                 primaryAction: ("Login / 登录", {
                     // Navigate to login
                     print("Navigate to login")
@@ -766,18 +766,18 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
             return ErrorConfig(
                 icon: "questionmark.folder",
                 title: "Not Found / 未找到",
-                message: "The requested resource was not found / 请求的资源未找到",
+                message: error.message.isEmpty ? "The requested resource was not found / 请求的资源未找到" : error.message,
                 primaryAction: ("Go Back / 返回", {
                     // Navigate back
                     print("Navigate back")
                 })
             )
 
-        case "SERVER_ERROR", "500", "502", "503":
+        case "SERVER_ERROR", "500", "502":
             return ErrorConfig(
                 icon: "exclamationmark.server",
                 title: "Server Error / 服务器错误",
-                message: "Something went wrong on our end / 服务器出现问题",
+                message: error.message.isEmpty ? "Something went wrong on our end / 服务器出现问题" : error.message,
                 primaryAction: ("Report / 报告", {
                     // Report issue
                     print("Report issue")
@@ -788,7 +788,31 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
             return ErrorConfig(
                 icon: "clock.badge.exclamationmark",
                 title: "Request Timeout / 请求超时",
-                message: "The request took too long / 请求耗时过长",
+                message: error.message.isEmpty ? "The request took too long / 请求耗时过长" : error.message,
+                primaryAction: nil
+            )
+            
+        case "BAD_REQUEST", "400":
+            return ErrorConfig(
+                icon: "exclamationmark.triangle",
+                title: "Bad Request / 请求错误",
+                message: error.message.isEmpty ? "Invalid request parameters / 请求参数无效" : error.message,
+                primaryAction: nil
+            )
+            
+        case "TOO_MANY_REQUESTS", "429":
+            return ErrorConfig(
+                icon: "gauge.badge.minus",
+                title: "Too Many Requests / 请求过多",
+                message: error.message.isEmpty ? "Please slow down and try again later / 请放慢速度稍后重试" : error.message,
+                primaryAction: nil
+            )
+            
+        case "MAINTENANCE", "503":
+            return ErrorConfig(
+                icon: "wrench.and.screwdriver",
+                title: "Under Maintenance / 维护中",
+                message: error.message.isEmpty ? "Service temporarily unavailable for maintenance / 服务暂时维护中" : error.message,
                 primaryAction: nil
             )
 

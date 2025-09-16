@@ -187,6 +187,17 @@ claude mcp add spec-workflow-mcp -s user -- npx -y spec-workflow-mcp@latest
 This is a SwiftUI project using The Composable Architecture (TCA) pattern for state management.
 这是一个使用 The Composable Architecture (TCA) 模式进行状态管理的 SwiftUI 项目。
 
+## 🎯 State Management Principle / 状态管理原则
+**SwiftUI项目中逻辑代码状态管理等都使用TCA的类Redux这种State, Reducer, Action模式**
+**All logic code and state management in SwiftUI project must use TCA's Redux-like pattern with State, Reducer, and Action**
+
+### TCA Architecture Requirements / TCA架构要求
+1. **State**: 所有状态必须定义在State结构体中 / All state must be defined in State struct
+2. **Action**: 所有用户交互和事件必须定义为Action枚举 / All user interactions and events must be defined as Action enum
+3. **Reducer**: 所有业务逻辑必须在Reducer中处理 / All business logic must be handled in Reducer
+4. **Store**: 使用Store连接View和Reducer / Use Store to connect View and Reducer
+5. **No Direct State Mutation**: 禁止直接修改状态，必须通过Action / No direct state mutation, must go through Action
+
 ## 📱 iOS Version Requirements / iOS 版本要求
 
 ### Minimum iOS Version: 15.0 / 最低 iOS 版本：15.0

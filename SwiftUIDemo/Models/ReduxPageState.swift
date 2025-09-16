@@ -19,7 +19,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
     case loaded(Content, LoadMoreState)
     /// 加载失败，包含失败类型和错误信息 / Failed with error type and error info
     case failed(FailureType, ErrorInfo)
-    
+
     // MARK: - Loading Type
     // 加载类型 / Loading Type
     public enum LoadingType: Equatable {
@@ -30,7 +30,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         /// 加载更多 / Loading more items
         case loadMore
     }
-    
+
     // MARK: - Load More State
     // 加载更多状态 / Load More State
     public enum LoadMoreState: Equatable {
@@ -45,7 +45,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         /// 数据为空 / Empty data
         case empty
     }
-    
+
     // MARK: - Failure Type
     // 失败类型 / Failure Type
     public enum FailureType: Equatable {
@@ -56,7 +56,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         /// 加载更多失败 / Load more failed
         case loadMore
     }
-    
+
     // MARK: - Error Info
     // 错误信息 / Error Information
     public struct ErrorInfo: Equatable {
@@ -64,19 +64,19 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         public let code: String
         /// 错误消息 / Error message
         public let message: String
-        
+
         public init(code: String, message: String) {
             self.code = code
             self.message = message
         }
-        
+
         // Legacy initializer for backward compatibility / 向后兼容的初始化器
         public init(type: ErrorType, description: String? = nil, code: Int? = nil) {
             self.code = String(code ?? 0)
             self.message = description ?? type.defaultDescription
         }
     }
-    
+
     // MARK: - Error Type
     // 错误类型枚举 / Error Type Enum
     public enum ErrorType: Equatable {
@@ -90,7 +90,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         case parsingError
         /// 未知错误 / Unknown error
         case unknown
-        
+
         /// 默认错误描述 / Default error description
         var defaultDescription: String {
             switch self {
@@ -107,10 +107,10 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
             }
         }
     }
-    
+
     // MARK: - Computed Properties
     // 计算属性 / Computed Properties
-    
+
     /// 是否正在加载 / Is loading
     public var isLoading: Bool {
         if case .loading = self {
@@ -122,7 +122,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         }
         return false
     }
-    
+
     /// 是否正在刷新 / Is refreshing
     public var isRefreshing: Bool {
         if case .loading(.refresh) = self {
@@ -130,7 +130,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         }
         return false
     }
-    
+
     /// 是否正在加载更多 / Is loading more
     public var isLoadingMore: Bool {
         if case .loading(.loadMore) = self {
@@ -142,7 +142,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         }
         return false
     }
-    
+
     /// 是否可以加载更多 / Can load more
     public var canLoadMore: Bool {
         if case let .loaded(_, loadMoreState) = self {
@@ -155,7 +155,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
         }
         return false
     }
-    
+
     /// 获取错误信息 / Get error information
     public var errorInfo: ErrorInfo? {
         switch self {
@@ -167,7 +167,7 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
             return nil
         }
     }
-    
+
     /// 获取错误消息 / Get error message
     public var errorMessage: String? {
         errorInfo?.message

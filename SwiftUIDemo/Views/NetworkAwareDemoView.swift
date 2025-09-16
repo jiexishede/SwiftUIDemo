@@ -11,20 +11,20 @@ import ComposableArchitecture
 
 /**
  * NETWORK AWARE DEMO VIEW - 网络感知演示视图
- * 
+ *
  * 这个视图展示了如何使用网络感知修饰符系统。
  * 它演示了所有主要功能：网络状态监控、自动重试、离线指示器等。
- * 
+ *
  * This view demonstrates how to use the network-aware modifier system.
  * It showcases all major features: network status monitoring, auto-retry, offline indicators, etc.
- * 
+ *
  * KEY FEATURES DEMONSTRATED / 演示的关键功能:
  * 1. Network state monitoring / 网络状态监控
  * 2. Auto-retry on reconnect / 重连时自动重试
  * 3. Offline mode handling / 离线模式处理
  * 4. Network speed indicators / 网络速度指示器
  * 5. Page state integration / 页面状态集成
- * 
+ *
  * USAGE PATTERNS / 使用模式:
  * - Simple network awareness / 简单的网络感知
  * - Complex state management / 复杂的状态管理
@@ -33,7 +33,7 @@ import ComposableArchitecture
 struct NetworkAwareDemoView: View {
     @StateObject private var viewModel = NetworkAwareDemoViewModel()
     @State private var selectedTab = 0
-    
+
     var body: some View {
         TabView(selection: $selectedTab) {
             // Tab 1: Simple Network Awareness / 简单网络感知
@@ -42,14 +42,14 @@ struct NetworkAwareDemoView: View {
                     Label("简单示例 / Simple", systemImage: "wifi")
                 }
                 .tag(0)
-            
+
             // Tab 2: Page State Integration / 页面状态集成
             pageStateIntegrationView
                 .tabItem {
                     Label("页面状态 / Page State", systemImage: "doc.text")
                 }
                 .tag(1)
-            
+
             // Tab 3: Advanced Features / 高级功能
             advancedFeaturesView
                 .tabItem {
@@ -60,9 +60,9 @@ struct NetworkAwareDemoView: View {
         .navigationTitle("网络感知演示 / Network Aware Demo")
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     // MARK: - Simple Network Awareness / 简单网络感知
-    
+
     private var simpleNetworkAwareView: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -85,7 +85,7 @@ struct NetworkAwareDemoView: View {
                             viewModel.log("网络已断开 / Network Disconnected")
                         }
                 }
-                
+
                 // Example 2: Offline indicator / 离线指示器
                 exampleCard(
                     title: "离线指示器 / Offline Indicator",
@@ -99,7 +99,7 @@ struct NetworkAwareDemoView: View {
                         // Show offline indicator / 显示离线指示器
                         .showOfflineIndicator(position: .top)
                 }
-                
+
                 // Example 3: Network type indicator / 网络类型指示器
                 exampleCard(
                     title: "网络类型指示器 / Network Type Indicator",
@@ -113,13 +113,13 @@ struct NetworkAwareDemoView: View {
                         // Show network speed indicator / 显示网络速度指示器
                         .showNetworkSpeedIndicator(always: true)
                 }
-                
+
                 // Logs display / 日志显示
                 if !viewModel.logs.isEmpty {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("事件日志 / Event Logs")
                             .font(.headline)
-                        
+
                         ForEach(viewModel.logs, id: \.self) { log in
                             Text(log)
                                 .font(.caption)
@@ -134,9 +134,9 @@ struct NetworkAwareDemoView: View {
             .padding()
         }
     }
-    
+
     // MARK: - Page State Integration / 页面状态集成
-    
+
     private var pageStateIntegrationView: some View {
         VStack {
             // Control buttons / 控制按钮
@@ -145,19 +145,19 @@ struct NetworkAwareDemoView: View {
                     viewModel.loadData()
                 }
                 .buttonStyle(.bordered)
-                
+
                 Button("失败 / Fail") {
                     viewModel.simulateError()
                 }
                 .buttonStyle(.bordered)
-                
+
                 Button("清空 / Clear") {
                     viewModel.clearData()
                 }
                 .buttonStyle(.bordered)
             }
             .padding()
-            
+
             // Content with network page state / 带网络页面状态的内容
             contentListView
                 // Apply network page state modifier / 应用网络页面状态修饰符
@@ -175,7 +175,7 @@ struct NetworkAwareDemoView: View {
                 }
         }
     }
-    
+
     private var contentListView: some View {
         List(viewModel.items, id: \.self) { item in
             HStack {
@@ -189,7 +189,7 @@ struct NetworkAwareDemoView: View {
             .padding(.vertical, 8)
         }
     }
-    
+
     private var customLoadingView: some View {
         VStack(spacing: 20) {
             ProgressView()
@@ -201,20 +201,20 @@ struct NetworkAwareDemoView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
     }
-    
+
     private func customErrorView(error: ReduxPageState<[String]>.ErrorInfo) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "xmark.octagon")
                 .font(.system(size: 50))
                 .foregroundColor(.red)
-            
+
             Text("自定义错误视图 / Custom Error View")
                 .font(.headline)
-            
+
             Text(error.message)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button("重试 / Retry") {
                 viewModel.retry()
             }
@@ -224,9 +224,9 @@ struct NetworkAwareDemoView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
     }
-    
+
     // MARK: - Advanced Features / 高级功能
-    
+
     private var advancedFeaturesView: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -244,7 +244,7 @@ struct NetworkAwareDemoView: View {
                             showIndicators: true
                         )
                 }
-                
+
                 // Chain modifiers example / 链式修饰符示例
                 exampleCard(
                     title: "链式调用 / Chain Calls",
@@ -276,7 +276,7 @@ struct NetworkAwareDemoView: View {
             .padding()
         }
     }
-    
+
     private var advancedContentView: some View {
         VStack(spacing: 15) {
             ForEach(0..<3) { index in
@@ -293,9 +293,9 @@ struct NetworkAwareDemoView: View {
         }
         .padding()
     }
-    
+
     // MARK: - Helper Views / 辅助视图
-    
+
     private func exampleCard<Content: View>(
         title: String,
         description: String,
@@ -304,11 +304,11 @@ struct NetworkAwareDemoView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
-            
+
             Text(description)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             content()
         }
         .padding()
@@ -327,10 +327,10 @@ class NetworkAwareDemoViewModel: ObservableObject {
     @Published var pageState: ReduxPageState<[String]> = .idle
     @Published var items: [String] = []
     @Published var logs: [String] = []
-    
+
     func loadData() {
         pageState = .loading(.initial)
-        
+
         // Simulate network request / 模拟网络请求
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             let mockData = [
@@ -344,7 +344,7 @@ class NetworkAwareDemoViewModel: ObservableObject {
             self?.pageState = .loaded(mockData, .idle)
         }
     }
-    
+
     func simulateError() {
         pageState = .failed(
             .initial,
@@ -355,17 +355,17 @@ class NetworkAwareDemoViewModel: ObservableObject {
             )
         )
     }
-    
+
     func clearData() {
         items = []
         pageState = .idle
     }
-    
+
     func retry() {
         log("重试操作 / Retry operation")
         loadData()
     }
-    
+
     func log(_ message: String) {
         let timestamp = DateFormatter.localizedString(
             from: Date(),
@@ -373,7 +373,7 @@ class NetworkAwareDemoViewModel: ObservableObject {
             timeStyle: .medium
         )
         logs.append("[\(timestamp)] \(message)")
-        
+
         // Keep only last 5 logs / 只保留最近5条日志
         if logs.count > 5 {
             logs.removeFirst()

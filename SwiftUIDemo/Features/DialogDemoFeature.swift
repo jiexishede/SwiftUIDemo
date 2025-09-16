@@ -22,35 +22,35 @@ import SwiftUI
 @Reducer
 public struct DialogDemoFeature {
     // MARK: - State / 状态
-    
+
     /// Feature state / 功能状态
     @ObservableState
     public struct State: Equatable {
         /// Selected dialog type for demo / 演示的选定对话框类型
         var selectedDialogType: DialogType?
-        
+
         /// Custom dialog configuration / 自定义对话框配置
         var customDialogConfig: DialogConfiguration?
-        
+
         /// Show custom dialog / 显示自定义对话框
         var showCustomDialog: Bool = false
-        
+
         /// Input text from input dialog / 输入对话框的输入文本
         var inputText: String = ""
-        
+
         /// Demo result message / 演示结果消息
         var resultMessage: String = ""
-        
+
         /// Loading state / 加载状态
         var isLoading: Bool = false
-        
+
         /// Active bottom sheet / 活动的底部弹窗
         var activeSheet: BottomSheetType? = nil
-        
+
         /// Initialize state / 初始化状态
         public init() {}
     }
-    
+
     /// Bottom sheet types / 底部弹窗类型
     public enum BottomSheetType: String, CaseIterable {
         case minimal = "Minimal"
@@ -71,38 +71,38 @@ public struct DialogDemoFeature {
         case mixedContent = "Mixed Content"
         case dynamicCards = "Dynamic Cards"  // 新增动态卡片 / New dynamic cards
     }
-    
+
     // MARK: - Action / 动作
-    
+
     /// Feature actions / 功能动作
     public enum Action: Equatable {
         /// Show specific dialog type / 显示特定对话框类型
         case showDialog(DialogType)
-        
+
         /// Handle dialog result / 处理对话框结果
         case handleDialogResult(String)
-        
+
         /// Clear result message / 清除结果消息
         case clearResult
-        
+
         /// Toggle loading state / 切换加载状态
         case toggleLoading
-        
+
         /// Show custom configured dialog / 显示自定义配置的对话框
         case showCustomDialog
-        
+
         /// Dismiss custom dialog / 关闭自定义对话框
         case dismissCustomDialog
-        
+
         /// Show bottom sheet / 显示底部弹窗
         case showBottomSheet(BottomSheetType)
-        
+
         /// Dismiss bottom sheet / 关闭底部弹窗
         case dismissBottomSheet
     }
-    
+
     // MARK: - Dialog Type / 对话框类型
-    
+
     /// Available dialog types for demo / 演示的可用对话框类型
     public enum DialogType: String, CaseIterable {
         case alert = "Alert"
@@ -119,7 +119,7 @@ public struct DialogDemoFeature {
         case actionSheet = "Action Sheet"
         case fullScreen = "Full Screen"
         case customPopup = "Custom Popup"
-        
+
         /// Icon for dialog type / 对话框类型的图标
         var icon: String {
             switch self {
@@ -139,7 +139,7 @@ public struct DialogDemoFeature {
             case .customPopup: return "sparkles"
             }
         }
-        
+
         /// Description for dialog type / 对话框类型的描述
         var description: String {
             switch self {
@@ -160,9 +160,9 @@ public struct DialogDemoFeature {
             }
         }
     }
-    
+
     // MARK: - Reducer / 归约器
-    
+
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
@@ -170,15 +170,15 @@ public struct DialogDemoFeature {
                 state.selectedDialogType = type
                 showDialogForType(type, state: &state)
                 return .none
-                
+
             case .handleDialogResult(let result):
                 state.resultMessage = result
                 return .none
-                
+
             case .clearResult:
                 state.resultMessage = ""
                 return .none
-                
+
             case .toggleLoading:
                 state.isLoading.toggle()
                 if state.isLoading {
@@ -190,78 +190,78 @@ public struct DialogDemoFeature {
                     }
                 }
                 return .none
-                
+
             case .showCustomDialog:
                 state.showCustomDialog = true
                 state.customDialogConfig = createCustomDialogConfiguration()
                 return .none
-                
+
             case .dismissCustomDialog:
                 state.showCustomDialog = false
                 state.customDialogConfig = nil
                 return .none
-                
+
             case .showBottomSheet(let type):
                 state.activeSheet = type
                 return .none
-                
+
             case .dismissBottomSheet:
                 state.activeSheet = nil
                 return .none
             }
         }
     }
-    
+
     // MARK: - Private Methods / 私有方法
-    
+
     /// Show dialog for specific type / 显示特定类型的对话框
     private func showDialogForType(_ type: DialogType, state: inout State) {
         switch type {
         case .alert:
             showAlertDialog()
-            
+
         case .confirm:
             showConfirmationDialog(state: &state)
-            
+
         case .input:
             showInputDialog(state: &state)
-            
+
         case .error:
             showErrorDialog()
-            
+
         case .loading:
             showLoadingDialog()
-            
+
         case .success:
             showSuccessDialog()
-            
+
         case .warning:
             showWarningDialog()
-            
+
         case .options:
             showOptionsDialog(state: &state)
-            
+
         case .custom:
             state.showCustomDialog = true
             state.customDialogConfig = createCustomDialogConfiguration()
-            
+
         case .queue:
             showQueueDemo()
-            
+
         case .multipleDefer:
             showMultipleDeferDemo()
-            
+
         case .actionSheet:
             showActionSheetDialog(state: &state)
-            
+
         case .fullScreen:
             showFullScreenDialog(state: &state)
-            
+
         case .customPopup:
             showCustomPopupDialog(state: &state)
         }
     }
-    
+
     /// Show alert dialog / 显示警报对话框
     private func showAlertDialog() {
         DialogManager.shared.showAlert(
@@ -270,7 +270,7 @@ public struct DialogDemoFeature {
             buttonTitle: "Got it / 知道了"
         )
     }
-    
+
     /// Show confirmation dialog / 显示确认对话框
     private func showConfirmationDialog(state: inout State) {
         let confirm = ConfirmationDialogTemplate(
@@ -288,7 +288,7 @@ public struct DialogDemoFeature {
         )
         DialogManager.shared.show(configuration: confirm.configuration)
     }
-    
+
     /// Show input dialog / 显示输入对话框
     private func showInputDialog(state: inout State) {
         let input = InputDialogTemplate(
@@ -307,7 +307,7 @@ public struct DialogDemoFeature {
         )
         DialogManager.shared.show(configuration: input.configuration)
     }
-    
+
     /// Show error dialog / 显示错误对话框
     private func showErrorDialog() {
         struct DemoError: LocalizedError {
@@ -315,20 +315,20 @@ public struct DialogDemoFeature {
                 "Something went wrong. Please try again later. / 出了点问题。请稍后再试。"
             }
         }
-        
+
         DialogManager.shared.showError(
             title: "Error Occurred / 发生错误",
             error: DemoError()
         )
     }
-    
+
     /// Show loading dialog / 显示加载对话框
     private func showLoadingDialog() {
         let loadingId = DialogManager.shared.showLoading(
             title: "Processing / 处理中",
             message: "Please wait... / 请稍候..."
         )
-        
+
         // Auto-dismiss after 3 seconds / 3秒后自动关闭
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             DialogManager.shared.dismissLoading(id: loadingId)
@@ -338,7 +338,7 @@ public struct DialogDemoFeature {
             )
         }
     }
-    
+
     /// Show success dialog / 显示成功对话框
     private func showSuccessDialog() {
         let alert = AlertDialogTemplate(
@@ -348,7 +348,7 @@ public struct DialogDemoFeature {
         )
         DialogManager.shared.show(configuration: alert.configuration)
     }
-    
+
     /// Show warning dialog / 显示警告对话框
     private func showWarningDialog() {
         let alert = AlertDialogTemplate(
@@ -358,7 +358,7 @@ public struct DialogDemoFeature {
         )
         DialogManager.shared.show(configuration: alert.configuration)
     }
-    
+
     /// Show options dialog / 显示选项对话框
     private func showOptionsDialog(state: inout State) {
         let options = OptionsDialogTemplate(
@@ -391,12 +391,12 @@ public struct DialogDemoFeature {
         )
         DialogManager.shared.show(configuration: options.configuration)
     }
-    
+
     /// Show queue demo / 显示队列演示
     private func showQueueDemo() {
         // Create 10+ dialogs with different priorities to demonstrate queue management
         // 创建10个以上不同优先级的对话框来演示队列管理
-        
+
         // 1. Deferred dialog (will show last) / 延迟对话框（最后显示）
         let deferredConfig = DialogConfiguration.Builder()
             .setTitle("1. Deferred (最后) 💤")
@@ -404,7 +404,7 @@ public struct DialogDemoFeature {
             .addButton(DialogButton.ok())
             .build()
         DialogManager.shared.showDeferred(configuration: deferredConfig)
-        
+
         // 2. Low priority dialog / 低优先级对话框
         let lowConfig1 = DialogConfiguration.Builder()
             .setTitle("2. Low Priority #1 / 低优先级 #1 🟢")
@@ -413,7 +413,7 @@ public struct DialogDemoFeature {
             .setPriority(.low)
             .build()
         DialogManager.shared.show(configuration: lowConfig1)
-        
+
         // 3. Normal priority dialog / 正常优先级对话框
         let normalConfig1 = DialogConfiguration.Builder()
             .setTitle("3. Normal Priority #1 / 正常优先级 #1 🔵")
@@ -422,7 +422,7 @@ public struct DialogDemoFeature {
             .setPriority(.normal)
             .build()
         DialogManager.shared.show(configuration: normalConfig1)
-        
+
         // 4. High priority dialog / 高优先级对话框
         let highConfig1 = DialogConfiguration.Builder()
             .setTitle("4. High Priority #1 / 高优先级 #1 🟠")
@@ -431,7 +431,7 @@ public struct DialogDemoFeature {
             .setPriority(.high)
             .build()
         DialogManager.shared.show(configuration: highConfig1)
-        
+
         // 5. Critical priority dialog / 关键优先级对话框
         let criticalConfig = DialogConfiguration.Builder()
             .setTitle("5. Critical Priority / 关键优先级 🔴")
@@ -440,7 +440,7 @@ public struct DialogDemoFeature {
             .setPriority(.critical)
             .build()
         DialogManager.shared.show(configuration: criticalConfig)
-        
+
         // 6. Another low priority / 另一个低优先级
         let lowConfig2 = DialogConfiguration.Builder()
             .setTitle("6. Low Priority #2 / 低优先级 #2 🟢")
@@ -449,7 +449,7 @@ public struct DialogDemoFeature {
             .setPriority(.low)
             .build()
         DialogManager.shared.show(configuration: lowConfig2)
-        
+
         // 7. Another normal priority / 另一个正常优先级
         let normalConfig2 = DialogConfiguration.Builder()
             .setTitle("7. Normal Priority #2 / 正常优先级 #2 🔵")
@@ -458,7 +458,7 @@ public struct DialogDemoFeature {
             .setPriority(.normal)
             .build()
         DialogManager.shared.show(configuration: normalConfig2)
-        
+
         // 8. Another high priority / 另一个高优先级
         let highConfig2 = DialogConfiguration.Builder()
             .setTitle("8. High Priority #2 / 高优先级 #2 🟠")
@@ -467,7 +467,7 @@ public struct DialogDemoFeature {
             .setPriority(.high)
             .build()
         DialogManager.shared.show(configuration: highConfig2)
-        
+
         // 9. Immediate priority (will show first) / 立即优先级（首先显示）
         let immediateConfig = DialogConfiguration.Builder()
             .setTitle("9. Immediate (首先) ⚡")
@@ -475,7 +475,7 @@ public struct DialogDemoFeature {
             .addButton(DialogButton.ok())
             .build()
         DialogManager.shared.showImmediate(configuration: immediateConfig)
-        
+
         // 10. Another deferred / 另一个延迟
         let deferredConfig2 = DialogConfiguration.Builder()
             .setTitle("10. Deferred #2 (最后) 💤")
@@ -483,7 +483,7 @@ public struct DialogDemoFeature {
             .addButton(DialogButton.ok())
             .build()
         DialogManager.shared.showDeferred(configuration: deferredConfig2)
-        
+
         // Show summary dialog with normal priority
         // 用正常优先级显示摘要对话框
         DialogManager.shared.showAlert(
@@ -491,7 +491,7 @@ public struct DialogDemoFeature {
             message: """
             Added 10 dialogs with different priorities:
             添加了10个不同优先级的对话框：
-            
+
             Expected order / 预期顺序:
             1. Immediate (⚡)
             2. Critical (🔴)
@@ -500,14 +500,14 @@ public struct DialogDemoFeature {
             5. Low #1, #2 (🟢)
             6. Summary (this)
             7. Deferred #1, #2 (💤)
-            
+
             Watch them appear in priority order!
             观察它们按优先级顺序出现！
             """,
             buttonTitle: "Start / 开始"
         )
     }
-    
+
     /// Show multiple defer demo (LIFO behavior like Swift defer) / 显示多个defer演示（像Swift defer的LIFO行为）
     private func showMultipleDeferDemo() {
         // This simulates Swift's defer behavior:
@@ -519,67 +519,67 @@ public struct DialogDemoFeature {
         //     print("0")           // Executes immediately
         // }
         // Output: 0, 1, 2, 3
-        
+
         // Add immediate dialog (executes first) / 添加立即对话框（首先执行）
         DialogManager.shared.showAlert(
             title: "Step 0: Function Start / 步骤0：函数开始 ▶️",
             message: "This executes immediately, like normal code / 这立即执行，像普通代码",
             buttonTitle: "Next / 下一个"
         )
-        
+
         // Add first defer (will execute last - #3) / 添加第一个defer（最后执行 - #3）
         let defer1 = DialogConfiguration.Builder()
             .setTitle("Defer #1 (Step 3) / Defer #1（步骤3）🔴")
             .setTextContent("""
                 First defer added, but executes LAST!
                 第一个添加的defer，但最后执行！
-                
+
                 Like: defer { print("3") }
                 """)
             .addButton(DialogButton.ok())
             .build()
         DialogManager.shared.showDeferred(configuration: defer1)
-        
+
         // Add second defer (will execute second to last - #2) / 添加第二个defer（倒数第二执行 - #2）
         let defer2 = DialogConfiguration.Builder()
             .setTitle("Defer #2 (Step 2) / Defer #2（步骤2）🟠")
             .setTextContent("""
                 Second defer added, executes SECOND!
                 第二个添加的defer，第二个执行！
-                
+
                 Like: defer { print("2") }
                 """)
             .addButton(DialogButton.ok())
             .build()
         DialogManager.shared.showDeferred(configuration: defer2)
-        
+
         // Add third defer (will execute third to last - #1) / 添加第三个defer（倒数第三执行 - #1）
         let defer3 = DialogConfiguration.Builder()
             .setTitle("Defer #3 (Step 1) / Defer #3（步骤1）🟡")
             .setTextContent("""
                 Third defer added, but executes FIRST of defers!
                 第三个添加的defer，但在defer中首先执行！
-                
+
                 Like: defer { print("1") }
                 """)
             .addButton(DialogButton.ok())
             .build()
         DialogManager.shared.showDeferred(configuration: defer3)
-        
+
         // Add fourth defer to demonstrate LIFO clearly / 添加第四个defer来清楚地演示LIFO
         let defer4 = DialogConfiguration.Builder()
             .setTitle("Defer #4 (Cleanup) / Defer #4（清理）🟢")
             .setTextContent("""
                 Last defer added, executes first of all defers!
                 最后添加的defer，在所有defer中首先执行！
-                
+
                 This is like cleanup code in Swift defer.
                 这就像Swift defer中的清理代码。
                 """)
             .addButton(DialogButton.ok())
             .build()
         DialogManager.shared.showDeferred(configuration: defer4)
-        
+
         // Add a normal priority dialog to show it comes before defers
         // 添加一个正常优先级的对话框来显示它在defer之前
         DialogManager.shared.showAlert(
@@ -587,20 +587,20 @@ public struct DialogDemoFeature {
             message: """
                 This shows BEFORE all defers
                 这在所有defer之前显示
-                
+
                 Order: Immediate → Normal → Defers (LIFO)
                 顺序：立即 → 正常 → Defers（LIFO）
                 """,
             buttonTitle: "Continue / 继续"
         )
-        
+
         // Summary dialog with high priority / 高优先级的摘要对话框
         let summaryConfig = DialogConfiguration.Builder()
             .setTitle("Multiple Defer Demo / 多个Defer演示 📚")
             .setTextContent("""
                 Added 4 defer dialogs + 2 normal dialogs
                 添加了4个defer对话框 + 2个普通对话框
-                
+
                 Expected order / 预期顺序:
                 1. This summary (High) / 本摘要（高）
                 2. Function Start (Normal) / 函数开始（正常）
@@ -609,7 +609,7 @@ public struct DialogDemoFeature {
                 5. Defer #3 (Third added, Second executed) / 第三个添加，第二个执行
                 6. Defer #2 (Second added, Third executed) / 第二个添加，第三个执行
                 7. Defer #1 (First added, Last executed) / 第一个添加，最后执行
-                
+
                 Just like Swift's defer: LIFO (Last In, First Out)!
                 就像Swift的defer：LIFO（后进先出）！
                 """)
@@ -620,7 +620,7 @@ public struct DialogDemoFeature {
             .build()
         DialogManager.shared.show(configuration: summaryConfig)
     }
-    
+
     /// Create custom dialog configuration / 创建自定义对话框配置
     private func createCustomDialogConfiguration() -> DialogConfiguration {
         return DialogConfiguration.Builder()
@@ -631,10 +631,10 @@ public struct DialogDemoFeature {
                     Image(systemName: "paintbrush.pointed")
                         .font(.system(size: 60))
                         .foregroundColor(.accentColor)
-                    
+
                     Text("This is a custom dialog with custom content and styling / 这是一个带有自定义内容和样式的自定义对话框")
                         .multilineTextAlignment(.center)
-                    
+
                     HStack(spacing: 10) {
                         ForEach(0..<5) { i in
                             Image(systemName: "star.fill")
@@ -656,7 +656,7 @@ public struct DialogDemoFeature {
             .setDismissOnDrag(true)
             .build()
     }
-    
+
     /// Show action sheet dialog / 显示操作表对话框
     private func showActionSheetDialog(state: inout State) {
         let actionSheet = OptionsDialogTemplate(
@@ -698,7 +698,7 @@ public struct DialogDemoFeature {
         )
         DialogManager.shared.show(configuration: actionSheet.configuration)
     }
-    
+
     /// Show full screen dialog / 显示全屏对话框
     private func showFullScreenDialog(state: inout State) {
         let fullScreen = DialogConfiguration.Builder()
@@ -708,27 +708,27 @@ public struct DialogDemoFeature {
                     Image(systemName: "rectangle.fill")
                         .font(.system(size: 80))
                         .foregroundColor(.teal)
-                    
+
                     Text("这是一个全屏模态弹窗")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     Text("This is a full screen modal dialog")
                         .font(.title3)
                         .foregroundColor(.secondary)
-                    
+
                     Text("全屏弹窗适合展示重要内容或需要用户专注的任务")
                         .multilineTextAlignment(.center)
                         .padding()
-                    
+
                     Text("Full screen modals are good for important content or tasks requiring focus")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    
+
                     Spacer()
-                    
+
                     Button(action: {
                         DialogManager.shared.dismissCurrentDialog()
                     }) {
@@ -743,7 +743,7 @@ public struct DialogDemoFeature {
             .build()
         DialogManager.shared.show(configuration: fullScreen)
     }
-    
+
     /// Show custom popup dialog / 显示自定义弹出对话框
     private func showCustomPopupDialog(state: inout State) {
         let popup = DialogConfiguration.Builder()
@@ -762,14 +762,14 @@ public struct DialogDemoFeature {
                         Text("🎨")
                             .font(.system(size: 50))
                     )
-                    
+
                     Text("独特的视觉体验")
                         .font(.headline)
-                    
+
                     Text("Unique Visual Experience")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
+
                     HStack(spacing: 20) {
                         Button(action: {
                             DialogManager.shared.dismissCurrentDialog()
@@ -782,7 +782,7 @@ public struct DialogDemoFeature {
                                 .foregroundColor(.pink)
                         }
                         .buttonStyle(.bordered)
-                        
+
                         Button(action: {
                             DialogManager.shared.dismissCurrentDialog()
                             DialogManager.shared.showAlert(

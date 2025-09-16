@@ -11,7 +11,7 @@ import ComposableArchitecture
 
 /**
  * NETWORK MIDDLEWARE - 网络中间件
- * 
+ *
  * PURPOSE / 目的:
  * - Centralized error handling for all network requests
  * - 所有网络请求的集中错误处理
@@ -21,13 +21,13 @@ import ComposableArchitecture
  * - 请求/响应拦截器用于通用逻辑
  * - Automatic retry with exponential backoff
  * - 使用指数退避的自动重试
- * 
+ *
  * DESIGN PATTERN / 设计模式:
  * - Chain of Responsibility: Middleware chain
  * - 责任链模式：中间件链
  * - Decorator Pattern: Enhance requests
  * - 装饰器模式：增强请求
- * 
+ *
  * HOW IT WORKS / 工作原理:
  * 1. Check network connectivity first
  *    首先检查网络连接
@@ -57,12 +57,12 @@ struct ConnectivityMiddleware: NetworkMiddleware {
     let networkMonitor = NetworkMonitor.shared
     let waitForConnection: Bool
     let timeout: TimeInterval
-    
+
     init(waitForConnection: Bool = false, timeout: TimeInterval = 30) {
         self.waitForConnection = waitForConnection
         self.timeout = timeout
     }
-    
+
     func process(_ request: URLRequest, next: @escaping (URLRequest) async throws -> (Data, URLResponse)) async throws -> (Data, URLResponse) {
         // Check connectivity / 检查连接性
         if !networkMonitor.isConnected {
@@ -74,7 +74,7 @@ struct ConnectivityMiddleware: NetworkMiddleware {
                 throw NetworkError.noConnection
             }
         }
-        
+
         // Proceed with request / 继续请求
         return try await next(request)
     }
@@ -91,7 +91,7 @@ struct RetryMiddleware: NetworkMiddleware {
     let initialDelay: TimeInterval
     let maxDelay: TimeInterval
     let retryableErrors: Set<Int> // HTTP status codes / HTTP 状态码
-    
+
     init(
         maxRetries: Int = 3,
         initialDelay: TimeInterval = 1.0,
@@ -103,57 +103,57 @@ struct RetryMiddleware: NetworkMiddleware {
         self.maxDelay = maxDelay
         self.retryableErrors = retryableErrors
     }
-    
+
     func process(_ request: URLRequest, next: @escaping (URLRequest) async throws -> (Data, URLResponse)) async throws -> (Data, URLResponse) {
         var lastError: Error?
         var currentDelay = initialDelay
-        
+
         for attempt in 0...maxRetries {
             do {
                 let (data, response) = try await next(request)
-                
+
                 // Check if response indicates retryable error / 检查响应是否表示可重试错误
                 if let httpResponse = response as? HTTPURLResponse,
                    retryableErrors.contains(httpResponse.statusCode),
                    attempt < maxRetries {
-                    
+
                     #if DEBUG
                     print("🔄 Retrying request (attempt \(attempt + 1)/\(maxRetries)) after \(currentDelay)s")
                     #endif
-                    
+
                     // Wait before retry / 重试前等待
                     try await Task.sleep(nanoseconds: UInt64(currentDelay * 1_000_000_000))
-                    
+
                     // Exponential backoff / 指数退避
                     currentDelay = min(currentDelay * 2, maxDelay)
-                    
+
                     lastError = NetworkError.serverError(httpResponse.statusCode)
                     continue
                 }
-                
+
                 return (data, response)
-                
+
             } catch {
                 lastError = error
-                
+
                 // Check if error is retryable / 检查错误是否可重试
                 if attempt < maxRetries && isRetryableError(error) {
                     #if DEBUG
                     print("🔄 Retrying after error: \(error.localizedDescription)")
                     #endif
-                    
+
                     try await Task.sleep(nanoseconds: UInt64(currentDelay * 1_000_000_000))
                     currentDelay = min(currentDelay * 2, maxDelay)
                     continue
                 }
-                
+
                 throw error
             }
         }
-        
+
         throw lastError ?? NetworkError.unknown
     }
-    
+
     private func isRetryableError(_ error: Error) -> Bool {
         // Check for timeout or connection errors / 检查超时或连接错误
         if let urlError = error as? URLError {
@@ -164,7 +164,7 @@ struct RetryMiddleware: NetworkMiddleware {
                 return false
             }
         }
-        
+
         // Check for custom network errors / 检查自定义网络错误
         if let networkError = error as? NetworkError {
             switch networkError {
@@ -176,7 +176,7 @@ struct RetryMiddleware: NetworkMiddleware {
                 return false
             }
         }
-        
+
         return false
     }
 }
@@ -189,23 +189,23 @@ struct RetryMiddleware: NetworkMiddleware {
  */
 struct AuthenticationMiddleware: NetworkMiddleware {
     let tokenProvider: () async -> String?
-    
+
     func process(_ request: URLRequest, next: @escaping (URLRequest) async throws -> (Data, URLResponse)) async throws -> (Data, URLResponse) {
         var modifiedRequest = request
-        
+
         // Add auth token if available / 如果可用，添加认证令牌
         if let token = await tokenProvider() {
             modifiedRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         let (data, response) = try await next(modifiedRequest)
-        
+
         // Check for 401 unauthorized / 检查 401 未授权
         if let httpResponse = response as? HTTPURLResponse,
            httpResponse.statusCode == 401 {
             throw NetworkError.unauthorized
         }
-        
+
         return (data, response)
     }
 }
@@ -218,34 +218,34 @@ struct AuthenticationMiddleware: NetworkMiddleware {
  */
 struct LoggingMiddleware: NetworkMiddleware {
     let logLevel: LogLevel
-    
+
     enum LogLevel {
         case none
         case basic      // URL and status only / 仅 URL 和状态
         case headers    // Include headers / 包含头部
         case full       // Include body / 包含正文
     }
-    
+
     init(logLevel: LogLevel = .basic) {
         self.logLevel = logLevel
     }
-    
+
     func process(_ request: URLRequest, next: @escaping (URLRequest) async throws -> (Data, URLResponse)) async throws -> (Data, URLResponse) {
         guard logLevel != .none else {
             return try await next(request)
         }
-        
+
         // Log request / 记录请求
         logRequest(request)
-        
+
         let startTime = Date()
-        
+
         do {
             let (data, response) = try await next(request)
-            
+
             // Log response / 记录响应
             logResponse(response, data: data, duration: Date().timeIntervalSince(startTime))
-            
+
             return (data, response)
         } catch {
             // Log error / 记录错误
@@ -253,51 +253,51 @@ struct LoggingMiddleware: NetworkMiddleware {
             throw error
         }
     }
-    
+
     private func logRequest(_ request: URLRequest) {
         #if DEBUG
         print("""
-        
+
         📤 REQUEST / 请求:
         URL: \(request.url?.absoluteString ?? "nil")
         Method: \(request.httpMethod ?? "GET")
         """)
-        
+
         if logLevel == .headers || logLevel == .full {
             print("Headers: \(request.allHTTPHeaderFields ?? [:])")
         }
-        
+
         if logLevel == .full, let body = request.httpBody {
             print("Body: \(String(data: body, encoding: .utf8) ?? "binary")")
         }
         #endif
     }
-    
+
     private func logResponse(_ response: URLResponse, data: Data, duration: TimeInterval) {
         #if DEBUG
         let httpResponse = response as? HTTPURLResponse
         print("""
-        
+
         📥 RESPONSE / 响应:
         Status: \(httpResponse?.statusCode ?? 0)
         Duration: \(String(format: "%.3f", duration))s
         Size: \(data.count) bytes
         """)
-        
+
         if logLevel == .headers || logLevel == .full {
             print("Headers: \(httpResponse?.allHeaderFields ?? [:])")
         }
-        
+
         if logLevel == .full {
             print("Body: \(String(data: data, encoding: .utf8) ?? "binary")")
         }
         #endif
     }
-    
+
     private func logError(_ error: Error, duration: TimeInterval) {
         #if DEBUG
         print("""
-        
+
         ❌ ERROR / 错误:
         Message: \(error.localizedDescription)
         Duration: \(String(format: "%.3f", duration))s
@@ -315,7 +315,7 @@ struct LoggingMiddleware: NetworkMiddleware {
 struct ErrorMappingMiddleware: NetworkMiddleware {
     func process(_ request: URLRequest, next: @escaping (URLRequest) async throws -> (Data, URLResponse)) async throws -> (Data, URLResponse) {
         let (data, response) = try await next(request)
-        
+
         // Map HTTP errors to NetworkError / 将 HTTP 错误映射到 NetworkError
         if let httpResponse = response as? HTTPURLResponse {
             switch httpResponse.statusCode {
@@ -337,7 +337,7 @@ struct ErrorMappingMiddleware: NetworkMiddleware {
                 throw NetworkError.httpError(httpResponse.statusCode, String(data: data, encoding: .utf8))
             }
         }
-        
+
         return (data, response)
     }
 }
@@ -347,7 +347,7 @@ struct ErrorMappingMiddleware: NetworkMiddleware {
 /**
  * Network service that applies middleware chain
  * 应用中间件链的网络服务
- * 
+ *
  * USAGE / 使用:
  * ```
  * let service = NetworkService()
@@ -356,18 +356,18 @@ struct ErrorMappingMiddleware: NetworkMiddleware {
  *     .use(RetryMiddleware())
  *     .use(LoggingMiddleware(logLevel: .basic))
  *     .use(ErrorMappingMiddleware())
- * 
+ *
  * let data = try await service.request(urlRequest)
  * ```
  */
 class NetworkService {
     private var middlewares: [NetworkMiddleware] = []
     private let session: URLSession
-    
+
     init(session: URLSession = .shared) {
         self.session = session
     }
-    
+
     /**
      * Add middleware to the chain
      * 添加中间件到链
@@ -377,7 +377,7 @@ class NetworkService {
         middlewares.append(middleware)
         return self
     }
-    
+
     /**
      * Execute request with middleware chain
      * 使用中间件链执行请求
@@ -386,7 +386,7 @@ class NetworkService {
         let (data, _) = try await executeWithMiddleware(request)
         return data
     }
-    
+
     /**
      * Execute request and decode response
      * 执行请求并解码响应
@@ -395,7 +395,7 @@ class NetworkService {
         let data = try await self.request(request)
         return try JSONDecoder().decode(type, from: data)
     }
-    
+
     /**
      * Execute middleware chain
      * 执行中间件链
@@ -406,7 +406,7 @@ class NetworkService {
             guard let self = self else { throw NetworkError.unknown }
             return try await self.session.data(for: request)
         }
-        
+
         // Apply middlewares in reverse order / 以相反顺序应用中间件
         for middleware in middlewares.reversed() {
             let next = chain
@@ -414,7 +414,7 @@ class NetworkService {
                 try await middleware.process(request, next: next)
             }
         }
-        
+
         // Execute chain / 执行链
         return try await chain(request)
     }
@@ -426,7 +426,7 @@ extension NetworkService {
     /**
      * Create default configured service
      * 创建默认配置的服务
-     * 
+     *
      * Includes all standard middleware
      * 包含所有标准中间件
      */
@@ -437,7 +437,7 @@ extension NetworkService {
             .use(LoggingMiddleware(logLevel: .basic))
             .use(ErrorMappingMiddleware())
     }
-    
+
     /**
      * Create service with authentication
      * 创建带认证的服务

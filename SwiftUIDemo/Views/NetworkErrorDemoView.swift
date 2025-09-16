@@ -11,7 +11,7 @@ import ComposableArchitecture
 
 /**
  * NETWORK ERROR DEMO VIEW - 网络错误演示视图
- * 
+ *
  * PURPOSE / 目的:
  * - Demonstrate all network error handling scenarios
  * - 演示所有网络错误处理场景
@@ -19,7 +19,7 @@ import ComposableArchitecture
  * - 为每个错误状态显示适当的 UI
  * - Provide testing interface for different scenarios
  * - 提供不同场景的测试界面
- * 
+ *
  * FEATURES / 功能:
  * 1. Scenario selector for different error types
  *    不同错误类型的场景选择器
@@ -32,7 +32,7 @@ import ComposableArchitecture
  */
 struct NetworkErrorDemoView: View {
     let store: StoreOf<NetworkErrorDemoFeature>
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             ZStack {
@@ -42,32 +42,32 @@ struct NetworkErrorDemoView: View {
                     scenarioSelector(viewStore: viewStore)
                         .padding(.horizontal)
                         .padding(.top)
-                    
+
                     // Fetch button / 获取按钮
                     fetchButton(viewStore: viewStore)
                         .padding()
-                    
+
                     // Content area / 内容区域
                     contentArea(viewStore: viewStore)
                 }
                 .navigationTitle("Network Error Demo / 网络错误演示")
                 .navigationBarTitleDisplayMode(.inline)
-                
+
                 // State overlay / 状态覆盖层
                 stateOverlay(viewStore: viewStore)
             }
         }
     }
-    
+
     // MARK: - Scenario Selector / 场景选择器
-    
+
     @ViewBuilder
     private func scenarioSelector(viewStore: ViewStore<NetworkErrorDemoFeature.State, NetworkErrorDemoFeature.Action>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Select Scenario / 选择场景")
                 .font(.headline)
                 .foregroundColor(.primary)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(NetworkErrorDemoFeature.NetworkScenario.allCases, id: \.self) { scenario in
@@ -84,7 +84,7 @@ struct NetworkErrorDemoView: View {
             }
         }
     }
-    
+
     /**
      * Scenario selection chip
      * 场景选择芯片
@@ -96,7 +96,7 @@ struct NetworkErrorDemoView: View {
                 // Icon based on scenario / 基于场景的图标
                 scenarioIcon(for: scenario)
                     .font(.caption)
-                
+
                 Text(scenario.description)
                     .font(.caption)
                     .lineLimit(1)
@@ -111,7 +111,7 @@ struct NetworkErrorDemoView: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     /**
      * Get icon for scenario
      * 获取场景图标
@@ -151,9 +151,9 @@ struct NetworkErrorDemoView: View {
                 .foregroundColor(.red)
         }
     }
-    
+
     // MARK: - Fetch Button / 获取按钮
-    
+
     @ViewBuilder
     private func fetchButton(viewStore: ViewStore<NetworkErrorDemoFeature.State, NetworkErrorDemoFeature.Action>) -> some View {
         HStack(spacing: 12) {
@@ -172,7 +172,7 @@ struct NetworkErrorDemoView: View {
                 .cornerRadius(8)
             }
             .disabled(viewStore.pageState.isLoading)
-            
+
             // Clear button / 清除按钮
             if case .failed = viewStore.pageState {
                 Button(action: {
@@ -197,9 +197,9 @@ struct NetworkErrorDemoView: View {
             }
         }
     }
-    
+
     // MARK: - Content Area / 内容区域
-    
+
     @ViewBuilder
     private func contentArea(viewStore: ViewStore<NetworkErrorDemoFeature.State, NetworkErrorDemoFeature.Action>) -> some View {
         ScrollView {
@@ -212,7 +212,7 @@ struct NetworkErrorDemoView: View {
                 }
                 .padding()
             }
-            
+
             // State information card / 状态信息卡片
             stateInfoCard(viewStore: viewStore)
                 .padding()
@@ -221,7 +221,7 @@ struct NetworkErrorDemoView: View {
             await viewStore.send(.refresh).finish()
         }
     }
-    
+
     /**
      * Individual item row
      * 单个项目行
@@ -237,7 +237,7 @@ struct NetworkErrorDemoView: View {
                     Image(systemName: "photo")
                         .foregroundColor(.accentColor.opacity(0.5))
                 )
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.headline)
@@ -245,7 +245,7 @@ struct NetworkErrorDemoView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
         .padding()
@@ -253,15 +253,15 @@ struct NetworkErrorDemoView: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
-    
+
     // MARK: - State Information Card / 状态信息卡片
-    
+
     @ViewBuilder
     private func stateInfoCard(viewStore: ViewStore<NetworkErrorDemoFeature.State, NetworkErrorDemoFeature.Action>) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Current State / 当前状态")
                 .font(.headline)
-            
+
             HStack {
                 Text("Page State / 页面状态:")
                     .font(.caption)
@@ -270,7 +270,7 @@ struct NetworkErrorDemoView: View {
                     .font(.caption.bold())
                     .foregroundColor(stateColor(for: viewStore.pageState))
             }
-            
+
             if let error = viewStore.errorType {
                 HStack {
                     Text("Error Type / 错误类型:")
@@ -281,7 +281,7 @@ struct NetworkErrorDemoView: View {
                         .foregroundColor(.red)
                 }
             }
-            
+
             HStack {
                 Text("Retry Count / 重试次数:")
                     .font(.caption)
@@ -289,7 +289,7 @@ struct NetworkErrorDemoView: View {
                 Text("\(viewStore.retryCount)")
                     .font(.caption.bold())
             }
-            
+
             if let lastRequest = viewStore.lastRequestTime {
                 HStack {
                     Text("Last Request / 最后请求:")
@@ -305,7 +305,7 @@ struct NetworkErrorDemoView: View {
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
     }
-    
+
     /**
      * Get color for page state
      * 获取页面状态的颜色
@@ -322,9 +322,9 @@ struct NetworkErrorDemoView: View {
             return .red
         }
     }
-    
+
     // MARK: - State Overlay / 状态覆盖层
-    
+
     @ViewBuilder
     private func stateOverlay(viewStore: ViewStore<NetworkErrorDemoFeature.State, NetworkErrorDemoFeature.Action>) -> some View {
         Group {
@@ -336,7 +336,7 @@ struct NetworkErrorDemoView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemBackground).opacity(0.95))
-                
+
             case let .loaded(data, _) where data.isEmpty:
                 EmptyStateView(
                     icon: "tray",
@@ -349,7 +349,7 @@ struct NetworkErrorDemoView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemBackground))
-                
+
             case .failed:
                 if let error = viewStore.errorType {
                     ErrorStateView(
@@ -362,7 +362,7 @@ struct NetworkErrorDemoView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemBackground))
                 }
-                
+
             case .idle, .loaded:
                 EmptyView()
             }

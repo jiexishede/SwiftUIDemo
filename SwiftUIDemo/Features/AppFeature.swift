@@ -15,12 +15,12 @@ struct AppFeature {
         var path = StackState<Path.State>()
         var demoItems: [DemoItem] = DemoItem.allItems
     }
-    
+
     enum Action {
         case path(StackAction<Path.State, Path.Action>)
         case demoItemTapped(DemoItem)
     }
-    
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
@@ -46,7 +46,7 @@ struct AppFeature {
                     break
                 }
                 return .none
-                
+
             case .path:
                 return .none
             }
@@ -55,7 +55,7 @@ struct AppFeature {
             Path()
         }
     }
-    
+
     @Reducer
     struct Path {
         @ObservableState
@@ -70,7 +70,7 @@ struct AppFeature {
             case networkStatus
             case networkAwareDemo
         }
-        
+
         enum Action {
             case counter(CounterFeature.Action)
             case networkRequest(ReduxPageStateBeRequestFeature.Action)
@@ -82,7 +82,7 @@ struct AppFeature {
             case networkStatus
             case networkAwareDemo
         }
-        
+
         var body: some ReducerOf<Self> {
             Scope(state: \.counter, action: \.counter) {
                 CounterFeature()
@@ -112,7 +112,7 @@ struct DemoItem: Identifiable, Equatable, Hashable {
     let title: String
     let subtitle: String
     let systemImage: String
-    
+
     static let allItems = [
         DemoItem(
             id: "counter",

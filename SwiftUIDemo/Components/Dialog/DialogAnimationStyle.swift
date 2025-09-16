@@ -26,29 +26,29 @@ import SwiftUI
 public enum DialogAnimationStyle: CaseIterable {
     /// Slide from bottom / 从底部滑入
     case slide
-    
+
     /// Fade in/out / 淡入淡出
     case fade
-    
+
     /// Scale from center / 从中心缩放
     case scale
-    
+
     /// Spring animation / 弹簧动画
     case spring
-    
+
     /// No animation / 无动画
     case none
-    
+
     /// Custom animation with parameters / 带参数的自定义动画
     case custom(Animation)
-    
+
     // CaseIterable conformance for non-associated value cases / 非关联值情况的CaseIterable一致性
     public static var allCases: [DialogAnimationStyle] {
         return [.slide, .fade, .scale, .spring, .none]
     }
-    
+
     // MARK: - Animation Properties / 动画属性
-    
+
     /// Get the SwiftUI Animation for this style / 获取此样式的SwiftUI动画
     public var animation: Animation {
         switch self {
@@ -66,7 +66,7 @@ public enum DialogAnimationStyle: CaseIterable {
             return animation
         }
     }
-    
+
     /// Get the transition for this style / 获取此样式的过渡效果
     public var transition: AnyTransition {
         switch self {
@@ -87,7 +87,7 @@ public enum DialogAnimationStyle: CaseIterable {
             return .opacity
         }
     }
-    
+
     /// Duration of the animation / 动画持续时间
     public var duration: Double {
         switch self {
@@ -120,24 +120,24 @@ public enum DialogAnimationStyle: CaseIterable {
 /// ```
 public struct DialogAnimationModifier: ViewModifier {
     // MARK: - Properties / 属性
-    
+
     /// Binding to presentation state / 绑定到展示状态
     @Binding var isPresented: Bool
-    
+
     /// Animation style / 动画样式
     let style: DialogAnimationStyle
-    
+
     /// Drag offset for drag-to-dismiss / 拖动关闭的拖动偏移
     @State private var dragOffset: CGSize = .zero
-    
+
     /// Is dragging / 是否正在拖动
     @State private var isDragging: Bool = false
-    
+
     /// Enable drag to dismiss / 启用拖动关闭
     let enableDragToDismiss: Bool
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     /// Initialize the animation modifier / 初始化动画修饰符
     /// - Parameters:
     ///   - isPresented: Binding to presentation state / 绑定到展示状态
@@ -152,9 +152,9 @@ public struct DialogAnimationModifier: ViewModifier {
         self.style = style
         self.enableDragToDismiss = enableDragToDismiss
     }
-    
+
     // MARK: - Body / 主体
-    
+
     public func body(content: Content) -> some View {
         content
             .offset(y: dragOffset.height)
@@ -167,9 +167,9 @@ public struct DialogAnimationModifier: ViewModifier {
             .animation(style.animation, value: isPresented)
             .animation(.spring(), value: dragOffset)
     }
-    
+
     // MARK: - Drag Gesture / 拖动手势
-    
+
     /// Drag gesture for drag-to-dismiss / 拖动关闭的拖动手势
     private var dragGesture: some Gesture {
         DragGesture()
@@ -200,21 +200,21 @@ public struct DialogAnimationModifier: ViewModifier {
 /// ViewModifier for dialog backdrop animation / 对话框背景动画的ViewModifier
 public struct DialogBackdropModifier: ViewModifier {
     // MARK: - Properties / 属性
-    
+
     /// Is dialog presented / 对话框是否展示
     let isPresented: Bool
-    
+
     /// Backdrop color / 背景颜色
     let backdropColor: Color
-    
+
     /// Backdrop opacity / 背景不透明度
     let backdropOpacity: Double
-    
+
     /// Tap to dismiss action / 点击关闭动作
     let onTapDismiss: (() -> Void)?
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     /// Initialize backdrop modifier / 初始化背景修饰符
     /// - Parameters:
     ///   - isPresented: Is dialog presented / 对话框是否展示
@@ -232,13 +232,13 @@ public struct DialogBackdropModifier: ViewModifier {
         self.backdropOpacity = backdropOpacity
         self.onTapDismiss = onTapDismiss
     }
-    
+
     // MARK: - Body / 主体
-    
+
     public func body(content: Content) -> some View {
         ZStack {
             content
-            
+
             if isPresented {
                 backdropColor
                     .opacity(backdropOpacity)
@@ -257,18 +257,18 @@ public struct DialogBackdropModifier: ViewModifier {
 /// ViewModifier for shake animation (e.g., for errors) / 摇动动画的ViewModifier（例如，用于错误）
 public struct ShakeAnimationModifier: ViewModifier {
     // MARK: - Properties / 属性
-    
+
     /// Number of shakes / 摇动次数
     let shakeCount: Int
-    
+
     /// Animation trigger / 动画触发器
     @Binding var animationTrigger: Bool
-    
+
     /// Current offset / 当前偏移
     @State private var offset: CGFloat = 0
-    
+
     // MARK: - Body / 主体
-    
+
     public func body(content: Content) -> some View {
         content
             .offset(x: offset)
@@ -278,9 +278,9 @@ public struct ShakeAnimationModifier: ViewModifier {
                 }
             }
     }
-    
+
     // MARK: - Methods / 方法
-    
+
     /// Perform shake animation / 执行摇动动画
     private func performShake() {
         withAnimation(
@@ -289,7 +289,7 @@ public struct ShakeAnimationModifier: ViewModifier {
         ) {
             offset = 10
         }
-        
+
         // Reset after animation / 动画后重置
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(shakeCount) * 0.1) {
             offset = 0
@@ -317,7 +317,7 @@ extension View {
             enableDragToDismiss: enableDragToDismiss
         ))
     }
-    
+
     /// Apply dialog backdrop / 应用对话框背景
     /// - Parameters:
     ///   - isPresented: Is dialog presented / 对话框是否展示
@@ -338,7 +338,7 @@ extension View {
             onTapDismiss: onTapDismiss
         ))
     }
-    
+
     /// Apply shake animation / 应用摇动动画
     /// - Parameters:
     ///   - trigger: Animation trigger binding / 动画触发器绑定

@@ -10,7 +10,7 @@ import ComposableArchitecture
 
 struct ContentView: View {
     let store: StoreOf<AppFeature>
-    
+
     var body: some View {
         // Version-adaptive navigation / 版本适配的导航
         if #available(iOS 16.0, *) {
@@ -27,7 +27,7 @@ struct ContentView: View {
             }
         }
     }
-    
+
     // Extract destination view logic for reuse / 提取目标视图逻辑以便重用
     @ViewBuilder
     private func destinationView(for store: Store<AppFeature.Path.State, AppFeature.Path.Action>) -> some View {
@@ -69,7 +69,7 @@ struct ContentView: View {
 // MARK: - Demo List View
 struct DemoListView: View {
     let store: StoreOf<AppFeature>
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             List(viewStore.demoItems) { item in
@@ -91,14 +91,14 @@ struct DemoListView: View {
 struct DemoItemRow: View {
     let item: DemoItem
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             rowContent
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     private var rowContent: some View {
         HStack {
             itemIcon
@@ -108,27 +108,27 @@ struct DemoItemRow: View {
         }
         .padding(.vertical, 8)
     }
-    
+
     private var itemIcon: some View {
         Image(systemName: item.systemImage)
             .font(.title2)
             .foregroundColor(.blue)
             .frame(width: 40)
     }
-    
+
     private var itemText: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(item.title)
                 .font(.headline)
                 .foregroundColor(.primary)
-            
+
             Text(item.subtitle)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
         }
     }
-    
+
     private var chevronIcon: some View {
         Image(systemName: "chevron.right")
             .font(.caption)
@@ -139,7 +139,7 @@ struct DemoItemRow: View {
 // MARK: - iOS 15 Navigation Support / iOS 15 导航支持
 struct DemoListViewIOS15: View {
     let store: StoreOf<AppFeature>
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             List(viewStore.demoItems) { item in
@@ -164,10 +164,10 @@ struct DemoListViewIOS15: View {
 struct iOS15DestinationView: View {
     let item: DemoItem
     let parentStore: StoreOf<AppFeature>
-    
+
     // 每次视图出现时创建新的 Store / Create new Store each time view appears
     @State private var childStore: AnyView?
-    
+
     var body: some View {
         Group {
             if let childStore = childStore {
@@ -184,7 +184,7 @@ struct iOS15DestinationView: View {
             createFreshStore()
         }
     }
-    
+
     private func createFreshStore() {
         // 创建全新的 Store，确保状态被重置 / Create fresh Store to ensure state is reset
         switch item.id {
@@ -247,25 +247,25 @@ struct iOS15DestinationView: View {
 // MARK: - Demo Item Row Content / 演示项行内容
 struct DemoItemRowContent: View {
     let item: DemoItem
-    
+
     var body: some View {
         HStack {
             Image(systemName: item.systemImage)
                 .font(.title2)
                 .foregroundColor(.blue)
                 .frame(width: 40)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Text(item.subtitle)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 8)

@@ -10,7 +10,7 @@ import ComposableArchitecture
 
 struct ReduxPageStateBeRequestView: View {
     let store: StoreOf<ReduxPageStateBeRequestFeature>
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             VStack(spacing: 20) {
@@ -29,7 +29,7 @@ struct ReduxPageStateBeRequestView: View {
 // MARK: - Request Type Selector
 struct RequestTypeSelector: View {
     let viewStore: ViewStore<ReduxPageStateBeRequestFeature.State, ReduxPageStateBeRequestFeature.Action>
-    
+
     var body: some View {
         Picker("Request Type", selection: viewStore.binding(
             get: \.selectedRequestType,
@@ -47,7 +47,7 @@ struct RequestTypeSelector: View {
 // MARK: - State Content View
 struct StateContentView: View {
     let viewStore: ViewStore<ReduxPageStateBeRequestFeature.State, ReduxPageStateBeRequestFeature.Action>
-    
+
     var body: some View {
         Group {
             switch viewStore.pageState {
@@ -70,7 +70,7 @@ struct StateContentView: View {
 // MARK: - Action Buttons View
 struct ActionButtonsView: View {
     let viewStore: ViewStore<ReduxPageStateBeRequestFeature.State, ReduxPageStateBeRequestFeature.Action>
-    
+
     var body: some View {
         VStack(spacing: 12) {
             fetchDataButton
@@ -78,7 +78,7 @@ struct ActionButtonsView: View {
         }
         .padding(.horizontal)
     }
-    
+
     private var fetchDataButton: some View {
         Button(action: { viewStore.send(.fetchDataButtonTapped) }) {
             HStack {
@@ -93,7 +93,7 @@ struct ActionButtonsView: View {
         }
         .disabled(viewStore.pageState.isLoading)
     }
-    
+
     private var resetButton: some View {
         Group {
             if viewStore.pageState != .normal {
@@ -118,19 +118,19 @@ struct SimpleNormalStateView: View {
             stateText
         }
     }
-    
+
     private var stateIcon: some View {
         Image(systemName: "network")
             .font(.system(size: 60))
             .foregroundColor(.gray)
     }
-    
+
     private var stateText: some View {
         VStack(spacing: 8) {
             Text("Ready to fetch data")
                 .font(.title3)
                 .foregroundColor(.secondary)
-            
+
             Text("Select a request type and tap 'Fetch Data'")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -143,7 +143,7 @@ struct SimpleLoadingStateView: View {
         VStack(spacing: 20) {
             ProgressView()
                 .scaleEffect(1.5)
-            
+
             Text("Loading...")
                 .font(.title3)
                 .foregroundColor(.secondary)
@@ -153,14 +153,14 @@ struct SimpleLoadingStateView: View {
 
 struct SimpleSuccessStateView: View {
     let items: [String]
-    
+
     var body: some View {
         VStack {
             successHeader
             itemsList
         }
     }
-    
+
     private var successHeader: some View {
         HStack {
             Image(systemName: "checkmark.circle.fill")
@@ -171,7 +171,7 @@ struct SimpleSuccessStateView: View {
         }
         .padding(.bottom)
     }
-    
+
     private var itemsList: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
@@ -186,7 +186,7 @@ struct SimpleSuccessStateView: View {
 
 struct SimpleItemRow: View {
     let item: String
-    
+
     var body: some View {
         HStack {
             Image(systemName: "chevron.right")
@@ -203,26 +203,26 @@ struct SimpleItemRow: View {
 
 struct SimpleFailureStateView: View {
     let message: String
-    
+
     var body: some View {
         VStack(spacing: 20) {
             errorIcon
             errorText
         }
     }
-    
+
     private var errorIcon: some View {
         Image(systemName: "xmark.circle.fill")
             .font(.system(size: 60))
             .foregroundColor(.red)
     }
-    
+
     private var errorText: some View {
         VStack(spacing: 8) {
             Text("Request Failed")
                 .font(.title3)
                 .fontWeight(.semibold)
-            
+
             Text(message)
                 .font(.body)
                 .foregroundColor(.secondary)
@@ -239,19 +239,19 @@ struct SimpleEmptyStateView: View {
             emptyText
         }
     }
-    
+
     private var emptyIcon: some View {
         Image(systemName: "tray")
             .font(.system(size: 60))
             .foregroundColor(.gray)
     }
-    
+
     private var emptyText: some View {
         VStack(spacing: 8) {
             Text("No Data")
                 .font(.title3)
                 .fontWeight(.semibold)
-            
+
             Text("The request succeeded but returned no items")
                 .font(.body)
                 .foregroundColor(.secondary)

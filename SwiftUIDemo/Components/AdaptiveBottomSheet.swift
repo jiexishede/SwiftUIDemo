@@ -7,24 +7,24 @@
 
 /**
  * AdaptiveBottomSheet - 自适应高度底部弹窗
- * 
+ *
  * HEIGHT CALCULATION STRATEGIES / 高度计算策略:
  * 1. GeometryReader-based (几何读取器)
  *    - Measures actual content height / 测量实际内容高度
  *    - Most accurate but requires layout pass / 最准确但需要布局传递
- * 
+ *
  * 2. PreferenceKey-based (偏好键)
  *    - Child views report their height / 子视图报告其高度
  *    - Good for dynamic content / 适合动态内容
- * 
+ *
  * 3. Fixed Percentage (固定百分比)
  *    - Simple but less flexible / 简单但不够灵活
  *    - Good for consistent layouts / 适合一致的布局
- * 
+ *
  * 4. Content-Intrinsic (内容固有)
  *    - Uses SwiftUI's layout system / 使用 SwiftUI 的布局系统
  *    - Automatic but less control / 自动但控制较少
- * 
+ *
  * APPLE'S RECOMMENDATIONS / 苹果的建议:
  * - Use .presentationDetents for iOS 16+ / iOS 16+ 使用 .presentationDetents
  * - Use GeometryReader sparingly / 谨慎使用 GeometryReader
@@ -47,7 +47,7 @@ enum BottomSheetHeight {
 
 /**
  * PreferenceKey for reporting content height / 用于报告内容高度的偏好键
- * 
+ *
  * WHY PREFERENCEKEY / 为什么使用 PreferenceKey:
  * - Child-to-parent communication / 子到父通信
  * - Avoids @Binding complexity / 避免 @Binding 复杂性
@@ -55,7 +55,7 @@ enum BottomSheetHeight {
  */
 struct BottomSheetHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
-    
+
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
     }
@@ -63,12 +63,12 @@ struct BottomSheetHeightKey: PreferenceKey {
 
 /**
  * PreferenceKey for tracking focused field frame / 用于跟踪聚焦字段框架的偏好键
- * 
+ *
  * For smart keyboard management / 用于智能键盘管理
  */
 struct FocusedFieldFrameKey: PreferenceKey {
     static var defaultValue: CGRect? = nil
-    
+
     static func reduce(value: inout CGRect?, nextValue: () -> CGRect?) {
         value = nextValue() ?? value
     }
@@ -83,18 +83,18 @@ struct AdaptiveBottomSheet<Content: View>: View {
     let backgroundColor: Color
     let dragIndicator: Bool
     let content: Content
-    
+
     // Internal state / 内部状态
     @State private var contentHeight: CGFloat = 0
     @State private var dragOffset: CGFloat = 0
     @GestureState private var isDragging = false
-    
+
     // Smart keyboard handling / 智能键盘处理
     @State private var keyboardHeight: CGFloat = 0
     @State private var keyboardAnimationDuration: Double = 0.25
     @State private var focusedFieldFrame: CGRect? = nil
     let useSmartKeyboard: Bool
-    
+
     init(
         isPresented: Binding<Bool>,
         height: BottomSheetHeight = .automatic,
@@ -112,7 +112,7 @@ struct AdaptiveBottomSheet<Content: View>: View {
         self.useSmartKeyboard = useSmartKeyboard
         self.content = content()
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
@@ -127,7 +127,7 @@ struct AdaptiveBottomSheet<Content: View>: View {
                         }
                         .transition(.opacity)
                 }
-                
+
                 // Bottom sheet content / 底部弹窗内容
                 if isPresented {
                     VStack(spacing: 0) {
@@ -135,7 +135,7 @@ struct AdaptiveBottomSheet<Content: View>: View {
                         if dragIndicator {
                             dragIndicatorView
                         }
-                        
+
                         // Main content with height measurement / 带高度测量的主内容
                         content
                             .frame(maxHeight: calculateMaxContentHeight(in: geometry))
@@ -187,9 +187,9 @@ struct AdaptiveBottomSheet<Content: View>: View {
         }
         .ignoresSafeArea(.container, edges: .bottom)
     }
-    
+
     // MARK: - Height Calculations / 高度计算
-    
+
     /**
      * Calculate maximum content height / 计算最大内容高度
      */
@@ -198,7 +198,7 @@ struct AdaptiveBottomSheet<Content: View>: View {
         let indicatorHeight: CGFloat = dragIndicator ? 30 : 0
         return maxHeight - indicatorHeight - geometry.safeAreaInsets.bottom
     }
-    
+
     /**
      * Calculate sheet height based on strategy / 根据策略计算弹窗高度
      */
@@ -208,11 +208,11 @@ struct AdaptiveBottomSheet<Content: View>: View {
             // Use measured content height with safety bounds / 使用测量的内容高度并设置安全边界
             let indicatorHeight: CGFloat = dragIndicator ? 30 : 0
             let measuredHeight = contentHeight + indicatorHeight
-            
+
             // Set reasonable bounds / 设置合理的边界
             let minHeight: CGFloat = 150
             let maxHeight: CGFloat = geometry.size.height * 0.85
-            
+
             // Return appropriate height / 返回适当的高度
             if measuredHeight < minHeight {
                 return minHeight
@@ -221,21 +221,21 @@ struct AdaptiveBottomSheet<Content: View>: View {
             } else {
                 return measuredHeight
             }
-            
+
         case .fixed(let height):
             return height
-            
+
         case .percentage(let percent):
             return geometry.size.height * percent
-            
+
         case .adaptive(let minHeight, let maxHeight):
             let measured = contentHeight + (dragIndicator ? 30 : 0)
             return min(max(measured, minHeight), maxHeight)
         }
     }
-    
+
     // MARK: - Drag Indicator / 拖动指示器
-    
+
     private var dragIndicatorView: some View {
         VStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 2.5)
@@ -247,9 +247,9 @@ struct AdaptiveBottomSheet<Content: View>: View {
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
     }
-    
+
     // MARK: - Drag Gesture / 拖动手势
-    
+
     private var dragGesture: some Gesture {
         DragGesture()
             .updating($isDragging) { _, state, _ in
@@ -274,12 +274,12 @@ struct AdaptiveBottomSheet<Content: View>: View {
                 }
             }
     }
-    
+
     // MARK: - Smart Keyboard Offset Calculation / 智能键盘偏移计算
-    
+
     /**
      * Calculate smart vertical offset / 计算智能垂直偏移
-     * 
+     *
      * SMART LOGIC / 智能逻辑:
      * 1. Only move if TextField would be hidden / 仅在输入框会被遮挡时移动
      * 2. Calculate minimum movement needed / 计算所需的最小移动
@@ -288,38 +288,38 @@ struct AdaptiveBottomSheet<Content: View>: View {
     private func calculateSmartOffset(in geometry: GeometryProxy) -> CGFloat {
         // Base offset from dragging / 拖动的基础偏移
         let baseOffset = max(0, dragOffset)
-        
+
         if !useSmartKeyboard {
             // Fallback to simple keyboard offset / 回退到简单的键盘偏移
             return baseOffset - keyboardHeight
         }
-        
+
         // Smart keyboard offset / 智能键盘偏移
         guard let fieldFrame = focusedFieldFrame,
               keyboardHeight > 0 else {
             return baseOffset
         }
-        
+
         // Calculate positions / 计算位置
         let sheetTop = geometry.frame(in: .global).minY
         let fieldBottomRelativeToSheet = fieldFrame.maxY - sheetTop
         let sheetHeight = calculatedHeight(in: geometry)
         let visibleSheetHeight = sheetHeight - keyboardHeight
-        
+
         // Check if field would be hidden / 检查字段是否会被遮挡
         if fieldBottomRelativeToSheet > visibleSheetHeight {
             // Calculate minimum offset needed / 计算所需的最小偏移
             let overlap = fieldBottomRelativeToSheet - visibleSheetHeight
             let keyboardOffset = -(overlap + 30)  // 30pt padding / 30点内边距
-            
+
             // Ensure sheet doesn't go too high / 确保弹窗不会太高
             let maxUpwardOffset = -(sheetHeight * 0.3)  // Max 30% up / 最多上移 30%
             return baseOffset + max(keyboardOffset, maxUpwardOffset)
         }
-        
+
         return baseOffset
     }
-    
+
     /**
      * Setup smart keyboard observers / 设置智能键盘观察者
      */
@@ -335,13 +335,13 @@ struct AdaptiveBottomSheet<Content: View>: View {
                   let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else {
                 return
             }
-            
+
             keyboardAnimationDuration = duration
             withAnimation(.easeOut(duration: duration)) {
                 keyboardHeight = keyboardFrame.height
             }
         }
-        
+
         // Keyboard will hide / 键盘将隐藏
         NotificationCenter.default.addObserver(
             forName: UIResponder.keyboardWillHideNotification,
@@ -352,14 +352,14 @@ struct AdaptiveBottomSheet<Content: View>: View {
                   let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else {
                 return
             }
-            
+
             keyboardAnimationDuration = duration
             withAnimation(.easeOut(duration: duration)) {
                 keyboardHeight = 0
             }
         }
     }
-    
+
     /**
      * Remove smart keyboard observers / 移除智能键盘观察者
      */
@@ -388,7 +388,7 @@ extension View {
 struct RoundedCorner: Shape {
     var radius: CGFloat = .infinity
     var corners: UIRectCorner = .allCorners
-    
+
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(
             roundedRect: rect,
@@ -405,7 +405,7 @@ struct RoundedCorner: Shape {
 extension View {
     /**
      * Modern approach using presentationDetents / 使用 presentationDetents 的现代方法
-     * 
+     *
      * USAGE / 使用:
      * ```
      * .sheet(isPresented: $showSheet) {
@@ -423,7 +423,7 @@ extension View {
             ])
             .presentationDragIndicator(.visible)
     }
-    
+
     /**
      * Custom detents based on content / 基于内容的自定义定位
      */
@@ -452,11 +452,11 @@ struct BottomSheetModifier<SheetContent: View>: ViewModifier {
     @Binding var isPresented: Bool
     let height: BottomSheetHeight
     let content: () -> SheetContent
-    
+
     func body(content: Content) -> some View {
         ZStack {
             content
-            
+
             AdaptiveBottomSheet(
                 isPresented: $isPresented,
                 height: height,
@@ -469,7 +469,7 @@ struct BottomSheetModifier<SheetContent: View>: ViewModifier {
 extension View {
     /**
      * Present adaptive bottom sheet / 展示自适应底部弹窗
-     * 
+     *
      * USAGE / 使用:
      * ```
      * SomeView()

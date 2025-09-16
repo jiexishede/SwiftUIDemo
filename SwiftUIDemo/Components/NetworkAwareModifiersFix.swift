@@ -11,10 +11,10 @@ import Combine
 
 /**
  * ENHANCED UNIVERSAL NETWORK STATE MODIFIER - 增强的万能网络状态修饰符
- * 
+ *
  * 现在支持完全自定义的错误处理！
  * Now supports fully customizable error handling!
- * 
+ *
  * NEW FEATURES / 新功能:
  * ✅ Custom icons for each error type / 每种错误类型的自定义图标
  * ✅ Custom messages / 自定义消息
@@ -27,7 +27,7 @@ import Combine
 /**
  * Configuration for how to display errors
  * 错误显示的配置
- * 
+ *
  * This allows complete customization of error UI
  * 这允许完全自定义错误 UI
  */
@@ -40,7 +40,7 @@ public struct ErrorDisplayConfig {
     let secondaryActionTitle: String?
     let secondaryAction: (() -> Void)?
     let iconColor: Color
-    
+
     public init(
         icon: String,
         title: String,
@@ -71,26 +71,26 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
     let showIndicators: Bool
     let customLoadingView: AnyView?
     let customEmptyView: AnyView?
-    
+
     // NEW: Custom error configurations / 新增：自定义错误配置
     let customErrorConfigs: [String: ErrorDisplayConfig]  // Map error codes to configs / 将错误代码映射到配置
     let customOfflineConfig: ErrorDisplayConfig?
-    
+
     @ObservedObject private var monitor = NetworkMonitor.shared
     @State private var hasRetried = false
-    
+
     public func body(content: Content) -> some View {
         ZStack {
             // Original content / 原始内容
             content
                 .disabled(!monitor.isConnected || isLoading)
                 .blur(radius: shouldBlur ? 2 : 0)
-            
+
             // State-based overlay / 基于状态的覆盖层
             stateOverlay
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 .zIndex(100)
-            
+
             // Network indicators / 网络指示器
             if showIndicators && !monitor.isConnected {
                 VStack {
@@ -111,16 +111,16 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
             }
         }
     }
-    
+
     private var isLoading: Bool {
         if case .loading = state { return true }
         return false
     }
-    
+
     private var shouldBlur: Bool {
         !monitor.isConnected || isLoading
     }
-    
+
     @ViewBuilder
     private var stateOverlay: some View {
         // PRIORITY 1: Network offline / 优先级1：网络离线
@@ -148,14 +148,14 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
             switch state {
             case .idle:
                 EmptyView()
-                
+
             case .loading(.initial):
                 if let custom = customLoadingView {
                     custom
                 } else {
                     EnhancedLoadingView()
                 }
-                
+
             case .loaded(_, let subState):
                 if case .noMore = subState {
                     if let custom = customEmptyView {
@@ -164,16 +164,16 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                         EnhancedEmptyView(onRefresh: onRetry)
                     }
                 }
-                
+
             case .failed(_, let error):
                 intelligentErrorView(for: error)
-            
+
             default:
                 EmptyView()
             }
         }
     }
-    
+
     @ViewBuilder
     private var networkStatusBar: some View {
         HStack {
@@ -192,7 +192,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
         .background(Color.red)
         .shadow(radius: 2)
     }
-    
+
     @ViewBuilder
     private func intelligentErrorView(for error: ReduxPageState<T>.ErrorInfo) -> some View {
         // Check if custom config exists for this error code
@@ -206,7 +206,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
             CustomizableErrorView(config: defaultConfig)
         }
     }
-    
+
     private func analyzeError(_ error: ReduxPageState<T>.ErrorInfo) -> ErrorDisplayConfig {
         switch error.code {
         case "NETWORK_OFFLINE", "NETWORK_CONNECTION":
@@ -222,7 +222,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                 },
                 secondaryAction: onRetry
             )
-            
+
         case "UNAUTHORIZED", "401":
             return ErrorDisplayConfig(
                 icon: "lock.shield",
@@ -234,7 +234,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                 },
                 secondaryAction: onRetry
             )
-            
+
         case "NOT_FOUND", "404":
             return ErrorDisplayConfig(
                 icon: "questionmark.folder",
@@ -246,7 +246,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                 },
                 secondaryAction: onRetry
             )
-            
+
         case "SERVER_ERROR", "500", "502", "503":
             return ErrorDisplayConfig(
                 icon: "exclamationmark.icloud",
@@ -258,7 +258,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                 },
                 secondaryAction: onRetry
             )
-            
+
         case "TIMEOUT":
             return ErrorDisplayConfig(
                 icon: "clock.badge.exclamationmark",
@@ -267,7 +267,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                 secondaryAction: onRetry,
                 iconColor: .orange
             )
-            
+
         case "DECODING_ERROR", "PARSING_ERROR":
             return ErrorDisplayConfig(
                 icon: "doc.badge.ellipsis",
@@ -276,7 +276,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
                 secondaryAction: onRetry,
                 iconColor: .purple
             )
-            
+
         default:
             return ErrorDisplayConfig(
                 icon: "questionmark.circle",
@@ -293,7 +293,7 @@ public struct EnhancedUniversalNetworkStateModifier<T: Equatable>: ViewModifier 
 
 struct CustomizableErrorView: View {
     let config: ErrorDisplayConfig
-    
+
     var body: some View {
         VStack(spacing: 24) {
             // Icon / 图标
@@ -301,20 +301,20 @@ struct CustomizableErrorView: View {
                 .font(.system(size: 60))
                 .foregroundColor(config.iconColor)
                 .symbolRenderingMode(.hierarchical)
-            
+
             // Title / 标题
             Text(config.title)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
-            
+
             // Message / 消息
             Text(config.message)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             // Actions / 操作
             VStack(spacing: 12) {
                 if let primaryTitle = config.primaryActionTitle,
@@ -328,7 +328,7 @@ struct CustomizableErrorView: View {
                             .cornerRadius(10)
                     }
                 }
-                
+
                 if let secondaryTitle = config.secondaryActionTitle,
                    let secondaryAction = config.secondaryAction {
                     Button(action: secondaryAction) {
@@ -353,14 +353,14 @@ struct CustomizableErrorView: View {
 
 struct EnhancedLoadingView: View {
     @State private var isAnimating = false
-    
+
     var body: some View {
         VStack(spacing: 20) {
             ZStack {
                 Circle()
                     .stroke(Color.gray.opacity(0.3), lineWidth: 4)
                     .frame(width: 60, height: 60)
-                
+
                 Circle()
                     .trim(from: 0, to: 0.7)
                     .stroke(Color.blue, lineWidth: 4)
@@ -368,7 +368,7 @@ struct EnhancedLoadingView: View {
                     .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
                     .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: isAnimating)
             }
-            
+
             Text("Loading... / 加载中...")
                 .font(.headline)
                 .foregroundColor(.secondary)
@@ -385,21 +385,21 @@ struct EnhancedLoadingView: View {
 
 struct EnhancedEmptyView: View {
     let onRefresh: (() -> Void)?
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "tray")
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
-            
+
             Text("No Data / 暂无数据")
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             Text("Pull to refresh or tap below / 下拉刷新或点击下方按钮")
                 .font(.body)
                 .foregroundColor(.secondary)
-            
+
             if let onRefresh = onRefresh {
                 Button(action: onRefresh) {
                     Label("Refresh / 刷新", systemImage: "arrow.clockwise")
@@ -421,10 +421,10 @@ struct EnhancedEmptyView: View {
 public extension View {
     /**
      * 🚀 ENHANCED UNIVERSAL NETWORK STATE - 增强的万能网络状态
-     * 
+     *
      * 现在支持完全自定义！
      * Now supports full customization!
-     * 
+     *
      * BASIC USAGE / 基础用法:
      * ```swift
      * MyView()
@@ -433,7 +433,7 @@ public extension View {
      *         onRetry: { viewModel.refresh() }
      *     )
      * ```
-     * 
+     *
      * CUSTOM ICONS AND MESSAGES / 自定义图标和消息:
      * ```swift
      * MyView()
@@ -484,10 +484,10 @@ public extension View {
             customOfflineConfig: customOfflineConfig
         ))
     }
-    
+
     /**
      * SIMPLE VERSION - 简单版本
-     * 
+     *
      * For when you just want the basics
      * 当你只需要基础功能时
      */

@@ -11,7 +11,7 @@ import SwiftUI
 /**
  * NETWORK STATE VIEWS LIBRARY
  * 网络状态视图库
- * 
+ *
  * PURPOSE / 目的:
  * - Handle all network states (loading, error, empty, success)
  * - 处理所有网络状态（加载中、错误、空数据、成功）
@@ -19,7 +19,7 @@ import SwiftUI
  * - 提供一致的错误处理 UI
  * - Support retry and refresh actions
  * - 支持重试和刷新操作
- * 
+ *
  * USAGE / 使用:
  * ```
  * ContentView()
@@ -49,7 +49,7 @@ enum NetworkError: Error, Equatable {
     case httpError(Int, String?) // Generic HTTP error / 通用HTTP错误
     case invalidURL           // Invalid URL / 无效URL
     case unknown              // Unknown error / 未知错误
-    
+
     var statusCode: Int? {
         switch self {
         case .serverError(let code), .clientError(let code), .httpError(let code, _):
@@ -62,7 +62,7 @@ enum NetworkError: Error, Equatable {
         default: return nil
         }
     }
-    
+
     var title: String {
         switch self {
         case .noConnection:
@@ -93,7 +93,7 @@ enum NetworkError: Error, Equatable {
             return "未知错误 / Unknown Error"
         }
     }
-    
+
     var message: String {
         switch self {
         case .noConnection:
@@ -124,7 +124,7 @@ enum NetworkError: Error, Equatable {
             return "发生未知错误，请稍后重试\nAn unknown error occurred, please try again"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .noConnection:
@@ -143,7 +143,7 @@ enum NetworkError: Error, Equatable {
             return "exclamationmark.circle"
         }
     }
-    
+
     var iconColor: Color {
         switch self {
         case .noConnection: return .gray
@@ -155,7 +155,7 @@ enum NetworkError: Error, Equatable {
         default: return .red
         }
     }
-    
+
     var canRetry: Bool {
         switch self {
         case .unauthorized, .forbidden:
@@ -179,27 +179,27 @@ enum NetworkState<T: Equatable>: Equatable {
     case empty                         // Success but no data / 成功但无数据
     case error(NetworkError)           // Error state / 错误状态
     case refreshing(T)                 // Refreshing existing data / 刷新现有数据
-    
+
     var isLoading: Bool {
         if case .loading = self { return true }
         return false
     }
-    
+
     var isRefreshing: Bool {
         if case .refreshing = self { return true }
         return false
     }
-    
+
     var hasError: Bool {
         if case .error = self { return true }
         return false
     }
-    
+
     var isEmpty: Bool {
         if case .empty = self { return true }
         return false
     }
-    
+
     var data: T? {
         switch self {
         case .loaded(let data), .refreshing(let data):
@@ -215,7 +215,7 @@ enum NetworkState<T: Equatable>: Equatable {
 /**
  * Reusable empty state view for lists with no data
  * 可复用的列表无数据空状态视图
- * 
+ *
  * USAGE / 使用:
  * ```
  * NetworkEmptyStateView(
@@ -228,7 +228,7 @@ struct NetworkEmptyStateView: View {
     let style: EmptyStyle
     let customMessage: String?
     let customAction: (() -> Void)?
-    
+
     enum EmptyStyle {
         case noData         // No data available / 无可用数据
         case noResults      // No search results / 无搜索结果
@@ -236,7 +236,7 @@ struct NetworkEmptyStateView: View {
         case noMessages     // No messages / 无消息
         case noNotifications // No notifications / 无通知
         case custom(icon: String, title: String)
-        
+
         var icon: String {
             switch self {
             case .noData: return "doc.text"
@@ -247,7 +247,7 @@ struct NetworkEmptyStateView: View {
             case .custom(let icon, _): return icon
             }
         }
-        
+
         var title: String {
             switch self {
             case .noData: return "暂无数据 / No Data"
@@ -258,7 +258,7 @@ struct NetworkEmptyStateView: View {
             case .custom(_, let title): return title
             }
         }
-        
+
         var defaultMessage: String {
             switch self {
             case .noData:
@@ -275,7 +275,7 @@ struct NetworkEmptyStateView: View {
                 return ""
             }
         }
-        
+
         var actionTitle: String? {
             switch self {
             case .noResults: return "清除搜索 / Clear Search"
@@ -285,7 +285,7 @@ struct NetworkEmptyStateView: View {
             }
         }
     }
-    
+
     init(
         style: EmptyStyle = .noData,
         message: String? = nil,
@@ -295,28 +295,28 @@ struct NetworkEmptyStateView: View {
         self.customMessage = message
         self.customAction = action
     }
-    
+
     var body: some View {
         VStack(spacing: 24) {
             // Icon
             Image(systemName: style.icon)
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
-            
+
             // Text
             VStack(spacing: 8) {
                 Text(style.title)
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
-                
+
                 Text(customMessage ?? style.defaultMessage)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
-            
+
             // Action button
             if let action = customAction, let title = style.actionTitle {
                 Button(action: action) {
@@ -343,21 +343,21 @@ struct ErrorStateView: View {
     let error: NetworkError
     let retryAction: (() -> Void)?
     let customAction: (title: String, action: () -> Void)?
-    
+
     var body: some View {
         VStack(spacing: 24) {
             // Error icon
             Image(systemName: error.icon)
                 .font(.system(size: 60))
                 .foregroundColor(error.iconColor)
-            
+
             // Error info
             VStack(spacing: 8) {
                 Text(error.title)
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
-                
+
                 if let code = error.statusCode {
                     Text("错误代码 / Error Code: \(code)")
                         .font(.caption)
@@ -367,14 +367,14 @@ struct ErrorStateView: View {
                         .background(Color(.secondarySystemBackground))
                         .cornerRadius(8)
                 }
-                
+
                 Text(error.message)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
-            
+
             // Actions
             VStack(spacing: 12) {
                 if error.canRetry, let retry = retryAction {
@@ -389,7 +389,7 @@ struct ErrorStateView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-                
+
                 if let custom = customAction {
                     Button(action: custom.action) {
                         Text(custom.title)
@@ -417,14 +417,14 @@ struct LoadingStateView: View {
     let message: String?
     let progress: Double?
     let style: LoadingStyle
-    
+
     enum LoadingStyle {
         case standard
         case skeleton
         case shimmer
         case progress
     }
-    
+
     init(
         message: String? = "加载中... / Loading...",
         progress: Double? = nil,
@@ -434,7 +434,7 @@ struct LoadingStateView: View {
         self.progress = progress
         self.style = style
     }
-    
+
     var body: some View {
         switch style {
         case .standard:
@@ -447,13 +447,13 @@ struct LoadingStateView: View {
             progressLoadingView
         }
     }
-    
+
     private var standardLoadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
                 .scaleEffect(1.5)
-            
+
             if let message = message {
                 Text(message)
                     .font(.subheadline)
@@ -462,7 +462,7 @@ struct LoadingStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var skeletonLoadingView: some View {
         VStack(spacing: 12) {
             ForEach(0..<5) { _ in
@@ -470,12 +470,12 @@ struct LoadingStateView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.3))
                         .frame(width: 60, height: 60)
-                    
+
                     VStack(alignment: .leading, spacing: 8) {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.3))
                             .frame(height: 16)
-                        
+
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 12)
@@ -486,7 +486,7 @@ struct LoadingStateView: View {
             }
         }
     }
-    
+
     private var shimmerLoadingView: some View {
         VStack(spacing: 12) {
             ForEach(0..<5) { _ in
@@ -497,14 +497,14 @@ struct LoadingStateView: View {
             }
         }
     }
-    
+
     private var progressLoadingView: some View {
         VStack(spacing: 20) {
             if let progress = progress {
                 ProgressView(value: progress)
                     .progressViewStyle(LinearProgressViewStyle())
                     .padding(.horizontal)
-                
+
                 Text("\(Int(progress * 100))%")
                     .font(.title2)
                     .fontWeight(.bold)
@@ -514,7 +514,7 @@ struct LoadingStateView: View {
                     .progressViewStyle(CircularProgressViewStyle())
                     .scaleEffect(1.5)
             }
-            
+
             if let message = message {
                 Text(message)
                     .font(.subheadline)
@@ -529,12 +529,12 @@ struct LoadingStateView: View {
 
 struct ShimmerView: View {
     @State private var isAnimating = false
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Color.gray.opacity(0.2)
-                
+
                 LinearGradient(
                     gradient: Gradient(colors: [
                         Color.gray.opacity(0.2),
@@ -571,25 +571,25 @@ struct NetworkStateOverlay<T: Equatable, ContentView: View>: ViewModifier {
     let emptyStyle: NetworkEmptyStateView.EmptyStyle
     let loadingStyle: LoadingStateView.LoadingStyle
     let contentBuilder: (T) -> ContentView
-    
+
     func body(content: Content) -> some View {
         ZStack {
             switch state {
             case .idle:
                 Color.clear
-                
+
             case .loading:
                 LoadingStateView(style: loadingStyle)
-                
+
             case .loaded(let data):
                 contentBuilder(data)
-                
+
             case .empty:
                 NetworkEmptyStateView(style: emptyStyle, action: retryAction)
-                
+
             case .error(let error):
                 ErrorStateView(error: error, retryAction: retryAction, customAction: nil)
-                
+
             case .refreshing(let data):
                 contentBuilder(data)
                     .overlay(
@@ -619,7 +619,7 @@ extension View {
     /**
      * Apply network state handling to any view
      * 为任何视图应用网络状态处理
-     * 
+     *
      * USAGE / 使用:
      * ```
      * List(items) { item in

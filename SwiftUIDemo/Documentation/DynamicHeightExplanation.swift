@@ -46,7 +46,7 @@ import SwiftUI
  */
 struct HeightPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
-    
+
     // Called when multiple views report heights - we take the maximum
     // 当多个视图报告高度时调用 - 我们取最大值
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -63,7 +63,7 @@ struct HeightPreferenceKey: PreferenceKey {
  */
 struct ContentMeasurementExample: View {
     @State private var contentHeight: CGFloat = 0
-    
+
     var body: some View {
         VStack {
             // The actual content / 实际内容
@@ -99,7 +99,7 @@ struct ContentMeasurementExample: View {
  * 高度计算发生在多个阶段：
  */
 struct DynamicHeightCalculationExample {
-    
+
     /**
      * METHOD 1: Automatic Height Calculation
      * 方法 1：自动高度计算
@@ -116,12 +116,12 @@ struct DynamicHeightCalculationExample {
         // 步骤 1：如果存在，添加指示器高度
         let indicatorHeight: CGFloat = dragIndicator ? 30 : 0
         let measuredHeight = contentHeight + indicatorHeight
-        
+
         // Step 2: Define bounds
         // 步骤 2：定义边界
         let minHeight: CGFloat = 150  // Minimum readable height / 最小可读高度
         let maxHeight: CGFloat = screenHeight * 0.85  // 85% of screen / 屏幕的 85%
-        
+
         // Step 3: Apply bounds
         // 步骤 3：应用边界
         if measuredHeight < minHeight {
@@ -132,7 +132,7 @@ struct DynamicHeightCalculationExample {
             return measuredHeight  // Just right, use actual size / 正好，使用实际大小
         }
     }
-    
+
     /**
      * METHOD 2: Dynamic Content-Based Calculation
      * 方法 2：基于内容的动态计算
@@ -148,7 +148,7 @@ struct DynamicHeightCalculationExample {
         // Base components height / 基础组件高度
         let headerHeight: CGFloat = 100     // Title, subtitle, controls / 标题、副标题、控件
         let controlsHeight: CGFloat = 100   // Filters and sort buttons / 过滤器和排序按钮
-        
+
         // Dynamic card heights / 动态卡片高度
         let cardHeight: CGFloat = cards.reduce(0) { total, card in
             // Different height based on expansion state
@@ -158,10 +158,10 @@ struct DynamicHeightCalculationExample {
             let singleCardHeight: CGFloat = 80 // Default height for collapsed cards / 折叠卡片的默认高度
             return total + singleCardHeight
         }
-        
+
         // Conditional form height / 条件表单高度
         let formHeight: CGFloat = showAddForm ? 200 : 0
-        
+
         // Calculate total with maximum limit / 计算总数并限制最大值
         let totalHeight = headerHeight + controlsHeight + cardHeight + formHeight
         return min(totalHeight, 600)  // Cap at 600 points / 限制在 600 点
@@ -180,7 +180,7 @@ struct DynamicHeightCalculationExample {
 struct RealTimeHeightUpdateExample: View {
     @State private var items: [String] = ["Item 1", "Item 2"]
     @State private var contentHeight: CGFloat = 0
-    
+
     var body: some View {
         VStack {
             // Content that can change / 可以改变的内容
@@ -188,7 +188,7 @@ struct RealTimeHeightUpdateExample: View {
                 Text(item)
                     .padding()
             }
-            
+
             // Add/Remove buttons change content
             // 添加/删除按钮改变内容
             HStack {
@@ -199,7 +199,7 @@ struct RealTimeHeightUpdateExample: View {
                         // 高度将自动重新计算
                     }
                 }
-                
+
                 Button("Remove") {
                     withAnimation {
                         if !items.isEmpty {
@@ -263,7 +263,7 @@ struct ScrollViewHeightHandling: View {
 struct AsyncContentHeightExample: View {
     @State private var isLoading = true
     @State private var items: [String] = []
-    
+
     var body: some View {
         VStack {
             if isLoading {
@@ -299,7 +299,7 @@ struct AsyncContentHeightExample: View {
  */
 struct ExpandableContentHeightExample: View {
     @State private var isExpanded = false
-    
+
     var body: some View {
         VStack {
             Button("Toggle") {
@@ -307,7 +307,7 @@ struct ExpandableContentHeightExample: View {
                     isExpanded.toggle()
                 }
             }
-            
+
             if isExpanded {
                 // Additional content when expanded / 展开时的额外内容
                 VStack {
@@ -356,7 +356,7 @@ struct ExpandableContentHeightExample: View {
 struct CompleteBottomSheetFlow: View {
     @State private var contentHeight: CGFloat = 0
     @State private var isPresented = false
-    
+
     var body: some View {
         Button("Show Sheet") {
             isPresented = true
@@ -365,7 +365,7 @@ struct CompleteBottomSheetFlow: View {
             sheetContent
         }
     }
-    
+
     private var sheetContent: some View {
         VStack {
             // Dynamic content / 动态内容
@@ -388,11 +388,11 @@ struct CompleteBottomSheetFlow: View {
             }
         }
     }
-    
+
     private func calculateHeight() -> CGFloat {
         let minHeight: CGFloat = 200
         let maxHeight: CGFloat = UIScreen.main.bounds.height * 0.85
-        
+
         if contentHeight < minHeight {
             return minHeight
         } else if contentHeight > maxHeight {
@@ -405,13 +405,13 @@ struct CompleteBottomSheetFlow: View {
 
 struct DynamicContentView: View {
     @State private var items = ["Item 1", "Item 2"]
-    
+
     var body: some View {
         VStack {
             ForEach(items, id: \.self) { item in
                 Text(item).padding()
             }
-            
+
             Button("Add Item") {
                 items.append("Item \(items.count + 1)")
             }

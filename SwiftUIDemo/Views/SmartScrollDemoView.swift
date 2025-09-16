@@ -15,7 +15,7 @@ import SwiftUI
  * 3. 如何优化滚动性能
  * 4. 如何保持代码的简洁性
  *
- * This demo view is the culmination of SwiftUI scroll view architecture, demonstrating how to 
+ * This demo view is the culmination of SwiftUI scroll view architecture, demonstrating how to
  * elegantly solve one of the most challenging UI problems in iOS development: nested scrolling.
  * Through this demo, you will learn:
  *
@@ -70,12 +70,12 @@ import SwiftUI
 
 struct SmartScrollDemoView: View {
     // MARK: - State Properties / 状态属性
-    
+
     /**
      * 调试信息 - 显示当前的滚动方向和状态
-     * 
+     *
      * Debug info - Shows current scroll direction and status
-     * 
+     *
      * 这个状态帮助开发者理解用户的滚动意图和系统的响应。
      * 在生产环境中，这些调试信息应该被移除或者只在开发模式下显示。
      *
@@ -83,7 +83,7 @@ struct SmartScrollDemoView: View {
      * In production, this debug info should be removed or only shown in development mode.
      */
     @State private var debugInfo: String = "滑动方向: 无"
-    
+
     /**
      * 垂直滚动偏移量 - 追踪主滚动视图的位置
      *
@@ -102,7 +102,7 @@ struct SmartScrollDemoView: View {
      * - Implementing pull-to-refresh
      */
     @State private var verticalScrollOffset: CGFloat = 0
-    
+
     /**
      * 垂直滚动状态 - 标识是否正在进行垂直滚动
      *
@@ -115,7 +115,7 @@ struct SmartScrollDemoView: View {
      * When true, certain interactions or animations can be disabled to improve performance.
      */
     @State private var isVerticalScrolling: Bool = false
-    
+
     /**
      * 调试信息显示开关 - 控制调试面板的可见性
      *
@@ -128,15 +128,15 @@ struct SmartScrollDemoView: View {
      * This demonstrates how to integrate developer tools in the app.
      */
     @State private var showDebugInfo: Bool = true
-    
+
     // MARK: - Body / 主体
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // 调试信息头部 - 可折叠的调试面板
             // Debug info header - Collapsible debug panel
             debugHeader
-            
+
             // 主滚动内容 - 包含所有演示内容
             // Main scroll content - Contains all demo content
             mainScrollContent
@@ -144,9 +144,9 @@ struct SmartScrollDemoView: View {
         .navigationTitle("智能滚动演示")
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     // MARK: - Debug Header / 调试头部
-    
+
     /**
      * 调试信息显示区域 - 为开发者提供实时反馈
      *
@@ -176,7 +176,7 @@ struct SmartScrollDemoView: View {
                     .labelsHidden()
             }
             .padding(.horizontal)
-            
+
             // 条件显示的调试信息
             // Conditionally displayed debug info
             if showDebugInfo {
@@ -186,9 +186,9 @@ struct SmartScrollDemoView: View {
                     Text(debugInfo)
                         .font(.caption)
                         .foregroundColor(.gray)
-                    
+
                     Spacer()
-                    
+
                     // 滚动偏移量显示
                     // Scroll offset display
                     Text("偏移: \(Int(verticalScrollOffset))")
@@ -200,9 +200,9 @@ struct SmartScrollDemoView: View {
             }
         }
     }
-    
+
     // MARK: - Main Scroll Content / 主滚动内容
-    
+
     /**
      * 主要滚动视图内容 - 演示的核心部分
      *
@@ -240,9 +240,9 @@ struct SmartScrollDemoView: View {
             .padding(.vertical)
         }
     }
-    
+
     // MARK: - Section Content / 部分内容
-    
+
     /**
      * 根据索引返回不同类型的内容部分 - 展示内容多样性
      *
@@ -272,7 +272,7 @@ struct SmartScrollDemoView: View {
             Text("Section \(index + 1)")
                 .font(.headline)
                 .padding(.horizontal)
-            
+
             // 根据索引选择不同的内容类型
             // Choose different content types based on index
             if index % 3 == 0 {
@@ -284,9 +284,9 @@ struct SmartScrollDemoView: View {
             }
         }
     }
-    
+
     // MARK: - Horizontal Scroll Section / 横向滚动部分
-    
+
     /**
      * 横向滚动区域 - 展示卡片式内容的最佳实践
      *
@@ -343,7 +343,7 @@ struct SmartScrollDemoView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
-            
+
             // 横向滚动容器
             // Horizontal scroll container
             SmartHorizontalScrollView(
@@ -374,9 +374,9 @@ struct SmartScrollDemoView: View {
             .padding(.horizontal)
         }
     }
-    
+
     // MARK: - Vertical Only Scroll Section / 仅垂直滚动部分
-    
+
     /**
      * 仅垂直滚动区域 - 展示受限滚动的实现
      *
@@ -416,7 +416,7 @@ struct SmartScrollDemoView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
-            
+
             // 垂直限制滚动容器
             // Vertical restricted scroll container
             SmartVerticalOnlyScrollView(
@@ -434,9 +434,9 @@ struct SmartScrollDemoView: View {
             .padding(.horizontal)
         }
     }
-    
+
     // MARK: - Grid Content / 网格内容
-    
+
     /**
      * 网格布局内容 - 展示二维布局在滚动视图中的应用
      *
@@ -464,7 +464,7 @@ struct SmartScrollDemoView: View {
         }
         .padding()
     }
-    
+
     /**
      * 单个网格项 - 可复用的网格单元组件
      *
@@ -500,9 +500,9 @@ struct SmartScrollDemoView: View {
                 }
             )
     }
-    
+
     // MARK: - Regular Content Section / 常规内容部分
-    
+
     /**
      * 常规内容区域 - 展示标准的垂直列表布局
      *
@@ -531,7 +531,7 @@ struct SmartScrollDemoView: View {
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
-            
+
             // 生成 3 个内容项
             // Generate 3 content items
             ForEach(0..<3) { subIndex in
@@ -539,7 +539,7 @@ struct SmartScrollDemoView: View {
             }
         }
     }
-    
+
     /**
      * 常规内容项 - 标准列表项组件
      *
@@ -615,7 +615,7 @@ struct CardView: View {
     let title: String
     let subtitle: String
     let color: Color
-    
+
     var body: some View {
         RoundedRectangle(cornerRadius: 15)
             .fill(
@@ -637,13 +637,13 @@ struct CardView: View {
                     Image(systemName: "star.fill")
                         .font(.largeTitle)
                         .foregroundColor(.white)
-                    
+
                     // 主标题 - 主要信息
                     // Main title - Primary information
                     Text(title)
                         .font(.headline)
                         .foregroundColor(.white)
-                    
+
                     // 副标题 - 补充信息
                     // Subtitle - Supplementary information
                     Text(subtitle)

@@ -14,12 +14,12 @@ import ComposableArchitecture
 struct LoadingOverlay: View {
     let isLoading: Bool
     let message: String
-    
+
     init(isLoading: Bool, message: String = "加载中... / Loading...") {
         self.isLoading = isLoading
         self.message = message
     }
-    
+
     var body: some View {
         if isLoading {
             ZStack {
@@ -31,14 +31,14 @@ struct LoadingOverlay: View {
                         // 空实现，仅用于拦截点击 / Empty implementation, just to intercept taps
                     }
                     .allowsHitTesting(true) // 确保拦截所有触摸事件 / Ensure all touch events are intercepted
-                
+
                 // 中央加载指示器卡片 / Central loading indicator card
                 VStack(spacing: 20) {
                     // 加载动画 / Loading animation
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                         .scaleEffect(1.5)
-                    
+
                     // 加载文字 / Loading text
                     Text(message)
                         .font(.subheadline)
@@ -67,7 +67,7 @@ struct LoadingOverlay: View {
 // 筛选加载遮罩 / Filter Loading Overlay
 struct FilterLoadingOverlay: View {
     let isChangingFilter: Bool
-    
+
     var body: some View {
         if isChangingFilter {
             ZStack {
@@ -76,13 +76,13 @@ struct FilterLoadingOverlay: View {
                     .opacity(0.2)
                     .edgesIgnoringSafeArea(.all)
                     .allowsHitTesting(true) // 确保可以拦截交互 / Ensure it intercepts interactions
-                
+
                 // 简洁的加载指示器 / Simple loading indicator
                 VStack(spacing: 16) {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
                         .scaleEffect(1.2)
-                    
+
                     Text("切换筛选中... / Switching filter...")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -102,14 +102,14 @@ struct FilterLoadingOverlay: View {
 
 struct RefreshableListView: View {
     let store: StoreOf<RefreshableListFeature>
-    
+
     // 根据状态获取加载消息 / Get loading message based on state
     private func getLoadingMessage(viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>) -> String {
         // 检查是否在切换筛选 / Check if changing filter
         if viewStore.isChangingFilter {
             return "切换筛选中... / Switching filter..."
         }
-        
+
         // 检查页面状态类型 / Check page state type
         switch viewStore.pageState {
         case .loading(.initial):
@@ -122,7 +122,7 @@ struct RefreshableListView: View {
             return "处理中... / Processing..."
         }
     }
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             ZStack {
@@ -135,7 +135,7 @@ struct RefreshableListView: View {
                     // 列表内容 / List Content
                     ListContent(viewStore: viewStore)
                 }
-                
+
                 // 加载遮罩层 - 覆盖在所有内容之上 / Loading overlay - covers all content
                 LoadingOverlay(
                     isLoading: viewStore.showLoadingOverlay,
@@ -157,7 +157,7 @@ struct RefreshableListView: View {
 // 订单筛选下拉菜单 / Order Filter Dropdown
 struct OrderFilterDropdown: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // 筛选按钮 / Filter button
@@ -165,13 +165,13 @@ struct OrderFilterDropdown: View {
                 HStack {
                     Image(systemName: "line.horizontal.3.decrease.circle")
                         .font(.title3)
-                    
+
                     Text(viewStore.selectedFilter.displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: viewStore.showFilterDropdown ? "chevron.up" : "chevron.down")
                         .font(.caption)
                 }
@@ -180,7 +180,7 @@ struct OrderFilterDropdown: View {
                 .background(Color.gray.opacity(0.05))
             }
             .foregroundColor(.primary)
-            
+
             // 下拉选项列表 / Dropdown options list
             if viewStore.showFilterDropdown {
                 VStack(spacing: 0) {
@@ -190,9 +190,9 @@ struct OrderFilterDropdown: View {
                         isSelected: viewStore.selectedFilter == .all,
                         action: { viewStore.send(.selectFilter(.all)) }
                     )
-                    
+
                     Divider()
-                    
+
                     // 各个订单状态 / Each order status
                     ForEach(OrderStatus.allCases, id: \.self) { status in
                         FilterOption(
@@ -202,14 +202,14 @@ struct OrderFilterDropdown: View {
                             isSelected: viewStore.selectedFilter == .status(status),
                             action: { viewStore.send(.selectFilter(.status(status))) }
                         )
-                        
+
                         if status != OrderStatus.allCases.last {
                             Divider()
                         }
                     }
-                    
+
                     Divider()
-                    
+
                     // 无订单（特殊筛选）/ No orders (special filter)
                     FilterOption(
                         title: OrderFilterOption.noOrders.displayName,
@@ -228,7 +228,7 @@ struct OrderFilterDropdown: View {
             }
         }
     }
-    
+
     private func colorFromString(_ colorString: String) -> Color {
         switch colorString {
         case "orange": return .orange
@@ -250,7 +250,7 @@ struct FilterOption: View {
     var color: Color = .primary
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack {
@@ -260,13 +260,13 @@ struct FilterOption: View {
                         .foregroundColor(color)
                         .frame(width: 24)
                 }
-                
+
                 Text(title)
                     .font(.subheadline)
                     .foregroundColor(isSelected ? .blue : .primary)
-                
+
                 Spacer()
-                
+
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.caption)
@@ -284,12 +284,12 @@ struct FilterOption: View {
 // 订单状态标签 / Order Status Badge
 struct OrderStatusBadge: View {
     let status: OrderStatus
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: status.systemImage)
                 .font(.caption2)
-            
+
             Text(status.rawValue)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -300,7 +300,7 @@ struct OrderStatusBadge: View {
         .foregroundColor(colorFromString(status.color))
         .cornerRadius(6)
     }
-    
+
     private func colorFromString(_ colorString: String) -> Color {
         switch colorString {
         case "orange": return .orange
@@ -318,7 +318,7 @@ struct OrderStatusBadge: View {
 // 控制面板 / Control Panel
 struct ControlPanel: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
-    
+
     var body: some View {
         VStack(spacing: 12) {
             toggleButtons
@@ -327,7 +327,7 @@ struct ControlPanel: View {
         .padding()
         .background(Color.gray.opacity(0.1))
     }
-    
+
     private var toggleButtons: some View {
         HStack(spacing: 16) {
             Toggle("模拟错误 / Simulate Error", isOn: viewStore.binding(
@@ -335,7 +335,7 @@ struct ControlPanel: View {
                 send: { _ in .toggleErrorSimulation }
             ))
             .toggleStyle(SwitchToggleStyle())
-            
+
             Toggle("模拟空数据 / Simulate Empty", isOn: viewStore.binding(
                 get: \.simulateEmpty,
                 send: { _ in .toggleEmptySimulation }
@@ -344,7 +344,7 @@ struct ControlPanel: View {
         }
         .font(.caption)
     }
-    
+
     private var statusText: some View {
         Group {
             if viewStore.simulateError {
@@ -368,7 +368,7 @@ struct ControlPanel: View {
 // 列表内容 / List Content
 struct ListContent: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
-    
+
     var body: some View {
         Group {
             if viewStore.showInitialLoading {
@@ -396,13 +396,13 @@ struct ListContent: View {
 struct ModernRefreshableScrollView: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
     @State private var isRefreshing = false
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
                 // 刷新错误视图 / Refresh error view
                 RefreshErrorView(viewStore: viewStore)
-                
+
                 LazyVStack(spacing: 0) {
                     itemsList
                     loadMoreSection
@@ -417,7 +417,7 @@ struct ModernRefreshableScrollView: View {
             // 使用async/await处理刷新 / Handle refresh with async/await
             await withCheckedContinuation { continuation in
                 viewStore.send(.pullToRefresh)
-                
+
                 // 监听状态变化来结束刷新 / Monitor state change to end refresh
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     continuation.resume()
@@ -429,13 +429,13 @@ struct ModernRefreshableScrollView: View {
             isRefreshing = viewStore.pageState.isRefreshing
         }
     }
-    
+
     private var itemsList: some View {
         ForEach(viewStore.items) { item in
             RefreshableListItemView(item: item)
         }
     }
-    
+
     private var loadMoreSection: some View {
         Group {
             if case let .loaded(data, loadMoreState) = viewStore.pageState {
@@ -449,7 +449,7 @@ struct ModernRefreshableScrollView: View {
             }
         }
     }
-    
+
     // 处理自动加载更多 / Handle auto load more
     private func handleAutoLoadMore() {
         if case let .loaded(data, loadMoreState) = viewStore.pageState,
@@ -465,7 +465,7 @@ struct ModernRefreshableScrollView: View {
 // iOS 15 可刷新滚动视图 / iOS 15 Refreshable ScrollView
 struct LegacyRefreshableScrollView: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
-    
+
     var body: some View {
         // iOS 15 使用 List 以支持 refreshable / Use List for iOS 15 to support refreshable
         List {
@@ -480,14 +480,14 @@ struct LegacyRefreshableScrollView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
             }
-            
+
             // 列表项 / List items
             ForEach(viewStore.items) { item in
                 RefreshableListItemView(item: item)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
             }
-            
+
             // 加载更多部分 / Load more section
             if case let .loaded(data, loadMoreState) = viewStore.pageState {
                 LoadMoreView(
@@ -513,25 +513,25 @@ struct LegacyRefreshableScrollView: View {
             await performRefresh()
         }
     }
-    
+
     // 执行刷新的异步函数 / Async function to perform refresh
     private func performRefresh() async {
         // 发送刷新动作 / Send refresh action
         viewStore.send(.pullToRefresh)
-        
+
         // 等待一小段时间确保动作被处理 / Wait a moment to ensure action is processed
         try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒 / 0.1 second
-        
+
         // 等待刷新完成（最多5秒）/ Wait for refresh to complete (max 5 seconds)
         var attempts = 0
         let maxAttempts = 50
-        
+
         // 等待刷新开始 / Wait for refresh to start
         while !viewStore.pageState.isRefreshing && attempts < 5 {
             try? await Task.sleep(nanoseconds: 100_000_000)
             attempts += 1
         }
-        
+
         // 等待刷新完成 / Wait for refresh to complete
         attempts = 0
         while viewStore.pageState.isRefreshing && attempts < maxAttempts {
@@ -546,27 +546,27 @@ struct LegacyRefreshableScrollView: View {
 struct RefreshErrorBanner: View {
     let errorInfo: ReduxPageState<ListData<MockItem>>.ErrorInfo
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
-    
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
                     .font(.title3)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("刷新失败 / Refresh Failed")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(errorInfo.message)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: { viewStore.send(.pullToRefresh) }) {
                     Text("重试 / Retry")
                         .font(.caption)
@@ -579,7 +579,7 @@ struct RefreshErrorBanner: View {
                 }
             }
             .padding()
-            
+
             Divider()
         }
         .background(Color.yellow.opacity(0.1))
@@ -592,7 +592,7 @@ struct RefreshErrorBanner: View {
 // 刷新错误视图 / Refresh Error View
 struct RefreshErrorView: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
-    
+
     var body: some View {
         // 只在刷新失败且有数据时显示 / Only show when refresh failed and has data
         if case let .failed(.refresh, errorInfo) = viewStore.pageState {
@@ -605,27 +605,27 @@ struct RefreshErrorView: View {
             }
         }
     }
-    
+
     private func errorBanner(errorInfo: ReduxPageState<ListData<MockItem>>.ErrorInfo) -> some View {
         VStack(spacing: 12) {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
                     .font(.title3)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("刷新失败 / Refresh Failed")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Text(errorInfo.message)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: { viewStore.send(.pullToRefresh) }) {
                     Text("重试 / Retry")
                         .font(.caption)
@@ -638,7 +638,7 @@ struct RefreshErrorView: View {
                 }
             }
             .padding()
-            
+
             Divider()
         }
         .background(Color.yellow.opacity(0.1))
@@ -651,7 +651,7 @@ struct RefreshErrorView: View {
 // 滚动偏移偏好键 / Scroll Offset Preference Key
 struct RefreshableListScrollOffsetKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
-    
+
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
@@ -675,7 +675,7 @@ struct InitialLoadingView: View {
 // 初始错误视图 / Initial Error View
 struct InitialErrorView: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
-    
+
     var body: some View {
         VStack(spacing: 20) {
             errorIcon
@@ -685,19 +685,19 @@ struct InitialErrorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     private var errorIcon: some View {
         Image(systemName: "wifi.exclamationmark")
             .font(.system(size: 60))
             .foregroundColor(.red)
     }
-    
+
     private var errorMessage: some View {
         VStack(spacing: 8) {
             Text("加载失败 / Failed to Load")
                 .font(.title3)
                 .fontWeight(.semibold)
-            
+
             if let error = viewStore.pageState.errorMessage {
                 Text(error)
                     .font(.caption)
@@ -706,7 +706,7 @@ struct InitialErrorView: View {
             }
         }
     }
-    
+
     private var retryButton: some View {
         Button(action: { viewStore.send(.retry) }) {
             Label("重试 / Retry", systemImage: "arrow.clockwise")
@@ -730,19 +730,19 @@ struct EmptyListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     private var emptyIcon: some View {
         Image(systemName: "tray")
             .font(.system(size: 60))
             .foregroundColor(.gray)
     }
-    
+
     private var emptyText: some View {
         VStack(spacing: 8) {
             Text("没有数据 / No Items")
                 .font(.title3)
                 .fontWeight(.semibold)
-            
+
             Text("暂无可显示的数据 / There are no items to display")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -754,7 +754,7 @@ struct EmptyListView: View {
 // 列表项视图 / List Item View
 struct RefreshableListItemView: View {
     let item: MockItem
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             itemHeader
@@ -766,56 +766,56 @@ struct RefreshableListItemView: View {
         .background(Color.white)
         .overlay(divider, alignment: .bottom)
     }
-    
+
     private var itemHeader: some View {
         HStack {
             // 订单号 / Order number
             Text(item.orderNumber)
                 .font(.headline)
                 .fontWeight(.semibold)
-            
+
             Spacer()
-            
+
             // 订单状态标签 / Order status badge
             OrderStatusBadge(status: item.orderStatus)
         }
     }
-    
+
     private var itemContent: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(item.title)
                 .font(.subheadline)
                 .foregroundColor(.primary)
-            
+
             Text(item.subtitle)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
         }
     }
-    
+
     private var itemFooter: some View {
         HStack {
             // 金额 / Amount
             Text("¥\(String(format: "%.2f", item.amount))")
                 .font(.headline)
                 .foregroundColor(.blue)
-            
+
             Spacer()
-            
+
             // 时间 / Time
             Text(timeString)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var divider: some View {
         Rectangle()
             .fill(Color.gray.opacity(0.2))
             .frame(height: 0.5)
     }
-    
+
     private var timeString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM-dd HH:mm"
@@ -830,7 +830,7 @@ struct LoadMoreView: View {
     let hasMore: Bool
     var autoLoadMore: Bool = false  // 是否自动加载更多 / Whether to auto load more
     let onLoadMore: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 16) {
             content
@@ -839,7 +839,7 @@ struct LoadMoreView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
     }
-    
+
     @ViewBuilder
     private var content: some View {
         switch loadMoreState {
@@ -853,27 +853,27 @@ struct LoadMoreView: View {
                     loadMoreButton
                 }
             }
-            
+
         case .loading:
             loadingIndicator
-            
+
         case .noMore:
             noMoreText
-            
+
         case let .failed(errorInfo):
             failedView(errorInfo: errorInfo)
-            
+
         case .empty:
             EmptyView()  // 空数据时不显示任何内容 / Show nothing when empty
         }
     }
-    
+
     private var autoLoadingHint: some View {
         Text("上拉加载更多 / Pull up to load more")
             .font(.caption)
             .foregroundColor(.secondary)
     }
-    
+
     private var loadMoreButton: some View {
         Button(action: onLoadMore) {
             Text("加载更多 / Load More")
@@ -886,7 +886,7 @@ struct LoadMoreView: View {
                 )
         }
     }
-    
+
     private var loadingIndicator: some View {
         HStack(spacing: 8) {
             ProgressView()
@@ -896,13 +896,13 @@ struct LoadMoreView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var noMoreText: some View {
         Text("没有更多数据 / No more items")
             .font(.caption)
             .foregroundColor(.secondary)
     }
-    
+
     // 加载更多失败视图 / Load more failed view
     private func failedView(errorInfo: ReduxPageState<ListData<MockItem>>.ErrorInfo) -> some View {
         VStack(spacing: 12) {
@@ -911,23 +911,23 @@ struct LoadMoreView: View {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.title2)
                     .foregroundColor(.red)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("加载更多失败 / Failed to load more")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.red)
-                    
+
                     Text(errorInfo.message)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
-                
+
                 Spacer()
             }
-            
+
             // 重试按钮 / Retry button
             Button(action: onLoadMore) {
                 HStack {

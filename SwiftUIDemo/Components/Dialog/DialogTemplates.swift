@@ -35,14 +35,14 @@ import SwiftUI
 /// ```
 public struct AlertDialogTemplate {
     // MARK: - Alert Style / 警报样式
-    
+
     /// Alert style enumeration / 警报样式枚举
     public enum Style {
         case info      // Information alert / 信息警报
         case success   // Success alert / 成功警报
         case warning   // Warning alert / 警告警报
         case error     // Error alert / 错误警报
-        
+
         /// Get icon for style / 获取样式的图标
         var icon: Image {
             switch self {
@@ -56,7 +56,7 @@ public struct AlertDialogTemplate {
                 return Image(systemName: "xmark.circle.fill")
             }
         }
-        
+
         /// Get color for style / 获取样式的颜色
         var color: Color {
             switch self {
@@ -70,7 +70,7 @@ public struct AlertDialogTemplate {
                 return .red
             }
         }
-        
+
         /// Get priority for style / 获取样式的优先级
         var priority: DialogPriority {
             switch self {
@@ -85,14 +85,14 @@ public struct AlertDialogTemplate {
             }
         }
     }
-    
+
     // MARK: - Properties / 属性
-    
+
     /// Dialog configuration / 对话框配置
     public let configuration: DialogConfiguration
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     /// Initialize alert template / 初始化警报模板
     /// - Parameters:
     ///   - title: Alert title / 警报标题
@@ -113,7 +113,7 @@ public struct AlertDialogTemplate {
                 style.icon
                     .font(.system(size: 48))
                     .foregroundColor(style.color)
-                
+
                 if let message = message {
                     Text(message)
                         .font(.body)
@@ -123,7 +123,7 @@ public struct AlertDialogTemplate {
             }
             .padding()
         )
-        
+
         self.configuration = DialogConfiguration.Builder()
             .setTitle(title)
             .setContent(content)
@@ -155,12 +155,12 @@ public struct AlertDialogTemplate {
 /// ```
 public struct ConfirmationDialogTemplate {
     // MARK: - Properties / 属性
-    
+
     /// Dialog configuration / 对话框配置
     public let configuration: DialogConfiguration
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     /// Initialize confirmation template / 初始化确认模板
     /// - Parameters:
     ///   - title: Confirmation title / 确认标题
@@ -189,7 +189,7 @@ public struct ConfirmationDialogTemplate {
                     Image(systemName: isDestructive ? "exclamationmark.triangle.fill" : "questionmark.circle.fill")
                         .font(.system(size: 48))
                         .foregroundColor(isDestructive ? .red : .blue)
-                    
+
                     if let message = message {
                         Text(message)
                             .font(.body)
@@ -204,7 +204,7 @@ public struct ConfirmationDialogTemplate {
         } else {
             content = nil
         }
-        
+
         self.configuration = DialogConfiguration.Builder()
             .setTitle(title)
             .setContent(content)
@@ -241,12 +241,12 @@ public struct ConfirmationDialogTemplate {
 /// ```
 public struct InputDialogTemplate {
     // MARK: - Properties / 属性
-    
+
     /// Dialog configuration / 对话框配置
     public let configuration: DialogConfiguration
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     /// Initialize input template / 初始化输入模板
     /// - Parameters:
     ///   - title: Input title / 输入标题
@@ -275,7 +275,7 @@ public struct InputDialogTemplate {
             validation: validation,
             onSubmit: onSubmit
         )
-        
+
         let content = DialogContent.customView(
             VStack(spacing: 16) {
                 if let message = message {
@@ -284,12 +284,12 @@ public struct InputDialogTemplate {
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
                 }
-                
+
                 inputView
             }
             .padding()
         )
-        
+
         self.configuration = DialogConfiguration.Builder()
             .setTitle(title)
             .setContent(content)
@@ -309,18 +309,18 @@ public struct InputDialogTemplate {
 /// Custom input field view for input dialogs / 输入对话框的自定义输入字段视图
 fileprivate struct InputFieldView: View {
     // MARK: - Properties / 属性
-    
+
     let placeholder: String
     let isSecure: Bool
     let validation: ((String) -> Bool)?
     let onSubmit: (String) -> Void
-    
+
     @State private var text: String
     @State private var isValid: Bool = true
     @FocusState private var isFocused: Bool
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     init(
         placeholder: String,
         initialValue: String,
@@ -334,9 +334,9 @@ fileprivate struct InputFieldView: View {
         self.onSubmit = onSubmit
         self._text = State(initialValue: initialValue)
     }
-    
+
     // MARK: - Body / 主体
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Group {
@@ -354,7 +354,7 @@ fileprivate struct InputFieldView: View {
             .compatibleOnChange(of: text) { newValue in
                 validateInput(newValue)
             }
-            
+
             if !isValid {
                 Text("Invalid input")
                     .font(.caption)
@@ -365,9 +365,9 @@ fileprivate struct InputFieldView: View {
             isFocused = true
         }
     }
-    
+
     // MARK: - Methods / 方法
-    
+
     /// Validate input / 验证输入
     private func validateInput(_ input: String) {
         if let validation = validation {
@@ -376,7 +376,7 @@ fileprivate struct InputFieldView: View {
             isValid = true
         }
     }
-    
+
     /// Submit input / 提交输入
     func submit() {
         if isValid {
@@ -403,14 +403,14 @@ fileprivate struct InputFieldView: View {
 /// ```
 public struct OptionsDialogTemplate {
     // MARK: - Option / 选项
-    
+
     /// Dialog option / 对话框选项
     public struct Option {
         let title: String
         let icon: Image?
         let style: DialogButtonStyle
         let action: () -> Void
-        
+
         public init(
             title: String,
             icon: Image? = nil,
@@ -423,14 +423,14 @@ public struct OptionsDialogTemplate {
             self.action = action
         }
     }
-    
+
     // MARK: - Properties / 属性
-    
+
     /// Dialog configuration / 对话框配置
     public let configuration: DialogConfiguration
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     /// Initialize options template / 初始化选项模板
     /// - Parameters:
     ///   - title: Options title / 选项标题
@@ -453,11 +453,11 @@ public struct OptionsDialogTemplate {
                 DialogManager.shared.dismissCurrentDialog()
             }
         }
-        
+
         if showCancel {
             buttons.append(DialogButton.cancel())
         }
-        
+
         self.configuration = DialogConfiguration.Builder()
             .setTitle(title)
             .setSubtitle(message)

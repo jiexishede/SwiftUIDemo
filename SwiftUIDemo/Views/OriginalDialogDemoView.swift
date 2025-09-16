@@ -14,13 +14,13 @@ import UIKit
 
 /**
  * ORIGINAL DIALOG DEMO / 原始对话框演示
- * 
+ *
  * FEATURES / 功能:
  * 1. Dialog queue management / 对话框队列管理
  * 2. Priority-based display / 基于优先级的显示
  * 3. LIFO (defer) behavior / LIFO（defer）行为
  * 4. Various dialog types / 各种对话框类型
- * 
+ *
  * DESIGN PATTERNS USED / 使用的设计模式:
  * 1. MVVM Pattern (via TCA) (MVVM模式，通过TCA)
  *    - Why: Separates view logic from business logic / 为什么：将视图逻辑与业务逻辑分离
@@ -35,33 +35,33 @@ import UIKit
 
 public struct OriginalDialogDemoView: View {
     // MARK: - Properties / 属性
-    
+
     /// TCA store / TCA存储
     let store: StoreOf<OriginalDialogDemoFeature>
-    
+
     /// Grid columns / 网格列
     private let columns = [
         GridItem(.flexible()),
         GridItem(.flexible())
     ]
-    
+
     // MARK: - Body / 主体
-    
+
     public var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             ScrollView {
                 VStack(spacing: 24) {
                     // Header section / 头部部分
                     headerSection
-                    
+
                     // Dialog type grid / 对话框类型网格
                     dialogTypeGrid(viewStore: viewStore)
-                    
+
                     // Result section / 结果部分
                     if !viewStore.resultMessage.isEmpty {
                         resultSection(message: viewStore.resultMessage, viewStore: viewStore)
                     }
-                    
+
                     // Additional controls / 附加控件
                     additionalControls(viewStore: viewStore)
                 }
@@ -87,29 +87,29 @@ public struct OriginalDialogDemoView: View {
             .globalDialogPresenter()
         }
     }
-    
+
     // MARK: - Header Section / 头部部分
-    
+
     /// Header section view / 头部部分视图
     private var headerSection: some View {
         VStack(spacing: 12) {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 60))
                 .foregroundColor(.accentColor)
-            
+
             Text("原始对话框系统演示")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             Text("Original Dialog System Demo")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-            
+
             Text("展示队列管理、优先级和LIFO行为")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Text("Demonstrates queue management, priority and LIFO behavior")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -117,9 +117,9 @@ public struct OriginalDialogDemoView: View {
         }
         .padding(.vertical)
     }
-    
+
     // MARK: - Dialog Type Grid / 对话框类型网格
-    
+
     /// Dialog type grid view / 对话框类型网格视图
     private func dialogTypeGrid(viewStore: ViewStore<OriginalDialogDemoFeature.State, OriginalDialogDemoFeature.Action>) -> some View {
         LazyVGrid(columns: columns, spacing: 16) {
@@ -128,7 +128,7 @@ public struct OriginalDialogDemoView: View {
             }
         }
     }
-    
+
     /// Dialog type button / 对话框类型按钮
     private func dialogTypeButton(
         type: OriginalDialogDemoFeature.DialogType,
@@ -141,11 +141,11 @@ public struct OriginalDialogDemoView: View {
                 Image(systemName: type.icon)
                     .font(.system(size: 30))
                     .foregroundColor(.accentColor)
-                
+
                 Text(type.rawValue)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Text(type.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -163,9 +163,9 @@ public struct OriginalDialogDemoView: View {
         }
         .buttonStyle(ScaleButtonStyle())
     }
-    
+
     // MARK: - Result Section / 结果部分
-    
+
     /// Result section view / 结果部分视图
     private func resultSection(
         message: String,
@@ -175,12 +175,12 @@ public struct OriginalDialogDemoView: View {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
-                
+
                 Text("Result / 结果")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 Button(action: {
                     viewStore.send(.clearResult)
                 }) {
@@ -188,7 +188,7 @@ public struct OriginalDialogDemoView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Text(message)
                 .font(.body)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -199,9 +199,9 @@ public struct OriginalDialogDemoView: View {
                 .fill(Color.green.opacity(0.1))
         )
     }
-    
+
     // MARK: - Additional Controls / 附加控件
-    
+
     /// Additional controls section / 附加控件部分
     private func additionalControls(
         viewStore: ViewStore<OriginalDialogDemoFeature.State, OriginalDialogDemoFeature.Action>
@@ -219,7 +219,7 @@ public struct OriginalDialogDemoView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(viewStore.isLoading)
-            
+
             // Queue demo button / 队列演示按钮
             Button(action: {
                 viewStore.send(.showDialog(.queue))
@@ -231,46 +231,46 @@ public struct OriginalDialogDemoView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            
+
             // Defer demo button / Defer演示按钮
             Button(action: {
                 viewStore.send(.showDialog(.multipleDefer))
             }) {
                 Label(
-                    "LIFO (Defer) Demo / LIFO（Defer）演示", 
+                    "LIFO (Defer) Demo / LIFO（Defer）演示",
                     systemImage: "arrow.uturn.backward.circle"
                 )
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            
+
             // Queue statistics / 队列统计
             queueStatisticsView()
         }
     }
-    
+
     /// Queue statistics view / 队列统计视图
     private func queueStatisticsView() -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Queue Statistics / 队列统计")
                 .font(.headline)
-            
+
             HStack {
                 Label(
                     "Pending: \(DialogManager.shared.pendingDialogCount)",
                     systemImage: "rectangle.stack"
                 )
                 .font(.caption)
-                
+
                 Spacer()
-                
+
                 Label(
                     "Active: \(DialogManager.shared.isPresented ? "Yes" : "No")",
                     systemImage: "bubble.left"
                 )
                 .font(.caption)
             }
-            
+
             if DialogManager.shared.hasPendingDialogs {
                 Text("Dialogs are queued and will show in priority order / 对话框已排队，将按优先级顺序显示")
                     .font(.caption2)

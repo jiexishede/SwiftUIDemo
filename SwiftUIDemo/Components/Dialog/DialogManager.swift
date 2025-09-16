@@ -58,39 +58,39 @@ import Combine
 /// ```
 public final class DialogManager: ObservableObject {
     // MARK: - Singleton Instance / 单例实例
-    
+
     /// Shared singleton instance / 共享单例实例
     public static let shared = DialogManager()
-    
+
     // MARK: - Properties / 属性
-    
+
     /// Dialog queue / 对话框队列
     private let queue = DialogQueue()
-    
+
     /// Currently presented dialog / 当前展示的对话框
     @Published public private(set) var currentDialog: DialogConfiguration?
-    
+
     /// Is dialog currently presented / 对话框是否正在展示
     @Published public private(set) var isPresented: Bool = false
-    
+
     /// Cancellables for Combine subscriptions / Combine订阅的取消器
     private var cancellables = Set<AnyCancellable>()
-    
+
     /// Dialog presentation delay / 对话框展示延迟
     private let presentationDelay: TimeInterval = 0.3
-    
+
     /// Is processing queue / 是否正在处理队列
     private var isProcessingQueue = false
-    
+
     // MARK: - Initializer / 初始化器
-    
+
     /// Private initializer for singleton / 单例的私有初始化器
     private init() {
         setupBindings()
     }
-    
+
     // MARK: - Public Methods - Core / 公共方法 - 核心
-    
+
     /// Show dialog with configuration / 使用配置显示对话框
     /// - Parameters:
     ///   - configuration: Dialog configuration / 对话框配置
@@ -103,28 +103,28 @@ public final class DialogManager: ObservableObject {
             configuration: configuration,
             completion: completion
         )
-        
+
         // Add to queue / 添加到队列
         queue.enqueue(item)
-        
+
         // Process queue if not already processing / 如果尚未处理则处理队列
         if !isProcessingQueue {
             processQueue()
         }
     }
-    
+
     /// Dismiss current dialog / 关闭当前对话框
     public func dismissCurrentDialog() {
         withAnimation {
             isPresented = false
         }
-        
+
         // Process next dialog after delay / 延迟后处理下一个对话框
         DispatchQueue.main.asyncAfter(deadline: .now() + presentationDelay) { [weak self] in
             self?.processQueue()
         }
     }
-    
+
     /// Dismiss all dialogs / 关闭所有对话框
     public func dismissAll() {
         queue.clear()
@@ -134,9 +134,9 @@ public final class DialogManager: ObservableObject {
         }
         isProcessingQueue = false
     }
-    
+
     // MARK: - Public Methods - Special Priority / 公共方法 - 特殊优先级
-    
+
     /// Show dialog with defer priority (shown last) / 使用延迟优先级显示对话框（最后显示）
     /// - Parameters:
     ///   - configuration: Dialog configuration / 对话框配置
@@ -162,10 +162,10 @@ public final class DialogManager: ObservableObject {
             .setCornerRadius(configuration.cornerRadius)
             .setShadowRadius(configuration.shadowRadius)
             .setMaxContentHeight(configuration.maxContentHeight)
-        
+
         show(configuration: builder.build(), completion: completion)
     }
-    
+
     /// Show dialog with immediate priority (shown first) / 使用立即优先级显示对话框（首先显示）
     /// - Parameters:
     ///   - configuration: Dialog configuration / 对话框配置
@@ -191,12 +191,12 @@ public final class DialogManager: ObservableObject {
             .setCornerRadius(configuration.cornerRadius)
             .setShadowRadius(configuration.shadowRadius)
             .setMaxContentHeight(configuration.maxContentHeight)
-        
+
         show(configuration: builder.build(), completion: completion)
     }
-    
+
     // MARK: - Public Methods - Convenience / 公共方法 - 便利
-    
+
     /// Show alert dialog / 显示警报对话框
     /// - Parameters:
     ///   - title: Alert title / 警报标题
@@ -219,10 +219,10 @@ public final class DialogManager: ObservableObject {
             ))
             .setPriority(.normal)
             .build()
-        
+
         show(configuration: config)
     }
-    
+
     /// Show confirmation dialog / 显示确认对话框
     /// - Parameters:
     ///   - title: Dialog title / 对话框标题
@@ -258,10 +258,10 @@ public final class DialogManager: ObservableObject {
             })
             .setPriority(.normal)
             .build()
-        
+
         show(configuration: config)
     }
-    
+
     /// Show error dialog / 显示错误对话框
     /// - Parameters:
     ///   - title: Error title / 错误标题
@@ -283,10 +283,10 @@ public final class DialogManager: ObservableObject {
             .setPriority(.high)
             .setAnimationStyle(.spring)
             .build()
-        
+
         show(configuration: config)
     }
-    
+
     /// Show loading dialog / 显示加载对话框
     /// - Parameters:
     ///   - title: Loading title / 加载标题
@@ -310,11 +310,11 @@ public final class DialogManager: ObservableObject {
             .setDismissOnTapOutside(false)
             .setPriority(.high)
             .build()
-        
+
         show(configuration: config)
         return config.id
     }
-    
+
     /// Dismiss loading dialog / 关闭加载对话框
     /// - Parameter id: Dialog ID / 对话框ID
     public func dismissLoading(id: UUID) {
@@ -324,9 +324,9 @@ public final class DialogManager: ObservableObject {
             queue.remove(byId: id)
         }
     }
-    
+
     // MARK: - Public Methods - Custom Content / 公共方法 - 自定义内容
-    
+
     /// Show dialog with custom view / 显示带自定义视图的对话框
     /// - Parameters:
     ///   - title: Dialog title / 对话框标题
@@ -345,12 +345,12 @@ public final class DialogManager: ObservableObject {
             .setButtons(buttons)
             .setPriority(priority)
             .build()
-        
+
         show(configuration: config)
     }
-    
+
     // MARK: - Private Methods / 私有方法
-    
+
     /// Setup Combine bindings / 设置Combine绑定
     private func setupBindings() {
         // Monitor queue changes / 监控队列变化
@@ -362,32 +362,32 @@ public final class DialogManager: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     /// Process dialog queue / 处理对话框队列
     private func processQueue() {
         // Check if already presenting / 检查是否已经在展示
         guard !isPresented else {
             return
         }
-        
+
         // Get next dialog from queue / 从队列中获取下一个对话框
         guard let nextItem = queue.dequeue() else {
             isProcessingQueue = false
             return
         }
-        
+
         isProcessingQueue = true
-        
+
         // Present the dialog / 展示对话框
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            
+
             self.currentDialog = nextItem.configuration
-            
+
             withAnimation(nextItem.configuration.animationStyle.animation) {
                 self.isPresented = true
             }
-            
+
             // Execute completion if dialog has it / 如果对话框有完成处理器则执行
             if let completion = nextItem.completion {
                 // Store completion for when dialog is dismissed / 存储完成处理器以便对话框关闭时使用
@@ -395,12 +395,12 @@ public final class DialogManager: ObservableObject {
             }
         }
     }
-    
+
     /// Handle empty queue / 处理空队列
     private func handleEmptyQueue() {
         isProcessingQueue = false
     }
-    
+
     /// Setup dismissal handler for dialog / 为对话框设置关闭处理器
     /// - Parameters:
     ///   - id: Dialog ID / 对话框ID
@@ -417,21 +417,21 @@ public final class DialogManager: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     // MARK: - Queue Information / 队列信息
-    
+
     /// Get queue statistics / 获取队列统计
     /// - Returns: Queue statistics / 队列统计
     public func getQueueStatistics() -> DialogQueue.Statistics {
         return queue.getStatistics()
     }
-    
+
     /// Check if has pending dialogs / 检查是否有待处理的对话框
     /// - Returns: True if queue has dialogs / 如果队列有对话框返回true
     public var hasPendingDialogs: Bool {
         return !queue.isEmpty
     }
-    
+
     /// Get pending dialog count / 获取待处理对话框数量
     /// - Returns: Number of pending dialogs / 待处理对话框的数量
     public var pendingDialogCount: Int {
@@ -445,17 +445,17 @@ extension DialogManager {
     public struct State {
         /// Is presenting dialog / 是否正在展示对话框
         public let isPresenting: Bool
-        
+
         /// Current dialog configuration / 当前对话框配置
         public let currentDialog: DialogConfiguration?
-        
+
         /// Pending dialog count / 待处理对话框数量
         public let pendingCount: Int
-        
+
         /// Queue statistics / 队列统计
         public let queueStatistics: DialogQueue.Statistics
     }
-    
+
     /// Get current state / 获取当前状态
     /// - Returns: Current dialog manager state / 当前对话框管理器状态
     public var state: State {

@@ -16,7 +16,7 @@ public extension View {
     /**
      * Cross-version compatible onChange modifier
      * 跨版本兼容的 onChange 修饰符
-     * 
+     *
      * This wrapper handles the deprecation warning for iOS 17+
      * 此包装器处理 iOS 17+ 的弃用警告
      */
@@ -58,7 +58,7 @@ public extension View {
 /// struct ContentView: View {
 ///     @State private var showDialog = false
 ///     @State private var dialogConfig: DialogConfiguration?
-///     
+///
 ///     var body: some View {
 ///         VStack {
 ///             Button("Show Dialog") {
@@ -75,21 +75,21 @@ public extension View {
 /// ```
 public struct DialogPresentationModifier: ViewModifier {
     // MARK: - Properties / 属性
-    
+
     /// Binding to presentation state / 绑定到展示状态
     @Binding var isPresented: Bool
-    
+
     /// Dialog configuration / 对话框配置
     let configuration: DialogConfiguration?
-    
+
     /// Dialog manager / 对话框管理器
     let dialogManager: DialogManager
-    
+
     /// On dismiss handler / 关闭处理器
     let onDismiss: (() -> Void)?
-    
+
     // MARK: - Body / 主体
-    
+
     public func body(content: Content) -> some View {
         content
             .overlay {
@@ -127,12 +127,12 @@ public struct DialogPresentationModifier: ViewModifier {
 /// ```
 public struct GlobalDialogModifier: ViewModifier {
     // MARK: - Properties / 属性
-    
+
     /// Dialog manager / 对话框管理器
     @ObservedObject private var dialogManager = DialogManager.shared
-    
+
     // MARK: - Body / 主体
-    
+
     public func body(content: Content) -> some View {
         content
             .overlay {
@@ -160,7 +160,7 @@ public struct GlobalDialogModifier: ViewModifier {
 /// ```swift
 /// struct ContentView: View {
 ///     @State private var isLoading = false
-///     
+///
 ///     var body: some View {
 ///         VStack {
 ///             Button("Load Data") {
@@ -177,24 +177,24 @@ public struct GlobalDialogModifier: ViewModifier {
 /// ```
 public struct LoadingDialogModifier: ViewModifier {
     // MARK: - Properties / 属性
-    
+
     /// Binding to loading state / 绑定到加载状态
     @Binding var isPresented: Bool
-    
+
     /// Loading title / 加载标题
     let title: String
-    
+
     /// Loading message / 加载消息
     let message: String?
-    
+
     /// Can dismiss / 是否可以关闭
     let canDismiss: Bool
-    
+
     /// Loading dialog ID / 加载对话框ID
     @State private var loadingDialogId: UUID?
-    
+
     // MARK: - Body / 主体
-    
+
     public func body(content: Content) -> some View {
         content
             .compatibleOnChange(of: isPresented) { newValue in
@@ -220,7 +220,7 @@ public struct LoadingDialogModifier: ViewModifier {
 /// ```swift
 /// struct ContentView: View {
 ///     @State private var errorMessage: String?
-///     
+///
 ///     var body: some View {
 ///         VStack {
 ///             Button("Trigger Error") {
@@ -233,18 +233,18 @@ public struct LoadingDialogModifier: ViewModifier {
 /// ```
 public struct ErrorDialogModifier: ViewModifier {
     // MARK: - Properties / 属性
-    
+
     /// Binding to error message / 绑定到错误消息
     @Binding var errorMessage: String?
-    
+
     /// Error title / 错误标题
     let title: String
-    
+
     /// On dismiss handler / 关闭处理器
     let onDismiss: (() -> Void)?
-    
+
     // MARK: - Body / 主体
-    
+
     public func body(content: Content) -> some View {
         content
             .compatibleOnChange(of: errorMessage) { newErrorMessage in
@@ -254,7 +254,7 @@ public struct ErrorDialogModifier: ViewModifier {
                         let message: String
                         var errorDescription: String? { message }
                     }
-                    
+
                     DialogManager.shared.showError(
                         title: title,
                         error: DisplayError(message: message),
@@ -273,7 +273,7 @@ public struct ErrorDialogModifier: ViewModifier {
 public struct DeferredDialogModifier: ViewModifier {
     let configuration: DialogConfiguration?
     @Binding var isPresented: Bool
-    
+
     public func body(content: Content) -> some View {
         content
             .compatibleOnChange(of: isPresented) { newValue in
@@ -290,7 +290,7 @@ public struct DeferredDialogModifier: ViewModifier {
 public struct ImmediateDialogModifier: ViewModifier {
     let configuration: DialogConfiguration?
     @Binding var isPresented: Bool
-    
+
     public func body(content: Content) -> some View {
         content
             .compatibleOnChange(of: isPresented) { newValue in
@@ -324,13 +324,13 @@ extension View {
             onDismiss: onDismiss
         ))
     }
-    
+
     /// Enable global dialog presentation / 启用全局对话框展示
     /// - Returns: Modified view / 修改后的视图
     public func globalDialogPresenter() -> some View {
         modifier(GlobalDialogModifier())
     }
-    
+
     /// Show loading dialog / 显示加载对话框
     /// - Parameters:
     ///   - isPresented: Binding to loading state / 绑定到加载状态
@@ -351,7 +351,7 @@ extension View {
             canDismiss: canDismiss
         ))
     }
-    
+
     /// Show error dialog / 显示错误对话框
     /// - Parameters:
     ///   - errorMessage: Binding to error message / 绑定到错误消息
@@ -369,7 +369,7 @@ extension View {
             onDismiss: onDismiss
         ))
     }
-    
+
     /// Show deferred dialog (like Swift defer, shown last) / 显示延迟对话框（像Swift defer，最后显示）
     /// - Parameters:
     ///   - isPresented: Binding to presentation state / 绑定到展示状态
@@ -384,7 +384,7 @@ extension View {
             isPresented: isPresented
         ))
     }
-    
+
     /// Show immediate dialog (shown first) / 显示立即对话框（首先显示）
     /// - Parameters:
     ///   - isPresented: Binding to presentation state / 绑定到展示状态

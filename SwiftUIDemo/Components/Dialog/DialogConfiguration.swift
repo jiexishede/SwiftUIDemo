@@ -31,7 +31,7 @@ public enum DialogPriority: Int, Comparable {
     case high = 2      // High priority, important notifications / 高优先级，重要通知
     case critical = 3  // Critical priority, errors or urgent alerts / 关键优先级，错误或紧急警报
     case immediate = 99 // Immediate priority, shown first / 立即优先级，首先显示
-    
+
     public static func < (lhs: DialogPriority, rhs: DialogPriority) -> Bool {
         return lhs.rawValue < rhs.rawValue
     }
@@ -53,60 +53,60 @@ public enum DialogPriority: Int, Comparable {
 /// ```
 public struct DialogConfiguration {
     // MARK: - Properties / 属性
-    
+
     /// Dialog title / 对话框标题
     public let title: String
-    
+
     /// Optional subtitle / 可选副标题
     public let subtitle: String?
-    
+
     /// Content text or custom view / 内容文本或自定义视图
     public let content: DialogContent?
-    
+
     /// Array of buttons (1-5 buttons) / 按钮数组（1-5个按钮）
     public let buttons: [DialogButton]
-    
+
     /// Priority for queue management / 队列管理的优先级
     public let priority: DialogPriority
-    
+
     /// Animation style / 动画样式
     public let animationStyle: DialogAnimationStyle
-    
+
     /// Show close button / 显示关闭按钮
     public let showCloseButton: Bool
-    
+
     /// Can dismiss by tapping outside / 点击外部是否可以关闭
     public let dismissOnTapOutside: Bool
-    
+
     /// Can dismiss by dragging / 拖动是否可以关闭
     public let dismissOnDrag: Bool
-    
+
     /// Keyboard adaptive behavior / 键盘自适应行为
     public let isKeyboardAdaptive: Bool
-    
+
     /// Custom background color / 自定义背景颜色
     public let backgroundColor: Color?
-    
+
     /// Custom foreground color / 自定义前景颜色
     public let foregroundColor: Color?
-    
+
     /// Corner radius / 圆角半径
     public let cornerRadius: CGFloat
-    
+
     /// Shadow radius / 阴影半径
     public let shadowRadius: CGFloat
-    
+
     /// Maximum content height / 最大内容高度
     public let maxContentHeight: CGFloat?
-    
+
     /// Unique identifier / 唯一标识符
     public let id: UUID
-    
+
     /// Creation timestamp / 创建时间戳
     public let timestamp: Date
-    
+
     // MARK: - Builder Pattern Implementation / 建造者模式实现
-    
+
     /// Builder class for constructing DialogConfiguration / 用于构建DialogConfiguration的建造者类
     ///
     /// This builder provides a fluent interface for creating dialog configurations
@@ -128,12 +128,12 @@ public struct DialogConfiguration {
         private var cornerRadius: CGFloat = 16
         private var shadowRadius: CGFloat = 10
         private var maxContentHeight: CGFloat?
-        
+
         /// Initialize a new builder / 初始化一个新的建造者
         public init() {}
-        
+
         // MARK: - Builder Methods / 建造者方法
-        
+
         /// Set the dialog title / 设置对话框标题
         /// - Parameter title: The title text / 标题文本
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -142,7 +142,7 @@ public struct DialogConfiguration {
             self.title = title
             return self
         }
-        
+
         /// Set the dialog subtitle / 设置对话框副标题
         /// - Parameter subtitle: The subtitle text / 副标题文本
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -151,7 +151,7 @@ public struct DialogConfiguration {
             self.subtitle = subtitle
             return self
         }
-        
+
         /// Set the dialog content / 设置对话框内容
         /// - Parameter content: The content / 内容
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -160,7 +160,7 @@ public struct DialogConfiguration {
             self.content = content
             return self
         }
-        
+
         /// Set text content / 设置文本内容
         /// - Parameter text: The text content / 文本内容
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -169,7 +169,7 @@ public struct DialogConfiguration {
             self.content = .text(text)
             return self
         }
-        
+
         /// Add a button to the dialog / 向对话框添加按钮
         /// - Parameter button: The button to add / 要添加的按钮
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -182,7 +182,7 @@ public struct DialogConfiguration {
             self.buttons.append(button)
             return self
         }
-        
+
         /// Set all buttons at once / 一次设置所有按钮
         /// - Parameter buttons: Array of buttons / 按钮数组
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -196,7 +196,7 @@ public struct DialogConfiguration {
             self.buttons = buttons
             return self
         }
-        
+
         /// Set the dialog priority / 设置对话框优先级
         /// - Parameter priority: The priority level / 优先级级别
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -205,7 +205,7 @@ public struct DialogConfiguration {
             self.priority = priority
             return self
         }
-        
+
         /// Set the animation style / 设置动画样式
         /// - Parameter style: The animation style / 动画样式
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -214,7 +214,7 @@ public struct DialogConfiguration {
             self.animationStyle = style
             return self
         }
-        
+
         /// Set whether to show close button / 设置是否显示关闭按钮
         /// - Parameter show: Show close button / 显示关闭按钮
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -223,7 +223,7 @@ public struct DialogConfiguration {
             self.showCloseButton = show
             return self
         }
-        
+
         /// Set whether to dismiss on tap outside / 设置是否点击外部关闭
         /// - Parameter dismiss: Dismiss on tap outside / 点击外部关闭
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -232,7 +232,7 @@ public struct DialogConfiguration {
             self.dismissOnTapOutside = dismiss
             return self
         }
-        
+
         /// Set whether to dismiss on drag / 设置是否拖动关闭
         /// - Parameter dismiss: Dismiss on drag / 拖动关闭
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -241,7 +241,7 @@ public struct DialogConfiguration {
             self.dismissOnDrag = dismiss
             return self
         }
-        
+
         /// Set keyboard adaptive behavior / 设置键盘自适应行为
         /// - Parameter adaptive: Is keyboard adaptive / 是否键盘自适应
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -250,7 +250,7 @@ public struct DialogConfiguration {
             self.isKeyboardAdaptive = adaptive
             return self
         }
-        
+
         /// Set background color / 设置背景颜色
         /// - Parameter color: Background color / 背景颜色
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -259,7 +259,7 @@ public struct DialogConfiguration {
             self.backgroundColor = color
             return self
         }
-        
+
         /// Set foreground color / 设置前景颜色
         /// - Parameter color: Foreground color / 前景颜色
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -268,7 +268,7 @@ public struct DialogConfiguration {
             self.foregroundColor = color
             return self
         }
-        
+
         /// Set corner radius / 设置圆角半径
         /// - Parameter radius: Corner radius / 圆角半径
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -277,7 +277,7 @@ public struct DialogConfiguration {
             self.cornerRadius = radius
             return self
         }
-        
+
         /// Set shadow radius / 设置阴影半径
         /// - Parameter radius: Shadow radius / 阴影半径
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -286,7 +286,7 @@ public struct DialogConfiguration {
             self.shadowRadius = radius
             return self
         }
-        
+
         /// Set maximum content height / 设置最大内容高度
         /// - Parameter height: Maximum height / 最大高度
         /// - Returns: Builder instance for chaining / 返回建造者实例以供链式调用
@@ -295,7 +295,7 @@ public struct DialogConfiguration {
             self.maxContentHeight = height
             return self
         }
-        
+
         /// Build the final DialogConfiguration / 构建最终的DialogConfiguration
         /// - Returns: Configured DialogConfiguration instance / 配置好的DialogConfiguration实例
         public func build() -> DialogConfiguration {
@@ -304,7 +304,7 @@ public struct DialogConfiguration {
                 print("Warning: Adding default OK button as no buttons and no close button / 警告：添加默认OK按钮，因为没有按钮也没有关闭按钮")
                 buttons.append(DialogButton(title: "OK", style: .default, action: {}))
             }
-            
+
             return DialogConfiguration(
                 title: title,
                 subtitle: subtitle,
@@ -333,10 +333,10 @@ public struct DialogConfiguration {
 public enum DialogContent {
     /// Plain text content / 纯文本内容
     case text(String)
-    
+
     /// Custom SwiftUI view / 自定义SwiftUI视图
     case custom(AnyView)
-    
+
     /// Convenience initializer for custom views / 自定义视图的便利初始化器
     /// - Parameter view: The custom view / 自定义视图
     public static func customView<V: View>(_ view: V) -> DialogContent {

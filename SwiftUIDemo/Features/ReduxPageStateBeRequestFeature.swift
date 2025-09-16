@@ -15,21 +15,21 @@ struct ReduxPageStateBeRequestFeature {
         var pageState: SimplePageState = .normal
         var items: [String] = []
         var selectedRequestType: RequestType = .success
-        
+
         enum RequestType: String, CaseIterable {
             case success = "Success"
             case failure = "Failure"
             case empty = "Empty"
         }
     }
-    
+
     enum SimplePageState: Equatable {
         case normal
         case loading
         case success
         case failure(String)
         case empty
-        
+
         var isLoading: Bool {
             if case .loading = self {
                 return true
@@ -37,27 +37,27 @@ struct ReduxPageStateBeRequestFeature {
             return false
         }
     }
-    
+
     enum Action {
         case fetchDataButtonTapped
         case dataResponse(Result<[String], Error>)
         case requestTypeChanged(State.RequestType)
         case resetButtonTapped
     }
-    
+
     // 移除 @Dependency 以支持 iOS 15 / Remove @Dependency for iOS 15 support
-    
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .fetchDataButtonTapped:
                 state.pageState = .loading
                 state.items = []
-                
+
                 return .run { [requestType = state.selectedRequestType] send in
                     // 使用 Task.sleep 替代 clock.sleep 以支持 iOS 15 / Use Task.sleep instead of clock.sleep for iOS 15 support
                     try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-                    
+
                     switch requestType {
                     case .success:
                         let mockData = ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5"]
@@ -69,7 +69,7 @@ struct ReduxPageStateBeRequestFeature {
                         await send(.dataResponse(.success([])))
                     }
                 }
-                
+
             case let .dataResponse(result):
                 switch result {
                 case let .success(items):
@@ -85,13 +85,13 @@ struct ReduxPageStateBeRequestFeature {
                     state.items = []
                 }
                 return .none
-                
+
             case let .requestTypeChanged(type):
                 state.selectedRequestType = type
                 state.pageState = .normal
                 state.items = []
                 return .none
-                
+
             case .resetButtonTapped:
                 state.pageState = .normal
                 state.items = []

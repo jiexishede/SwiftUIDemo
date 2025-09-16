@@ -11,7 +11,7 @@ import SwiftUI
 /**
  * REUSABLE UI COMPONENTS LIBRARY
  * 可复用 UI 组件库
- * 
+ *
  * DESIGN PRINCIPLES / 设计原则:
  * 1. Single Responsibility - Each component does one thing well / 单一职责 - 每个组件只做好一件事
  * 2. Composability - Components can be combined / 可组合性 - 组件可以组合使用
@@ -25,7 +25,7 @@ import SwiftUI
 
 /**
  * Reusable header text component / 可复用的标题文本组件
- * 
+ *
  * USAGE / 使用:
  * ```
  * HeaderText(title: "Title", subtitle: "Subtitle")
@@ -36,10 +36,10 @@ struct HeaderText: View {
     let title: String
     let subtitle: String?
     let style: HeaderStyle
-    
+
     enum HeaderStyle {
         case small, medium, large
-        
+
         var titleFont: Font {
             switch self {
             case .small: return .headline
@@ -47,7 +47,7 @@ struct HeaderText: View {
             case .large: return .title
             }
         }
-        
+
         var subtitleFont: Font {
             switch self {
             case .small: return .caption
@@ -55,7 +55,7 @@ struct HeaderText: View {
             case .large: return .headline
             }
         }
-        
+
         var spacing: CGFloat {
             switch self {
             case .small: return 4
@@ -64,19 +64,19 @@ struct HeaderText: View {
             }
         }
     }
-    
+
     init(title: String, subtitle: String? = nil, style: HeaderStyle = .medium) {
         self.title = title
         self.subtitle = subtitle
         self.style = style
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: style.spacing) {
             Text(title)
                 .font(style.titleFont)
                 .foregroundColor(.primary)
-            
+
             if let subtitle = subtitle {
                 Text(subtitle)
                     .font(style.subtitleFont)
@@ -92,13 +92,13 @@ struct HeaderText: View {
 struct FooterText: View {
     let primary: String
     let secondary: String?
-    
+
     var body: some View {
         VStack(spacing: 4) {
             Text(primary)
                 .font(.caption)
                 .foregroundColor(.primary)
-            
+
             if let secondary = secondary {
                 Text(secondary)
                     .font(.caption2)
@@ -115,7 +115,7 @@ struct FooterText: View {
 
 /**
  * Configurable action button / 可配置的操作按钮
- * 
+ *
  * USAGE / 使用:
  * ```
  * ActionButton("Save", style: .primary) { save() }
@@ -130,10 +130,10 @@ struct ActionButton: View {
     let isLoading: Bool
     let isDisabled: Bool
     let action: () -> Void
-    
+
     enum ButtonStyle {
         case primary, secondary, destructive, ghost
-        
+
         var backgroundColor: Color {
             switch self {
             case .primary: return .accentColor
@@ -142,7 +142,7 @@ struct ActionButton: View {
             case .ghost: return .clear
             }
         }
-        
+
         var foregroundColor: Color {
             switch self {
             case .primary: return .white
@@ -152,7 +152,7 @@ struct ActionButton: View {
             }
         }
     }
-    
+
     init(
         _ title: String,
         icon: String? = nil,
@@ -168,7 +168,7 @@ struct ActionButton: View {
         self.isDisabled = isDisabled
         self.action = action
     }
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -179,7 +179,7 @@ struct ActionButton: View {
                 } else if let icon = icon {
                     Image(systemName: icon)
                 }
-                
+
                 Text(title)
                     .fontWeight(.medium)
             }
@@ -207,7 +207,7 @@ struct CardContainer<Content: View>: View {
     let backgroundColor: Color
     let cornerRadius: CGFloat
     let shadowRadius: CGFloat
-    
+
     init(
         padding: CGFloat = 16,
         backgroundColor: Color = Color(.systemBackground),
@@ -221,7 +221,7 @@ struct CardContainer<Content: View>: View {
         self.cornerRadius = cornerRadius
         self.shadowRadius = shadowRadius
     }
-    
+
     var body: some View {
         content
             .padding(padding)
@@ -244,7 +244,7 @@ struct ListItemView: View {
     let iconColor: Color
     let accessory: AccessoryType
     let action: (() -> Void)?
-    
+
     enum AccessoryType {
         case none
         case chevron
@@ -252,7 +252,7 @@ struct ListItemView: View {
         case toggle(Binding<Bool>)
         case text(String)
     }
-    
+
     init(
         title: String,
         subtitle: String? = nil,
@@ -268,7 +268,7 @@ struct ListItemView: View {
         self.accessory = accessory
         self.action = action
     }
-    
+
     var body: some View {
         Button(action: { action?() }) {
             HStack(spacing: 12) {
@@ -279,13 +279,13 @@ struct ListItemView: View {
                         .foregroundColor(iconColor)
                         .frame(width: 32)
                 }
-                
+
                 // Text content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.headline)
                         .foregroundColor(.primary)
-                    
+
                     if let subtitle = subtitle {
                         Text(subtitle)
                             .font(.caption)
@@ -293,9 +293,9 @@ struct ListItemView: View {
                             .lineLimit(2)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Accessory
                 accessoryView
             }
@@ -304,7 +304,7 @@ struct ListItemView: View {
         .buttonStyle(PlainButtonStyle())
         .disabled(action == nil && !isToggle)
     }
-    
+
     @ViewBuilder
     private var accessoryView: some View {
         switch accessory {
@@ -327,7 +327,7 @@ struct ListItemView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var isToggle: Bool {
         if case .toggle = accessory {
             return true
@@ -345,10 +345,10 @@ struct ListItemView: View {
 struct LoadingView: View {
     let message: String?
     let style: LoadingStyle
-    
+
     enum LoadingStyle {
         case small, medium, large
-        
+
         var scale: CGFloat {
             switch self {
             case .small: return 0.8
@@ -357,18 +357,18 @@ struct LoadingView: View {
             }
         }
     }
-    
+
     init(message: String? = nil, style: LoadingStyle = .medium) {
         self.message = message
         self.style = style
     }
-    
+
     var body: some View {
         VStack(spacing: 12) {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
                 .scaleEffect(style.scale)
-            
+
             if let message = message {
                 Text(message)
                     .font(.caption)
@@ -388,18 +388,18 @@ struct EmptyStateView: View {
     let message: String?
     let actionTitle: String?
     let action: (() -> Void)?
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: icon)
                 .font(.system(size: 50))
                 .foregroundColor(.secondary)
-            
+
             VStack(spacing: 8) {
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 if let message = message {
                     Text(message)
                         .font(.caption)
@@ -407,7 +407,7 @@ struct EmptyStateView: View {
                         .multilineTextAlignment(.center)
                 }
             }
-            
+
             if let actionTitle = actionTitle, let action = action {
                 ActionButton(actionTitle, style: .primary, action: action)
             }
@@ -428,7 +428,7 @@ struct CardStyleModifier: ViewModifier {
     let cornerRadius: CGFloat
     let shadowRadius: CGFloat
     let padding: CGFloat
-    
+
     init(
         backgroundColor: Color = Color(.systemBackground),
         cornerRadius: CGFloat = 12,
@@ -440,7 +440,7 @@ struct CardStyleModifier: ViewModifier {
         self.shadowRadius = shadowRadius
         self.padding = padding
     }
-    
+
     func body(content: Content) -> some View {
         content
             .padding(padding)
@@ -456,13 +456,13 @@ struct CardStyleModifier: ViewModifier {
 struct LoadingOverlayModifier: ViewModifier {
     @Binding var isLoading: Bool
     let message: String?
-    
+
     func body(content: Content) -> some View {
         ZStack {
             content
                 .disabled(isLoading)
                 .blur(radius: isLoading ? 2 : 0)
-            
+
             if isLoading {
                 LoadingView(message: message)
                     .background(Color.black.opacity(0.3))
@@ -480,21 +480,21 @@ struct LoadingOverlayModifier: ViewModifier {
 struct ErrorStateModifier: ViewModifier {
     @Binding var error: String?
     let retry: (() -> Void)?
-    
+
     func body(content: Content) -> some View {
         ZStack {
             content
-            
+
             if let error = error {
                 VStack(spacing: 16) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.largeTitle)
                         .foregroundColor(.red)
-                    
+
                     Text(error)
                         .font(.headline)
                         .multilineTextAlignment(.center)
-                    
+
                     if let retry = retry {
                         ActionButton("Retry", style: .primary, action: retry)
                     }
@@ -527,21 +527,21 @@ extension View {
             padding: padding
         ))
     }
-    
+
     /**
      * Add loading overlay / 添加加载遮罩
      */
     func loadingOverlay(isLoading: Binding<Bool>, message: String? = nil) -> some View {
         modifier(LoadingOverlayModifier(isLoading: isLoading, message: message))
     }
-    
+
     /**
      * Add error state / 添加错误状态
      */
     func errorState(error: Binding<String?>, retry: (() -> Void)? = nil) -> some View {
         modifier(ErrorStateModifier(error: error, retry: retry))
     }
-    
+
     /**
      * Conditional modifier / 条件修饰符
      */
@@ -553,14 +553,14 @@ extension View {
             self
         }
     }
-    
+
     /**
      * Hide conditionally / 条件隐藏
      */
     func hidden(_ shouldHide: Bool) -> some View {
         opacity(shouldHide ? 0 : 1)
     }
-    
+
     /**
      * Disabled with opacity / 带透明度的禁用
      */
@@ -580,7 +580,7 @@ extension View {
 struct ShakeModifier: ViewModifier {
     let shakes: CGFloat
     let amplitude: CGFloat
-    
+
     func body(content: Content) -> some View {
         content
             .offset(x: sin(shakes * .pi * 2) * amplitude)
@@ -609,9 +609,9 @@ struct AdaptiveStack<Content: View>: View {
     let spacing: CGFloat?
     let threshold: CGFloat
     let content: Content
-    
+
     @Environment(\.horizontalSizeClass) var sizeClass
-    
+
     init(
         horizontalAlignment: HorizontalAlignment = .center,
         verticalAlignment: VerticalAlignment = .center,
@@ -625,7 +625,7 @@ struct AdaptiveStack<Content: View>: View {
         self.threshold = threshold
         self.content = content()
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             if geometry.size.width > threshold {
@@ -652,7 +652,7 @@ struct ComponentsExampleView: View {
     @State private var isLoading = false
     @State private var error: String? = nil
     @State private var toggleValue = false
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -662,7 +662,7 @@ struct ComponentsExampleView: View {
                     subtitle: "Reusable UI Components",
                     style: .large
                 )
-                
+
                 // Card with list items / 带列表项的卡片
                 CardContainer {
                     VStack(spacing: 0) {
@@ -674,9 +674,9 @@ struct ComponentsExampleView: View {
                         ) {
                             print("Settings tapped")
                         }
-                        
+
                         Divider()
-                        
+
                         ListItemView(
                             title: "Notifications",
                             subtitle: "Enable push notifications",
@@ -685,13 +685,13 @@ struct ComponentsExampleView: View {
                         )
                     }
                 }
-                
+
                 // Action buttons / 操作按钮
                 HStack(spacing: 12) {
                     ActionButton("Cancel", style: .secondary) {
                         print("Cancel")
                     }
-                    
+
                     ActionButton("Save", icon: "checkmark", style: .primary, isLoading: isLoading) {
                         isLoading = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -700,7 +700,7 @@ struct ComponentsExampleView: View {
                     }
                 }
                 .padding(.horizontal)
-                
+
                 // Empty state / 空状态
                 EmptyStateView(
                     icon: "doc.text",
@@ -711,7 +711,7 @@ struct ComponentsExampleView: View {
                     print("Create document")
                 }
                 .cardStyle()
-                
+
                 // Footer / 页脚
                 FooterText(
                     primary: "Highly Reusable Components",

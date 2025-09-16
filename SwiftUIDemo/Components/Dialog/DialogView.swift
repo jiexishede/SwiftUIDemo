@@ -37,28 +37,28 @@ import UIKit
 /// ```
 public struct DialogView: View {
     // MARK: - Properties / 属性
-    
+
     /// Dialog configuration / 对话框配置
     let configuration: DialogConfiguration
-    
+
     /// Binding to presentation state / 绑定到展示状态
     @Binding var isPresented: Bool
-    
+
     /// Dialog manager instance / 对话框管理器实例
     let dialogManager: DialogManager
-    
+
     /// Environment values / 环境值
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    
+
     /// State / 状态
     @State private var contentSize: CGSize = .zero
     @State private var keyboardHeight: CGFloat = 0
     @State private var shakeAnimation: Bool = false
-    
+
     // MARK: - Computed Properties / 计算属性
-    
+
     /// Background color based on color scheme / 基于配色方案的背景颜色
     private var backgroundColor: Color {
         #if canImport(UIKit)
@@ -67,17 +67,17 @@ public struct DialogView: View {
         configuration.backgroundColor ?? (colorScheme == .dark ? Color.gray : .white)
         #endif
     }
-    
+
     /// Foreground color based on color scheme / 基于配色方案的前景颜色
     private var foregroundColor: Color {
         configuration.foregroundColor ?? (colorScheme == .dark ? .white : .black)
     }
-    
+
     /// Determine button layout / 确定按钮布局
     private var buttonLayout: DialogButtonLayout {
         DialogButtonLayout.automatic.actualLayout(for: configuration.buttons.count)
     }
-    
+
     /// Calculate dialog width / 计算对话框宽度
     private var dialogWidth: CGFloat {
         // Adapt to size class / 适应尺寸类别
@@ -91,9 +91,9 @@ public struct DialogView: View {
         return 400
         #endif
     }
-    
+
     // MARK: - Body / 主体
-    
+
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -105,7 +105,7 @@ public struct DialogView: View {
                             dismissDialog()
                         }
                 }
-                
+
                 // Dialog content / 对话框内容
                 VStack(spacing: 0) {
                     dialogContent
@@ -140,26 +140,26 @@ public struct DialogView: View {
             unsubscribeFromKeyboardEvents()
         }
     }
-    
+
     // MARK: - Dialog Content / 对话框内容
-    
+
     /// Main dialog content view / 主要对话框内容视图
     private var dialogContent: some View {
         VStack(spacing: 16) {
             // Header section / 头部部分
             headerSection
-            
+
             // Content section / 内容部分
             if let content = configuration.content {
                 contentSection(content: content)
             }
-            
+
             // Buttons section / 按钮部分
             buttonsSection
         }
         .padding(20)
     }
-    
+
     /// Header section with title and subtitle / 带标题和副标题的头部部分
     private var headerSection: some View {
         VStack(spacing: 8) {
@@ -168,7 +168,7 @@ public struct DialogView: View {
                 .font(.headline)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
-            
+
             // Subtitle / 副标题
             if let subtitle = configuration.subtitle {
                 Text(subtitle)
@@ -178,7 +178,7 @@ public struct DialogView: View {
             }
         }
     }
-    
+
     /// Content section / 内容部分
     /// - Parameter content: Dialog content / 对话框内容
     /// - Returns: Content view / 内容视图
@@ -193,7 +193,7 @@ public struct DialogView: View {
                             .font(.body)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
-                        
+
                     case .custom(let view):
                         view
                     }
@@ -212,7 +212,7 @@ public struct DialogView: View {
             contentSize = size
         }
     }
-    
+
     /// Buttons section / 按钮部分
     private var buttonsSection: some View {
         Group {
@@ -224,7 +224,7 @@ public struct DialogView: View {
             }
         }
     }
-    
+
     /// Horizontal button layout / 水平按钮布局
     private var horizontalButtons: some View {
         HStack(spacing: 12) {
@@ -234,7 +234,7 @@ public struct DialogView: View {
             }
         }
     }
-    
+
     /// Vertical button layout / 垂直按钮布局
     private var verticalButtons: some View {
         VStack(spacing: 10) {
@@ -244,7 +244,7 @@ public struct DialogView: View {
             }
         }
     }
-    
+
     /// Create button view / 创建按钮视图
     /// - Parameter button: Button configuration / 按钮配置
     /// - Returns: Button view / 按钮视图
@@ -257,7 +257,7 @@ public struct DialogView: View {
                     icon
                         .font(.system(size: 16))
                 }
-                
+
                 if button.isLoading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
@@ -277,7 +277,7 @@ public struct DialogView: View {
         .disabled(!button.isEnabled || button.isLoading)
         .opacity(button.isEnabled ? 1.0 : 0.6)
     }
-    
+
     /// Close button overlay / 关闭按钮覆盖层
     @ViewBuilder
     private var closeButtonOverlay: some View {
@@ -292,15 +292,15 @@ public struct DialogView: View {
             .contentShape(Rectangle().size(width: 44, height: 44))
         }
     }
-    
+
     // MARK: - Methods / 方法
-    
+
     /// Handle button tap / 处理按钮点击
     /// - Parameter button: Tapped button / 点击的按钮
     private func handleButtonTap(_ button: DialogButton) {
         // Execute button action / 执行按钮动作
         button.execute(with: dialogManager)
-        
+
         // Auto-dismiss for certain button styles / 某些按钮样式的自动关闭
         switch button.style {
         case .cancel:
@@ -309,14 +309,14 @@ public struct DialogView: View {
             break
         }
     }
-    
+
     /// Dismiss the dialog / 关闭对话框
     private func dismissDialog() {
         withAnimation(configuration.animationStyle.animation) {
             isPresented = false
         }
     }
-    
+
     /// Subscribe to keyboard events / 订阅键盘事件
     private func subscribeToKeyboardEvents() {
         #if canImport(UIKit)
@@ -331,7 +331,7 @@ public struct DialogView: View {
                 }
             }
         }
-        
+
         NotificationCenter.default.addObserver(
             forName: UIResponder.keyboardWillHideNotification,
             object: nil,
@@ -343,7 +343,7 @@ public struct DialogView: View {
         }
         #endif
     }
-    
+
     /// Unsubscribe from keyboard events / 取消订阅键盘事件
     private func unsubscribeFromKeyboardEvents() {
         #if canImport(UIKit)
@@ -365,7 +365,7 @@ public struct DialogView: View {
 /// Preference key for content size / 内容大小的偏好键
 private struct ContentSizePreferenceKey: PreferenceKey {
     static var defaultValue: CGSize = .zero
-    
+
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
         value = nextValue()
     }

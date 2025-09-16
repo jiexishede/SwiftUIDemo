@@ -9,9 +9,9 @@ import SwiftUI
  * 而不是试图通过复杂的手势处理来重新发明轮子。这种方法遵循了 Linus Torvalds 的"好品味"原则：
  * 消除特殊情况，让代码变得简单而优雅。
  *
- * This file demonstrates the correct implementation of nested scroll views in SwiftUI. The core philosophy 
- * is to trust iOS system's native capabilities rather than trying to reinvent the wheel through complex 
- * gesture handling. This approach follows Linus Torvalds' "good taste" principle: eliminate special cases 
+ * This file demonstrates the correct implementation of nested scroll views in SwiftUI. The core philosophy
+ * is to trust iOS system's native capabilities rather than trying to reinvent the wheel through complex
+ * gesture handling. This approach follows Linus Torvalds' "good taste" principle: eliminate special cases
  * and make the code simple and elegant.
  *
  * 技术实现详解：
@@ -84,7 +84,7 @@ struct CleanScrollContainer<Content: View>: View {
     let content: Content
     let axis: Axis.Set
     let showsIndicators: Bool
-    
+
     init(
         axis: Axis.Set = .vertical,
         showsIndicators: Bool = true,
@@ -94,7 +94,7 @@ struct CleanScrollContainer<Content: View>: View {
         self.showsIndicators = showsIndicators
         self.content = content()
     }
-    
+
     var body: some View {
         ScrollView(axis, showsIndicators: showsIndicators) {
             content
@@ -120,11 +120,11 @@ struct CleanScrollContainer<Content: View>: View {
  */
 struct CleanNestedScrollView<Content: View>: View {
     let content: Content
-    
+
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
-    
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: true) {
             LazyVStack(spacing: 20) {
@@ -151,7 +151,7 @@ struct CleanNestedScrollView<Content: View>: View {
 struct HorizontalSection<Content: View>: View {
     let title: String?
     let content: Content
-    
+
     init(
         title: String? = nil,
         @ViewBuilder content: () -> Content
@@ -159,14 +159,14 @@ struct HorizontalSection<Content: View>: View {
         self.title = title
         self.content = content()
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let title = title {
                 Text(title)
                     .sectionHeader()
             }
-            
+
             ScrollView(.horizontal, showsIndicators: true) {
                 content
             }
@@ -234,13 +234,13 @@ struct CleanScrollDemoView: View {
                 .padding(.horizontal)
             }
             .frame(height: 200)
-            
+
             // 垂直内容部分
             // Vertical content section
             VStack(alignment: .leading, spacing: 8) {
                 Text("Articles / 文章")
                     .sectionHeader()
-                
+
                 ForEach(0..<5) { index in
                     CleanRowView(
                         title: "Article \(index + 1)",
@@ -248,7 +248,7 @@ struct CleanScrollDemoView: View {
                     )
                 }
             }
-            
+
             // 另一个横向部分
             // Another horizontal section
             HorizontalSection(title: "Popular / 热门") {
@@ -285,7 +285,7 @@ struct CleanScrollDemoView: View {
 struct CleanCardView: View {
     let title: String
     let color: Color
-    
+
     var body: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(color.gradient)
@@ -320,13 +320,13 @@ struct CleanCardView: View {
 struct CleanRowView: View {
     let title: String
     let subtitle: String
-    
+
     var body: some View {
         HStack {
             Circle()
                 .fill(Color.blue.opacity(0.2))
                 .frame(width: 44, height: 44)
-            
+
             VStack(alignment: .leading) {
                 Text(title)
                     .font(.headline)
@@ -334,9 +334,9 @@ struct CleanRowView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             Image(systemName: "chevron.right")
                 .foregroundColor(.secondary)
         }
@@ -364,11 +364,11 @@ struct CleanRowView: View {
  */
 struct AdaptiveScrollView<Content: View>: View {
     let content: Content
-    
+
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
-    
+
     var body: some View {
         if #available(iOS 16.0, *) {
             // iOS 16+ 的现代实现
@@ -380,7 +380,7 @@ struct AdaptiveScrollView<Content: View>: View {
             legacyImplementation
         }
     }
-    
+
     @available(iOS 16.0, *)
     private var modernImplementation: some View {
         ScrollView {
@@ -389,7 +389,7 @@ struct AdaptiveScrollView<Content: View>: View {
         }
         .scrollTargetBehavior(.viewAligned)
     }
-    
+
     private var legacyImplementation: some View {
         ScrollView {
             content

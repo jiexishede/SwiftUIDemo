@@ -8,18 +8,18 @@
 
 /**
  * DialogDemoView - 弹窗演示视图
- * 
+ *
  * FEATURES / 功能:
  * 1. Multiple debounce strategies / 多种防连点策略
  * 2. Adaptive bottom sheets / 自适应底部弹窗
  * 3. Different content types / 不同的内容类型
  * 4. Various dialog styles / 各种弹窗样式
- * 
+ *
  * DESIGN PATTERNS / 设计模式:
  * 1. Strategy Pattern for debounce / 防连点的策略模式
  * 2. Factory Pattern for content creation / 内容创建的工厂模式
  * 3. Composite Pattern for complex UI / 复杂 UI 的组合模式
- * 
+ *
  * USAGE / 使用:
  * ```
  * DialogDemoView(
@@ -37,17 +37,17 @@ import ComposableArchitecture
 
 struct DialogDemoView: View {
     let store: StoreOf<DialogDemoFeature>
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             ScrollView {
                 VStack(spacing: 20) {
                     // Header / 头部
                     headerSection
-                    
+
                     // List items with debounced buttons / 带防连点按钮的列表项
                     listSection(viewStore: viewStore)
-                    
+
                     // Additional dialog demos / 额外的弹窗演示
                     additionalDialogsSection(viewStore: viewStore)
                 }
@@ -59,28 +59,28 @@ struct DialogDemoView: View {
             .bottomSheets(viewStore: viewStore)
         }
     }
-    
+
     // MARK: - Header Section / 头部部分
-    
+
     private var headerSection: some View {
         VStack(spacing: 12) {
             Image(systemName: "rectangle.bottomthird.inset.filled")
                 .font(.system(size: 60))
                 .foregroundColor(.accentColor)
-            
+
             Text("防连点按钮与底部弹窗")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             Text("Debounced Buttons & Bottom Sheets")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-            
+
             Text("点击按钮查看不同的防连点策略和弹窗样式")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Text("Tap buttons to see different debounce strategies and sheet styles")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -88,13 +88,13 @@ struct DialogDemoView: View {
         }
         .padding(.vertical)
     }
-    
+
     // MARK: - List Section / 列表部分
-    
+
     private func listSection(viewStore: ViewStore<DialogDemoFeature.State, DialogDemoFeature.Action>) -> some View {
         VStack(spacing: 16) {
             sectionTitle("列表项演示 / List Items Demo")
-            
+
             // Scrollable list with many items / 可滚动的列表，包含多个项目
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(spacing: 12) {
@@ -109,7 +109,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.minimal))
                     }
-                    
+
                     // Item 2: Small table / 小表格
                     listItem(
                         title: "小型列表 / Small List",
@@ -121,7 +121,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.smallTable))
                     }
-                    
+
                     // Item 3: Medium table / 中等表格
                     listItem(
                         title: "表格数据 / Table Data",
@@ -133,7 +133,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.tableView))
                     }
-                    
+
                     // Item 4: Large list / 大列表
                     listItem(
                         title: "大型列表 / Large List",
@@ -145,7 +145,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.largeList))
                     }
-                    
+
                     // Item 5: Form View / 表单视图
                     listItem(
                         title: "表单输入 / Form Input",
@@ -157,7 +157,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.formView))
                     }
-                    
+
                     // Item 6: Chart View / 图表视图
                     listItem(
                         title: "数据图表 / Data Chart",
@@ -169,7 +169,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.chartView))
                     }
-                    
+
                     // Item 7: Media Gallery / 媒体画廊
                     listItem(
                         title: "媒体画廊 / Media Gallery",
@@ -181,7 +181,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.mediaGallery))
                     }
-                    
+
                     // Item 8: Settings panel / 设置面板
                     listItem(
                         title: "设置面板 / Settings",
@@ -193,7 +193,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.settings))
                     }
-                    
+
                     // Item 9: User profile / 用户资料
                     listItem(
                         title: "用户资料 / User Profile",
@@ -205,7 +205,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.userProfile))
                     }
-                    
+
                     // Item 10: Long content / 长内容
                     listItem(
                         title: "长文本内容 / Long Text",
@@ -217,7 +217,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.longContent))
                     }
-                    
+
                     // Item 11: Expandable Content / 可展开内容
                     listItem(
                         title: "可展开内容 / Expandable",
@@ -229,7 +229,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.expandableContent))
                     }
-                    
+
                     // Item 12: Dynamic Form / 动态表单
                     listItem(
                         title: "动态表单 / Dynamic Form",
@@ -241,7 +241,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.dynamicForm))
                     }
-                    
+
                     // Item 13: Async Loading / 异步加载
                     listItem(
                         title: "异步加载 / Async Loading",
@@ -253,7 +253,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.asyncLoading))
                     }
-                    
+
                     // Item 14: Nested Scrolls / 嵌套滚动
                     listItem(
                         title: "嵌套滚动 / Nested Scrolls",
@@ -265,7 +265,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.nestedScrolls))
                     }
-                    
+
                     // Item 15: Mixed Content / 混合内容
                     listItem(
                         title: "混合内容 / Mixed Content",
@@ -277,7 +277,7 @@ struct DialogDemoView: View {
                     ) {
                         viewStore.send(.showBottomSheet(.mixedContent))
                     }
-                    
+
                     // Item 16: Dynamic Cards / 动态卡片
                     listItem(
                         title: "动态卡片 / Dynamic Cards",
@@ -294,9 +294,9 @@ struct DialogDemoView: View {
             .frame(maxHeight: 400) // Limit the scroll view height / 限制滚动视图高度
         }
     }
-    
+
     // MARK: - List Item Component / 列表项组件
-    
+
     private func listItem(
         title: String,
         subtitle: String,
@@ -314,20 +314,20 @@ struct DialogDemoView: View {
                 .frame(width: 50, height: 50)
                 .background(color)
                 .cornerRadius(10)
-            
+
             // Text content / 文本内容
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.primary)
-                
+
                 Text(subtitle)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             // Debounced button / 防连点按钮
             Button(action: {}) {
                 Text("打开 / Open")
@@ -353,13 +353,13 @@ struct DialogDemoView: View {
                 .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
         )
     }
-    
+
     // MARK: - Additional Dialogs Section / 额外弹窗部分
-    
+
     private func additionalDialogsSection(viewStore: ViewStore<DialogDemoFeature.State, DialogDemoFeature.Action>) -> some View {
         VStack(spacing: 16) {
             sectionTitle("其他弹窗类型 / Other Dialog Types")
-            
+
             // Alert dialog / 警告弹窗
             dialogButton(
                 title: "警告弹窗 / Alert",
@@ -368,7 +368,7 @@ struct DialogDemoView: View {
             ) {
                 viewStore.send(.showDialog(.alert))
             }
-            
+
             // Action sheet / 操作表
             dialogButton(
                 title: "操作表 / Action Sheet",
@@ -377,7 +377,7 @@ struct DialogDemoView: View {
             ) {
                 viewStore.send(.showDialog(.actionSheet))
             }
-            
+
             // Full screen modal / 全屏模态
             dialogButton(
                 title: "全屏模态 / Full Screen",
@@ -386,7 +386,7 @@ struct DialogDemoView: View {
             ) {
                 viewStore.send(.showDialog(.fullScreen))
             }
-            
+
             // Custom popup / 自定义弹出
             dialogButton(
                 title: "自定义弹出 / Custom Popup",
@@ -397,9 +397,9 @@ struct DialogDemoView: View {
             }
         }
     }
-    
+
     // MARK: - Dialog Button Component / 弹窗按钮组件
-    
+
     private func dialogButton(
         title: String,
         icon: String,
@@ -410,12 +410,12 @@ struct DialogDemoView: View {
             HStack {
                 Image(systemName: icon)
                     .font(.title3)
-                
+
                 Text(title)
                     .fontWeight(.medium)
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -428,9 +428,9 @@ struct DialogDemoView: View {
             )
         }
     }
-    
+
     // MARK: - Section Title / 部分标题
-    
+
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
             .font(.headline)
@@ -620,10 +620,10 @@ struct MinimalSheetContent: View {
             Image(systemName: "bolt.fill")
                 .font(.largeTitle)
                 .foregroundColor(.yellow)
-            
+
             Text("快速操作 / Quick Action")
                 .font(.headline)
-            
+
             Button("完成 / Done") {
                 // Action
             }
@@ -639,14 +639,14 @@ struct MinimalSheetContent: View {
  */
 struct SmallTableSheetContent: View {
     let items = ["Apple", "Banana", "Orange"]
-    
+
     var body: some View {
         VStack(spacing: 12) {
             headerText(
                 title: "小型列表 / Small List",
                 subtitle: "只有3个项目 / Only 3 items"
             )
-            
+
             VStack(spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                     HStack {
@@ -657,7 +657,7 @@ struct SmallTableSheetContent: View {
                             .foregroundColor(.secondary)
                     }
                     .padding()
-                    
+
                     if index < items.count - 1 {
                         Divider()
                     }
@@ -666,7 +666,7 @@ struct SmallTableSheetContent: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(10)
             .padding(.horizontal)
-            
+
             footerText(
                 primary: "最小高度演示 / Minimal height demo",
                 secondary: "自动适应内容 / Auto-fit content"
@@ -691,14 +691,14 @@ struct LargeListSheetContent: View {
         "Dragon Fruit", "Lychee", "Passion Fruit", "Star Fruit", "Jackfruit",
         "Durian", "Rambutan", "Mangosteen", "Persimmon", "Kumquat"
     ]
-    
+
     var body: some View {
         VStack(spacing: 12) {
             headerText(
                 title: "大型列表 / Large List",
                 subtitle: "40个项目，展示85%屏幕高度 / 40 items, shows up to 85% screen"
             )
-            
+
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.offset) { index, item in
@@ -706,18 +706,18 @@ struct LargeListSheetContent: View {
                             Image(systemName: "star.fill")
                                 .font(.caption)
                                 .foregroundColor(.orange)
-                            
+
                             Text(item)
                                 .font(.body)
-                            
+
                             Spacer()
-                            
+
                             Text("#\(index + 1)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         .padding()
-                        
+
                         if index < items.count - 1 {
                             Divider()
                         }
@@ -729,7 +729,7 @@ struct LargeListSheetContent: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(10)
             .padding(.horizontal)
-            
+
             footerText(
                 primary: "内容可滚动 / Content scrollable",
                 secondary: "高度自动限制 / Height auto-limited"
@@ -748,14 +748,14 @@ struct SettingsSheetContent: View {
     @State private var darkMode = false
     @State private var autoSave = true
     @State private var syncData = false
-    
+
     var body: some View {
         VStack(spacing: 16) {
             headerText(
                 title: "设置 / Settings",
                 subtitle: "应用偏好设置 / App preferences"
             )
-            
+
             VStack(spacing: 0) {
                 Toggle("通知 / Notifications", isOn: $notifications)
                     .padding()
@@ -772,12 +772,12 @@ struct SettingsSheetContent: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(10)
             .padding(.horizontal)
-            
+
             Button("保存设置 / Save Settings") {
                 // Save action
             }
             .buttonStyle(.borderedProminent)
-            
+
             footerText(
                 primary: "设置立即生效 / Settings apply immediately",
                 secondary: "可随时更改 / Can be changed anytime"
@@ -798,15 +798,15 @@ struct UserProfileSheetContent: View {
             Image(systemName: "person.circle.fill")
                 .font(.system(size: 80))
                 .foregroundColor(.pink)
-            
+
             Text("John Doe")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             Text("john.doe@example.com")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-            
+
             // Stats / 统计
             HStack(spacing: 40) {
                 VStack {
@@ -817,7 +817,7 @@ struct UserProfileSheetContent: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack {
                     Text("1.2K")
                         .font(.title2)
@@ -826,7 +826,7 @@ struct UserProfileSheetContent: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack {
                     Text("89")
                         .font(.title2)
@@ -836,20 +836,20 @@ struct UserProfileSheetContent: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             // Actions / 操作
             HStack(spacing: 16) {
                 Button("编辑 / Edit") {
                     // Edit action
                 }
                 .buttonStyle(.bordered)
-                
+
                 Button("分享 / Share") {
                     // Share action
                 }
                 .buttonStyle(.borderedProminent)
             }
-            
+
             footerText(
                 primary: "加入时间：2024年1月 / Joined: Jan 2024",
                 secondary: "最后活跃：今天 / Last active: Today"
@@ -867,33 +867,33 @@ struct LongContentSheetContent: View {
     let longText = """
     这是一段很长的文本内容，用于演示底部弹窗如何处理超长内容。
     This is a long text content to demonstrate how bottom sheet handles very long content.
-    
+
     当内容超过屏幕高度时，弹窗会自动限制高度并提供滚动功能。
     When content exceeds screen height, the sheet automatically limits height and provides scrolling.
-    
+
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-    
+
     这种设计确保了用户体验的一致性，无论内容多长都能正常显示。
     This design ensures consistent user experience regardless of content length.
-    
+
     Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-    
+
     底部弹窗会根据内容自动调整高度，但不会超过屏幕的90%。
     The bottom sheet automatically adjusts height based on content, but won't exceed 90% of screen.
-    
+
     更多内容...
     More content...
-    
+
     Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
     """
-    
+
     var body: some View {
         VStack(spacing: 16) {
             headerText(
                 title: "长文本内容 / Long Text Content",
                 subtitle: "可滚动查看全部 / Scroll to view all"
             )
-            
+
             ScrollView {
                 Text(longText)
                     .font(.body)
@@ -902,7 +902,7 @@ struct LongContentSheetContent: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(10)
             .padding(.horizontal)
-            
+
             footerText(
                 primary: "共 \(longText.count) 字符 / \(longText.count) characters",
                 secondary: "上下滑动查看更多 / Swipe to see more"
@@ -918,7 +918,7 @@ struct LongContentSheetContent: View {
  */
 struct TableViewSheetContent: View {
     let items = ["Apple", "Banana", "Orange", "Grape", "Watermelon", "Strawberry", "Pineapple", "Mango"]
-    
+
     var body: some View {
         VStack(spacing: 12) {
             // Top text / 顶部文字
@@ -926,7 +926,7 @@ struct TableViewSheetContent: View {
                 title: "表格数据展示 / Table Data Display",
                 subtitle: "这是一个自动计算高度的表格视图 / Auto-height table view"
             )
-            
+
             // Table content / 表格内容
             VStack(spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.offset) { index, item in
@@ -934,12 +934,12 @@ struct TableViewSheetContent: View {
                         Image(systemName: "circle.fill")
                             .font(.caption)
                             .foregroundColor(.accentColor)
-                        
+
                         Text(item)
                             .font(.body)
-                        
+
                         Spacer()
-                        
+
                         Text("$\(Int.random(in: 1...100))")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -947,7 +947,7 @@ struct TableViewSheetContent: View {
                     .padding(.horizontal)
                     .padding(.vertical, 12)
                     .background(Color(.systemBackground))
-                    
+
                     if index < items.count - 1 {
                         Divider()
                             .padding(.leading)
@@ -957,7 +957,7 @@ struct TableViewSheetContent: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(10)
             .padding(.horizontal)
-            
+
             // Bottom text / 底部文字
             footerText(
                 primary: "数据更新时间：刚刚 / Updated: Just now",
@@ -978,7 +978,7 @@ struct FormViewSheetContent: View {
     @State private var email = ""
     @State private var message = ""
     @State private var agreeToTerms = false
-    
+
     var body: some View {
         VStack(spacing: 16) {
             // Top text / 顶部文字
@@ -986,7 +986,7 @@ struct FormViewSheetContent: View {
                 title: "用户反馈表单 / User Feedback Form",
                 subtitle: "请填写以下信息 / Please fill in the information"
             )
-            
+
             // Form content / 表单内容
             VStack(spacing: 16) {
                 // Name field / 姓名字段
@@ -997,7 +997,7 @@ struct FormViewSheetContent: View {
                     TextField("请输入姓名 / Enter name", text: $name)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
-                
+
                 // Email field / 邮箱字段
                 VStack(alignment: .leading, spacing: 4) {
                     Text("邮箱 / Email")
@@ -1007,7 +1007,7 @@ struct FormViewSheetContent: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.emailAddress)
                 }
-                
+
                 // Message field / 留言字段
                 VStack(alignment: .leading, spacing: 4) {
                     Text("留言 / Message")
@@ -1021,13 +1021,13 @@ struct FormViewSheetContent: View {
                                 .stroke(Color(.systemGray4), lineWidth: 1)
                         )
                 }
-                
+
                 // Terms toggle / 条款开关
                 Toggle(isOn: $agreeToTerms) {
                     Text("同意条款 / Agree to terms")
                         .font(.caption)
                 }
-                
+
                 // Submit button / 提交按钮
                 Button(action: {}) {
                     Text("提交 / Submit")
@@ -1037,7 +1037,7 @@ struct FormViewSheetContent: View {
                 .disabled(!agreeToTerms)
             }
             .padding(.horizontal)
-            
+
             // Bottom text / 底部文字
             footerText(
                 primary: "我们会在24小时内回复 / We'll reply within 24 hours",
@@ -1055,7 +1055,7 @@ struct FormViewSheetContent: View {
 struct ChartViewSheetContent: View {
     let data = [45, 78, 23, 90, 56, 34, 67]
     let labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    
+
     var body: some View {
         VStack(spacing: 16) {
             // Top text / 顶部文字
@@ -1063,7 +1063,7 @@ struct ChartViewSheetContent: View {
                 title: "数据分析图表 / Data Analytics Chart",
                 subtitle: "本周销售数据概览 / Weekly sales overview"
             )
-            
+
             // Chart content / 图表内容
             VStack(spacing: 20) {
                 // Bar chart / 条形图
@@ -1073,11 +1073,11 @@ struct ChartViewSheetContent: View {
                             Text("\(data[index])")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            
+
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color.accentColor)
                                 .frame(width: 40, height: CGFloat(data[index]) * 2)
-                            
+
                             Text(labels[index])
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -1087,7 +1087,7 @@ struct ChartViewSheetContent: View {
                 .padding()
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(10)
-                
+
                 // Statistics / 统计数据
                 HStack(spacing: 20) {
                     statisticItem(title: "总计 / Total", value: "\(data.reduce(0, +))")
@@ -1096,9 +1096,9 @@ struct ChartViewSheetContent: View {
                 }
             }
             .padding(.horizontal)
-            
+
             Spacer()
-            
+
             // Bottom text / 底部文字
             footerText(
                 primary: "数据每日更新 / Data updates daily",
@@ -1107,7 +1107,7 @@ struct ChartViewSheetContent: View {
         }
         .padding(.vertical)
     }
-    
+
     private func statisticItem(title: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(value)
@@ -1130,7 +1130,7 @@ struct ChartViewSheetContent: View {
  */
 struct MediaGallerySheetContent: View {
     let colors: [Color] = [.red, .blue, .green, .orange, .purple, .pink]
-    
+
     var body: some View {
         VStack(spacing: 16) {
             // Top text / 顶部文字
@@ -1138,7 +1138,7 @@ struct MediaGallerySheetContent: View {
                 title: "媒体画廊 / Media Gallery",
                 subtitle: "浏览您的照片和视频 / Browse your photos and videos"
             )
-            
+
             // Gallery content / 画廊内容
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
@@ -1160,7 +1160,7 @@ struct MediaGallerySheetContent: View {
                 }
                 .padding(.horizontal)
             }
-            
+
             // Bottom text / 底部文字
             footerText(
                 primary: "共 6 张照片 / 6 photos total",
@@ -1178,7 +1178,7 @@ private func headerText(title: String, subtitle: String) -> some View {
         Text(title)
             .font(.headline)
             .foregroundColor(.primary)
-        
+
         Text(subtitle)
             .font(.subheadline)
             .foregroundColor(.secondary)
@@ -1191,7 +1191,7 @@ private func footerText(primary: String, secondary: String) -> some View {
         Text(primary)
             .font(.caption)
             .foregroundColor(.primary)
-        
+
         Text(secondary)
             .font(.caption2)
             .foregroundColor(.secondary)
@@ -1207,14 +1207,14 @@ private func footerText(primary: String, secondary: String) -> some View {
 struct ExpandableContentSheet: View {
     @State private var isExpanded = false
     @State private var expandedSections: Set<Int> = []
-    
+
     var body: some View {
         VStack(spacing: 16) {
             headerText(
                 title: "可展开内容 / Expandable Content",
                 subtitle: "点击项目展开详情 / Tap items to expand"
             )
-            
+
             VStack(spacing: 12) {
                 ForEach(0..<4, id: \.self) { index in
                     VStack(alignment: .leading, spacing: 8) {
@@ -1236,7 +1236,7 @@ struct ExpandableContentSheet: View {
                             }
                         }
                         .buttonStyle(PlainButtonStyle())
-                        
+
                         if expandedSections.contains(index) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("这是展开的内容 / This is expanded content")
@@ -1259,7 +1259,7 @@ struct ExpandableContentSheet: View {
                 }
             }
             .padding(.horizontal)
-            
+
             footerText(
                 primary: "高度自动调整 / Height auto-adjusts",
                 secondary: "根据展开状态变化 / Based on expansion state"
@@ -1272,7 +1272,7 @@ struct ExpandableContentSheet: View {
 /**
  * Dynamic Form Sheet / 动态表单弹窗
  * Form with add/remove fields / 可增减字段的表单
- * 
+ *
  * KEYBOARD HANDLING / 键盘处理:
  * - Sheet automatically moves up when keyboard appears / 键盘出现时弹窗自动上移
  * - Content remains visible above keyboard / 内容保持在键盘上方可见
@@ -1282,14 +1282,14 @@ struct DynamicFormSheet: View {
     @State private var fields: [String] = ["字段 1 / Field 1", "字段 2 / Field 2"]
     @State private var textValues: [String: String] = [:]
     @FocusState private var focusedField: String?
-    
+
     var body: some View {
         VStack(spacing: 16) {
             headerText(
                 title: "动态表单 / Dynamic Form",
                 subtitle: "添加或删除字段 / Add or remove fields"
             )
-            
+
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(Array(fields.enumerated()), id: \.offset) { index, field in
@@ -1315,7 +1315,7 @@ struct DynamicFormSheet: View {
                                             )
                                     }
                                 )
-                            
+
                             Button(action: {
                                 withAnimation {
                                     fields.remove(at: index)
@@ -1330,7 +1330,7 @@ struct DynamicFormSheet: View {
                             }
                         }
                     }
-                    
+
                     Button(action: {
                         withAnimation {
                             let newField = "字段 \(fields.count + 1) / Field \(fields.count + 1)"
@@ -1348,12 +1348,12 @@ struct DynamicFormSheet: View {
             }
             .frame(maxHeight: 300)
             .padding(.horizontal)
-            
+
             // Submit button with keyboard dismiss / 带键盘收起的提交按钮
             Button(action: {
                 // Dismiss keyboard first / 先收起键盘
                 focusedField = nil
-                
+
                 // Then submit / 然后提交
                 print("表单提交 / Form submitted")
                 print("字段数量 / Field count: \(fields.count)")
@@ -1366,14 +1366,14 @@ struct DynamicFormSheet: View {
             }
             .buttonStyle(.borderedProminent)
             .padding(.horizontal)
-            
+
             // Tip about keyboard / 键盘提示
             Text("💡 点击输入框查看键盘避让效果 / Tap input to see keyboard avoidance")
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             footerText(
                 primary: "键盘出现时自动上移 / Auto-moves when keyboard appears",
                 secondary: "保持内容可见 / Keeps content visible"
@@ -1381,7 +1381,7 @@ struct DynamicFormSheet: View {
         }
         .padding(.vertical)
     }
-    
+
     private func binding(for field: String) -> Binding<String> {
         Binding(
             get: { textValues[field] ?? "" },
@@ -1397,20 +1397,20 @@ struct DynamicFormSheet: View {
 struct AsyncLoadingSheet: View {
     @State private var isLoading = true
     @State private var loadedItems: [String] = []
-    
+
     var body: some View {
         VStack(spacing: 16) {
             headerText(
                 title: "异步加载 / Async Loading",
                 subtitle: "内容加载后更新高度 / Height updates after loading"
             )
-            
+
             if isLoading {
                 VStack(spacing: 12) {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
                         .scaleEffect(1.5)
-                    
+
                     Text("加载中... / Loading...")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -1443,7 +1443,7 @@ struct AsyncLoadingSheet: View {
                             Spacer()
                         }
                         .padding()
-                        
+
                         if index < loadedItems.count - 1 {
                             Divider()
                         }
@@ -1452,13 +1452,13 @@ struct AsyncLoadingSheet: View {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(10)
                 .padding(.horizontal)
-                
+
                 Button(action: {
                     withAnimation {
                         isLoading = true
                         loadedItems = []
                     }
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         withAnimation {
                             loadedItems = [
@@ -1483,7 +1483,7 @@ struct AsyncLoadingSheet: View {
                 .buttonStyle(.bordered)
                 .disabled(isLoading)
             }
-            
+
             footerText(
                 primary: "加载完成后高度变化 / Height changes after load",
                 secondary: "展示异步内容处理 / Shows async content handling"
@@ -1504,7 +1504,7 @@ struct NestedScrollsSheet: View {
                 title: "嵌套滚动 / Nested Scrolls",
                 subtitle: "多层滚动视图 / Multiple scroll layers"
             )
-            
+
             // Vertical tabs / 垂直标签
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -1523,7 +1523,7 @@ struct NestedScrollsSheet: View {
                 .padding(.horizontal)
             }
             .frame(height: 100)
-            
+
             // Nested vertical scroll / 嵌套垂直滚动
             ScrollView {
                 VStack(spacing: 16) {
@@ -1532,7 +1532,7 @@ struct NestedScrollsSheet: View {
                             Text("部分 \(section + 1) / Section \(section + 1)")
                                 .font(.headline)
                                 .padding(.horizontal)
-                            
+
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 10) {
                                     ForEach(0..<5, id: \.self) { item in
@@ -1552,7 +1552,7 @@ struct NestedScrollsSheet: View {
                 }
             }
             .frame(maxHeight: 200)
-            
+
             footerText(
                 primary: "复杂滚动布局 / Complex scroll layout",
                 secondary: "水平和垂直滚动组合 / Horizontal and vertical scrolls"
@@ -1572,7 +1572,7 @@ struct MixedContentSheet: View {
     @State private var selectedSegment = 0
     @State private var showAlert = false
     @State private var alertMessage = ""
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -1580,7 +1580,7 @@ struct MixedContentSheet: View {
                     title: "混合内容 / Mixed Content",
                     subtitle: "图文表单组合 / Images, text & forms"
                 )
-                
+
                 // Image section / 图片部分
                 HStack(spacing: 12) {
                     ForEach(0..<3, id: \.self) { _ in
@@ -1598,7 +1598,7 @@ struct MixedContentSheet: View {
                             )
                     }
                 }
-                
+
                 // Segmented control / 分段控制
                 Picker("Options", selection: $selectedSegment) {
                     Text("选项 1").tag(0)
@@ -1607,7 +1607,7 @@ struct MixedContentSheet: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.horizontal)
-                
+
                 // Form controls / 表单控件
                 VStack(spacing: 16) {
                     HStack {
@@ -1618,14 +1618,14 @@ struct MixedContentSheet: View {
                     }
                     Slider(value: $sliderValue, in: 0...100)
                         .accentColor(.blue)
-                    
+
                     Toggle("开关选项 / Toggle Option", isOn: $toggleValue)
                 }
                 .padding()
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(10)
                 .padding(.horizontal)
-                
+
                 // Text section / 文本部分
                 VStack(alignment: .leading, spacing: 8) {
                     Text("描述文本 / Description")
@@ -1642,7 +1642,7 @@ struct MixedContentSheet: View {
                 .background(Color(.tertiarySystemBackground))
                 .cornerRadius(10)
                 .padding(.horizontal)
-                
+
                 // Action buttons / 操作按钮
                 HStack(spacing: 12) {
                     Button(action: {
@@ -1657,7 +1657,7 @@ struct MixedContentSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    
+
                     Button(action: {
                         // Save action / 保存操作
                         alertMessage = "设置已保存 / Settings saved\n滑块: \(Int(sliderValue))%\n开关: \(toggleValue ? "开" : "关")\n选项: \(selectedSegment + 1)"
@@ -1669,7 +1669,7 @@ struct MixedContentSheet: View {
                     .buttonStyle(.borderedProminent)
                 }
                 .padding(.horizontal)
-                
+
                 footerText(
                     primary: "复杂布局示例 / Complex layout example",
                     secondary: "自动适应内容高度 / Auto-adapts to content height"
@@ -1698,10 +1698,10 @@ struct DynamicCardsSheet: View {
         var isExpanded: Bool = false
         var priority: Priority
         var tags: [String]
-        
+
         enum Priority: Equatable {
             case low, medium, high, urgent
-            
+
             var color: Color {
                 switch self {
                 case .low: return .gray
@@ -1710,7 +1710,7 @@ struct DynamicCardsSheet: View {
                 case .urgent: return .red
                 }
             }
-            
+
             var icon: String {
                 switch self {
                 case .low: return "flag"
@@ -1721,7 +1721,7 @@ struct DynamicCardsSheet: View {
             }
         }
     }
-    
+
     // State variables / 状态变量
     @State private var cards: [CardItem] = [
         CardItem(
@@ -1737,20 +1737,20 @@ struct DynamicCardsSheet: View {
             tags: ["修复 / Fix", "Bug"]
         )
     ]
-    
+
     @State private var showAddForm = false
     @State private var newCardTitle = ""
     @State private var newCardDescription = ""
     @State private var newCardPriority: CardItem.Priority = .medium
     @State private var filterPriority: CardItem.Priority? = nil
     @State private var sortAscending = true
-    
+
     // Computed properties for dynamic content / 动态内容的计算属性
     private var filteredCards: [CardItem] {
         let filtered = filterPriority == nil ? cards : cards.filter { $0.priority == filterPriority }
         return sortAscending ? filtered : filtered.reversed()
     }
-    
+
     private var contentHeight: CGFloat {
         // Dynamic height calculation based on content / 基于内容的动态高度计算
         let baseHeight: CGFloat = 200  // Header and controls / 头部和控件
@@ -1760,25 +1760,25 @@ struct DynamicCardsSheet: View {
         let addFormHeight: CGFloat = showAddForm ? 200 : 0
         return min(baseHeight + cardHeight + addFormHeight, 600)  // Max 600 points / 最大600点
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 // Header / 头部
                 headerSection
-                
+
                 // Filter and Sort Controls / 过滤和排序控件
                 controlsSection
-                
+
                 // Cards List / 卡片列表
                 cardsSection
-                
+
                 // Add New Card Button/Form / 添加新卡片按钮/表单
                 addCardSection
-                
+
                 // Statistics / 统计
                 statisticsSection
-                
+
                 footerText(
                     primary: "键盘出现时弹窗自动上移 / Sheet moves up with keyboard",
                     secondary: "当前卡片数: \(cards.count) / Current cards: \(cards.count)"
@@ -1787,7 +1787,7 @@ struct DynamicCardsSheet: View {
             .padding(.vertical)
         }
     }
-    
+
     // MARK: - Header Section / 头部部分
     private var headerSection: some View {
         VStack(spacing: 8) {
@@ -1798,13 +1798,13 @@ struct DynamicCardsSheet: View {
                 Text("动态卡片管理 / Dynamic Card Manager")
                     .font(.headline)
             }
-            
+
             Text("添加、删除、筛选和排序卡片 / Add, remove, filter and sort cards")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     // MARK: - Controls Section / 控件部分
     private var controlsSection: some View {
         VStack(spacing: 12) {
@@ -1816,7 +1816,7 @@ struct DynamicCardsSheet: View {
                         isSelected: filterPriority == nil,
                         action: { filterPriority = nil }
                     )
-                    
+
                     ForEach([CardItem.Priority.urgent, .high, .medium, .low], id: \.self) { priority in
                         FilterChip(
                             title: priorityName(priority),
@@ -1828,13 +1828,13 @@ struct DynamicCardsSheet: View {
                 }
                 .padding(.horizontal)
             }
-            
+
             // Sort Toggle / 排序切换
             HStack {
                 Text("排序 / Sort:")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Button(action: { sortAscending.toggle() }) {
                     HStack(spacing: 4) {
                         Image(systemName: sortAscending ? "arrow.up" : "arrow.down")
@@ -1844,13 +1844,13 @@ struct DynamicCardsSheet: View {
                     }
                 }
                 .buttonStyle(.bordered)
-                
+
                 Spacer()
             }
             .padding(.horizontal)
         }
     }
-    
+
     // MARK: - Cards Section / 卡片部分
     private var cardsSection: some View {
         VStack(spacing: 8) {
@@ -1868,7 +1868,7 @@ struct DynamicCardsSheet: View {
         .padding(.horizontal)
         .animation(.spring(response: 0.3), value: cards)
     }
-    
+
     // MARK: - Add Card Section / 添加卡片部分
     private var addCardSection: some View {
         VStack(spacing: 12) {
@@ -1887,10 +1887,10 @@ struct DynamicCardsSheet: View {
                 VStack(spacing: 12) {
                     TextField("标题 / Title", text: $newCardTitle)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
+
                     TextField("描述 / Description", text: $newCardDescription)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
+
                     // Priority Picker / 优先级选择器
                     Picker("优先级 / Priority", selection: $newCardPriority) {
                         Text("低 / Low").tag(CardItem.Priority.low)
@@ -1899,7 +1899,7 @@ struct DynamicCardsSheet: View {
                         Text("紧急 / Urgent").tag(CardItem.Priority.urgent)
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                    
+
                     HStack(spacing: 12) {
                         Button("取消 / Cancel") {
                             withAnimation {
@@ -1908,7 +1908,7 @@ struct DynamicCardsSheet: View {
                             }
                         }
                         .buttonStyle(.bordered)
-                        
+
                         Button("添加 / Add") {
                             addNewCard()
                         }
@@ -1927,7 +1927,7 @@ struct DynamicCardsSheet: View {
             }
         }
     }
-    
+
     // MARK: - Statistics Section / 统计部分
     private var statisticsSection: some View {
         HStack(spacing: 20) {
@@ -1936,13 +1936,13 @@ struct DynamicCardsSheet: View {
                 value: "\(cards.count)",
                 color: .blue
             )
-            
+
             StatBox(
                 title: "紧急 / Urgent",
                 value: "\(cards.filter { $0.priority == .urgent }.count)",
                 color: .red
             )
-            
+
             StatBox(
                 title: "展开 / Expanded",
                 value: "\(cards.filter { $0.isExpanded }.count)",
@@ -1951,22 +1951,22 @@ struct DynamicCardsSheet: View {
         }
         .padding(.horizontal)
     }
-    
+
     // MARK: - Helper Methods / 辅助方法
-    
+
     private func binding(for card: CardItem) -> Binding<CardItem> {
         guard let index = cards.firstIndex(where: { $0.id == card.id }) else {
             return .constant(card)
         }
         return $cards[index]
     }
-    
+
     private func removeCard(_ card: CardItem) {
         withAnimation(.spring()) {
             cards.removeAll { $0.id == card.id }
         }
     }
-    
+
     private func addNewCard() {
         let newCard = CardItem(
             title: newCardTitle,
@@ -1974,20 +1974,20 @@ struct DynamicCardsSheet: View {
             priority: newCardPriority,
             tags: []
         )
-        
+
         withAnimation(.spring()) {
             cards.append(newCard)
             showAddForm = false
             resetForm()
         }
     }
-    
+
     private func resetForm() {
         newCardTitle = ""
         newCardDescription = ""
         newCardPriority = .medium
     }
-    
+
     private func priorityName(_ priority: CardItem.Priority) -> String {
         switch priority {
         case .low: return "低 / Low"
@@ -2006,7 +2006,7 @@ struct FilterChip: View {
     let isSelected: Bool
     var color: Color = .accentColor
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -2025,7 +2025,7 @@ struct FilterChip: View {
 struct DynamicCardView: View {
     @Binding var card: DynamicCardsSheet.CardItem
     let onDelete: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Header / 头部
@@ -2033,31 +2033,31 @@ struct DynamicCardView: View {
                 Image(systemName: card.priority.icon)
                     .foregroundColor(card.priority.color)
                     .font(.caption)
-                
+
                 Text(card.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                
+
                 Spacer()
-                
+
                 Button(action: { withAnimation { card.isExpanded.toggle() } }) {
                     Image(systemName: card.isExpanded ? "chevron.up.circle" : "chevron.down.circle")
                         .foregroundColor(.secondary)
                 }
-                
+
                 Button(action: onDelete) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.red.opacity(0.7))
                 }
             }
-            
+
             // Content / 内容
             if card.isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(card.description)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     // Tags / 标签
                     if !card.tags.isEmpty {
                         HStack(spacing: 4) {
@@ -2071,7 +2071,7 @@ struct DynamicCardView: View {
                             }
                         }
                     }
-                    
+
                     // Action buttons / 操作按钮
                     HStack(spacing: 8) {
                         Button("编辑 / Edit") {
@@ -2079,7 +2079,7 @@ struct DynamicCardView: View {
                         }
                         .font(.caption)
                         .buttonStyle(.bordered)
-                        
+
                         Button("完成 / Done") {
                             print("完成卡片: \(card.title)")
                         }
@@ -2101,14 +2101,14 @@ struct StatBox: View {
     let title: String
     let value: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(color)
-            
+
             Text(title)
                 .font(.caption2)
                 .foregroundColor(.secondary)

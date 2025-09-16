@@ -8,8 +8,8 @@ import SwiftUI
  * 本文件展示了正确的横向滚动视图实现方式。核心理念是"好品味"：消除特殊情况，让代码简单。
  * 原始版本试图手动处理父子滚动视图之间的手势传递，这完全是不必要的复杂性。
  *
- * This file demonstrates the correct implementation of horizontal scroll views. The core philosophy 
- * is "good taste": eliminate special cases and make the code simple. The original version tried to 
+ * This file demonstrates the correct implementation of horizontal scroll views. The core philosophy
+ * is "good taste": eliminate special cases and make the code simple. The original version tried to
  * manually handle gesture passing between parent and child scroll views, which is completely unnecessary complexity.
  *
  * 技术决策：
@@ -49,12 +49,12 @@ import SwiftUI
 struct SmartHorizontalScrollView<Content: View>: View {
     let content: Content
     let showsIndicators: Bool
-    
+
     // 兼容旧接口的属性 / Properties for legacy interface compatibility
     @Binding var parentVerticalScrollOffset: CGFloat
     @Binding var isParentScrolling: Bool
     @Binding var debugInfo: String
-    
+
     // 新接口初始化器 / New interface initializer
     init(
         showsIndicators: Bool = true,
@@ -62,13 +62,13 @@ struct SmartHorizontalScrollView<Content: View>: View {
     ) {
         self.showsIndicators = showsIndicators
         self.content = content()
-        
+
         // 为新接口提供默认绑定 / Provide default bindings for new interface
         self._parentVerticalScrollOffset = .constant(0)
         self._isParentScrolling = .constant(false)
         self._debugInfo = .constant("")
     }
-    
+
     // 兼容旧接口的初始化器 / Legacy interface initializer
     init(
         parentVerticalScrollOffset: Binding<CGFloat>,
@@ -82,7 +82,7 @@ struct SmartHorizontalScrollView<Content: View>: View {
         self.content = content()
         self.showsIndicators = true
     }
-    
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: showsIndicators) {
             content
@@ -100,16 +100,16 @@ struct SmartHorizontalScrollView<Content: View>: View {
  * 只有当你真正需要知道滚动位置时才使用这个版本。大多数情况下，基础版本就足够了。
  * 记住：不要为了可能永远不会使用的功能增加复杂性。
  *
- * Only use this version when you really need to know the scroll position. In most cases, 
+ * Only use this version when you really need to know the scroll position. In most cases,
  * the basic version is sufficient. Remember: don't add complexity for features that may never be used.
  */
 struct EnhancedHorizontalScrollView<Content: View>: View {
     let content: Content
     let showsIndicators: Bool
     let onScroll: ((CGFloat) -> Void)?
-    
+
     @State private var scrollOffset: CGFloat = 0
-    
+
     init(
         showsIndicators: Bool = true,
         onScroll: ((CGFloat) -> Void)? = nil,
@@ -119,7 +119,7 @@ struct EnhancedHorizontalScrollView<Content: View>: View {
         self.onScroll = onScroll
         self.content = content()
     }
-    
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: showsIndicators) {
             content
@@ -178,7 +178,7 @@ struct HorizontalScrollSection<Content: View>: View {
     let title: String?
     let height: CGFloat
     let content: Content
-    
+
     init(
         title: String? = nil,
         height: CGFloat = 200,
@@ -188,7 +188,7 @@ struct HorizontalScrollSection<Content: View>: View {
         self.height = height
         self.content = content()
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let title = title {
@@ -196,7 +196,7 @@ struct HorizontalScrollSection<Content: View>: View {
                     .font(.headline)
                     .padding(.horizontal)
             }
-            
+
             SmartHorizontalScrollView {
                 content
                     .padding(.horizontal)
@@ -235,14 +235,14 @@ struct SmartHorizontalScrollDemoView: View {
                         }
                     }
                 }
-                
+
                 // 带滚动追踪的示例
                 // Example with scroll tracking
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Trending / 趋势")
                         .font(.headline)
                         .padding(.horizontal)
-                    
+
                     EnhancedHorizontalScrollView(
                         onScroll: { offset in
                             // 仅在需要时使用偏移量
@@ -262,7 +262,7 @@ struct SmartHorizontalScrollDemoView: View {
                     }
                     .frame(height: 200)
                 }
-                
+
                 // 常规垂直内容
                 // Regular vertical content
                 VStack(spacing: 12) {
@@ -270,7 +270,7 @@ struct SmartHorizontalScrollDemoView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
-                    
+
                     ForEach(0..<5) { index in
                         ArticleRow(index: index)
                     }
@@ -299,7 +299,7 @@ struct SmartHorizontalScrollDemoView: View {
 struct HorizontalCardView: View {
     let index: Int
     let color: Color
-    
+
     var body: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(
@@ -339,7 +339,7 @@ struct HorizontalCardView: View {
  */
 struct ArticleRow: View {
     let index: Int
-    
+
     var body: some View {
         HStack {
             Circle()
@@ -349,7 +349,7 @@ struct ArticleRow: View {
                     Text("\(index + 1)")
                         .font(.headline)
                 )
-            
+
             VStack(alignment: .leading) {
                 Text("Article \(index + 1)")
                     .font(.headline)
@@ -357,9 +357,9 @@ struct ArticleRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             Image(systemName: "chevron.right")
                 .foregroundColor(.secondary)
         }

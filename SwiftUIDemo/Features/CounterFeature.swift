@@ -16,7 +16,7 @@ struct CounterFeature {
         var isTimerActive = false
         var randomFactAlert: String?
     }
-    
+
     enum Action {
         case incrementButtonTapped
         case decrementButtonTapped
@@ -27,27 +27,27 @@ struct CounterFeature {
         case randomFactResponse(String)
         case dismissRandomFactAlert
     }
-    
-    private enum CancelID { 
-        case timer 
+
+    private enum CancelID {
+        case timer
     }
-    
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .incrementButtonTapped:
                 state.count += 1
                 return .none
-                
+
             case .decrementButtonTapped:
                 state.count -= 1
                 return .none
-                
+
             case .resetButtonTapped:
                 state.count = 0
                 state.isTimerActive = false
                 return .cancel(id: CancelID.timer)
-                
+
             case .toggleTimerButtonTapped:
                 state.isTimerActive.toggle()
                 if state.isTimerActive {
@@ -62,28 +62,28 @@ struct CounterFeature {
                 } else {
                     return .cancel(id: CancelID.timer)
                 }
-                
+
             case .timerTick:
                 state.count += 1
                 return .none
-                
+
             case .getRandomFactButtonTapped:
                 return .run { [count = state.count] send in
                     let fact = await getNumberFact(for: count)
                     await send(.randomFactResponse(fact))
                 }
-                
+
             case let .randomFactResponse(fact):
                 state.randomFactAlert = fact
                 return .none
-                
+
             case .dismissRandomFactAlert:
                 state.randomFactAlert = nil
                 return .none
             }
         }
     }
-    
+
     private func getNumberFact(for number: Int) async -> String {
         do {
             let url = URL(string: "http://numbersapi.com/\(number)")!

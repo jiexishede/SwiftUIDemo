@@ -62,6 +62,8 @@ struct ContentView: View {
             NetworkStatusDemoView()
         case .networkAwareDemo:
             NetworkAwareDemoView()
+        case .advancedNetworkMonitoring:
+            AdvancedNetworkMonitoringDemoView()
         }
     }
 }
@@ -238,6 +240,10 @@ struct iOS15DestinationView: View {
                     }
                 )
             )
+        case "networkStatus":
+            childStore = AnyView(NetworkStatusDemoView())
+        case "advancedNetworkMonitoring":
+            childStore = AnyView(AdvancedNetworkMonitoringDemoView())
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

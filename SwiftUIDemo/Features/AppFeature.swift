@@ -42,6 +42,8 @@ struct AppFeature {
                     state.path.append(.networkErrorDemo(NetworkErrorDemoFeature.State()))
                 case "networkStatus":
                     state.path.append(.networkStatus)
+                case "advancedNetworkMonitoring":
+                    state.path.append(.advancedNetworkMonitoring)
                 default:
                     break
                 }
@@ -69,6 +71,7 @@ struct AppFeature {
             case networkErrorDemo(NetworkErrorDemoFeature.State)
             case networkStatus
             case networkAwareDemo
+            case advancedNetworkMonitoring
         }
 
         enum Action {
@@ -81,6 +84,7 @@ struct AppFeature {
             case networkErrorDemo(NetworkErrorDemoFeature.Action)
             case networkStatus
             case networkAwareDemo
+            case advancedNetworkMonitoring
         }
 
         var body: some ReducerOf<Self> {
@@ -155,6 +159,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "网络状态监控 / Network Monitor",
             subtitle: "实时检测断网与连接类型 / Real-time connectivity detection",
             systemImage: "wifi"
+        ),
+        DemoItem(
+            id: "advancedNetworkMonitoring",
+            title: "高级网络监控 / Advanced Network Monitoring",
+            subtitle: "自定义错误模拟与智能重试 / Custom error simulation & intelligent retry",
+            systemImage: "network.badge.shield.half.filled"
         )
     ]
 }

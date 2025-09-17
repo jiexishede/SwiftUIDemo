@@ -75,13 +75,13 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     // Configuration / 配置
     private let errorRate: Double = 0.2  // 20% error rate for testing / 20%错误率用于测试
-    private let minDelay: UInt64 = 500_000_000  // 0.5 seconds / 0.5秒
-    private let maxDelay: UInt64 = 2_000_000_000  // 2 seconds / 2秒
+    private let minDelay: UInt64 = 100_000_000  // 0.1 seconds / 0.1秒
+    private let maxDelay: UInt64 = 300_000_000  // 0.3 seconds / 0.3秒
     
     // MARK: - User APIs
     
     func fetchUserProfile() async throws -> UserProfile {
-        try await simulateNetworkDelay()
+        try await simulateNetworkDelay(for: "UserProfile")
         try simulateRandomError(api: "UserProfile")
         
         return UserProfile(
@@ -97,7 +97,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchUserSettings() async throws -> UserSettings {
-        try await simulateNetworkDelay()
+        try await simulateNetworkDelay(for: "UserSettings")
         try simulateRandomError(api: "UserSettings")
         
         return UserSettings(
@@ -113,7 +113,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchUserStatistics() async throws -> UserStatistics {
-        try await simulateNetworkDelay()
+        try await simulateNetworkDelay(for: "UserStatistics")
         try simulateRandomError(api: "UserStatistics")
         
         return UserStatistics(
@@ -130,7 +130,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchUserPermissions() async throws -> UserPermissions {
-        try await simulateNetworkDelay()
+        try await simulateNetworkDelay(for: "UserPermissions")
         try simulateRandomError(api: "UserPermissions")
         
         return UserPermissions(
@@ -147,7 +147,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchUserNotifications() async throws -> UserNotifications {
-        try await simulateNetworkDelay()
+        try await simulateNetworkDelay(for: "UserNotifications")
         try simulateRandomError(api: "UserNotifications")
         
         return UserNotifications(
@@ -166,8 +166,8 @@ class MockECommerceService: ECommerceServiceProtocol {
     // MARK: - Component APIs
     
     func fetchBanners() async throws -> [Banner] {
-        try await simulateNetworkDelay()
-        try simulateRandomError(api: "Banners", rate: 0.1)  // Lower error rate / 更低的错误率
+        try await simulateNetworkDelay(for: "Banners")
+        try simulateRandomError(api: "Banners", rate: 0.4)  // 40% error rate for testing / 40%错误率用于测试
         
         return [
             Banner(
@@ -192,8 +192,8 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchRecommendedProducts() async throws -> [Product] {
-        try await simulateNetworkDelay()
-        try simulateRandomError(api: "Products", rate: 0.1)
+        try await simulateNetworkDelay(for: "Products")
+        try simulateRandomError(api: "Products", rate: 0.35)  // 35% error rate / 35%错误率
         
         return (1...8).map { index in
             Product(
@@ -215,8 +215,8 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchFlashSales() async throws -> [FlashSale] {
-        try await simulateNetworkDelay()
-        try simulateRandomError(api: "FlashSales", rate: 0.1)
+        try await simulateNetworkDelay(for: "FlashSales")
+        try simulateRandomError(api: "FlashSales", rate: 0.45)  // 45% error rate / 45%错误率
         
         let now = Date()
         return (1...4).map { index in
@@ -248,8 +248,8 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchCategories() async throws -> [Category] {
-        try await simulateNetworkDelay()
-        try simulateRandomError(api: "Categories", rate: 0.05)  // Very low error rate / 极低错误率
+        try await simulateNetworkDelay(for: "Categories")
+        try simulateRandomError(api: "Categories", rate: 0.3)  // 30% error rate / 30%错误率
         
         return [
             Category(name: "手机数码", iconName: "iphone", colorHex: "#FF6B6B", priority: 1),
@@ -264,8 +264,8 @@ class MockECommerceService: ECommerceServiceProtocol {
     }
     
     func fetchOrderStatus() async throws -> UserOrderStatus {
-        try await simulateNetworkDelay()
-        try simulateRandomError(api: "OrderStatus", rate: 0.15)
+        try await simulateNetworkDelay(for: "OrderStatus")
+        try simulateRandomError(api: "OrderStatus", rate: 0.5)  // 50% error rate / 50%错误率
         
         return UserOrderStatus(
             pendingPayment: Int.random(in: 0...5),
@@ -281,9 +281,21 @@ class MockECommerceService: ECommerceServiceProtocol {
     /**
      * 模拟网络延迟
      * Simulate network delay
+     * 
+     * - Parameter api: API名称，用于确定延迟时间 / API name to determine delay time
      */
-    private func simulateNetworkDelay() async throws {
-        let delay = UInt64.random(in: minDelay...maxDelay)
+    private func simulateNetworkDelay(for api: String? = nil) async throws {
+        let delay: UInt64
+        
+        // 核心API使用更短的延迟 / Core APIs use shorter delays
+        if let api = api, ["UserProfile", "UserSettings", "UserStatistics", 
+                           "UserPermissions", "UserNotifications"].contains(api) {
+            delay = UInt64.random(in: 50_000_000...150_000_000)  // 0.05-0.15秒
+        } else {
+            // 组件API使用标准延迟 / Component APIs use standard delays
+            delay = UInt64.random(in: minDelay...maxDelay)
+        }
+        
         try await Task.sleep(nanoseconds: delay)
     }
     

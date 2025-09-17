@@ -74,29 +74,86 @@ struct ECommerceHomeView: View {
     private var mainContent: some View {
         ScrollView {
             VStack(spacing: 20) {
+                // Pink error banner at top / 顶部粉红色错误横幅
+                if store.hasAnyCoreError {
+                    pinkErrorBanner
+                }
+                
                 // User header section / 用户头部区域
                 userHeaderSection
                 
-                // Banner carousel / 轮播图
-                bannerSection
-                
-                // Categories grid / 分类网格
-                categoriesSection
-                
-                // Order status / 订单状态
-                orderStatusSection
-                
-                // Flash sales / 限时秒杀
-                flashSalesSection
-                
-                // Recommended products / 推荐商品
-                recommendedProductsSection
+                // 根据核心API状态决定显示内容 / Content based on core API status
+                if store.hasAnyCoreError {
+                    // 核心API有错误时，只显示标题和错误提示 / Show only titles and errors when core APIs fail
+                    errorStateContent
+                } else {
+                    // 所有核心API成功时，显示正常内容 / Show normal content when all core APIs succeed
+                    normalContent
+                }
             }
             .padding(.bottom, store.showGlobalErrorBanner ? 100 : 20)
         }
         .refreshable {
             await store.send(.loadInitialData).finish()
         }
+    }
+    
+    // MARK: - Normal Content
+    
+    private var normalContent: some View {
+        VStack(spacing: 20) {
+            // Banner carousel / 轮播图
+            bannerSection
+            
+            // Categories grid / 分类网格
+            categoriesSection
+            
+            // Order status / 订单状态
+            orderStatusSection
+            
+            // Flash sales / 限时秒杀
+            flashSalesSection
+            
+            // Recommended products / 推荐商品
+            recommendedProductsSection
+        }
+    }
+    
+    // MARK: - Error State Content
+    
+    private var errorStateContent: some View {
+        VStack(spacing: 20) {
+            // 轮播图区域 - 只显示标题和错误 / Banner area - show only title and error
+            sectionWithError(
+                title: "轮播图 / Banners",
+                message: "需要先加载用户信息 / User info required"
+            )
+            
+            // 分类区域 - 只显示标题和错误 / Categories area - show only title and error
+            sectionWithError(
+                title: "分类 / Categories",
+                message: "需要先加载用户信息 / User info required"
+            )
+            
+            // 订单状态区域 - 只显示标题和错误 / Order status area - show only title and error
+            sectionWithError(
+                title: "我的订单 / My Orders",
+                message: "需要先加载用户信息 / User info required"
+            )
+            
+            // 秒杀区域 - 只显示标题和错误 / Flash sale area - show only title and error
+            sectionWithError(
+                title: "限时秒杀 / Flash Sale",
+                message: "需要先加载用户信息 / User info required"
+            )
+            
+            // 推荐商品区域 - 只显示标题和错误 / Recommended area - show only title and error
+            sectionWithError(
+                title: "为你推荐 / Recommended",
+                message: "需要先加载用户信息 / User info required"
+            )
+        }
+        .padding(.horizontal)
     }
     
     // MARK: - User Header Section
@@ -124,21 +181,24 @@ struct ECommerceHomeView: View {
     
     private var bannerSection: some View {
         Group {
-            switch store.bannersState {
-            case .idle, .loading:
-                BannerSkeleton()
-                
-            case let .loaded(banners, _):
-                BannerCarousel(banners: banners) { banner in
-                    store.send(.bannerTapped(banner))
+            // 只有核心API全部成功时才显示组件内容 / Show content only when all core APIs succeed
+            if !store.hasAnyCoreError {
+                switch store.bannersState {
+                case .idle, .loading:
+                    BannerSkeleton()
+                    
+                case let .loaded(banners, _):
+                    BannerCarousel(banners: banners) { banner in
+                        store.send(.bannerTapped(banner))
+                    }
+                    
+                case let .failed(_, error):
+                    ComponentErrorCard(
+                        title: "轮播图 / Banners",
+                        error: error.message,
+                        onRetry: { store.send(.loadBanners) }
+                    )
                 }
-                
-            case let .failed(_, error):
-                ComponentErrorCard(
-                    title: "轮播图 / Banners",
-                    error: error.message,
-                    onRetry: { store.send(.loadBanners) }
-                )
             }
         }
         .padding(.horizontal)
@@ -273,8 +333,132 @@ struct ECommerceHomeView: View {
         }
     }
     
-    // MARK: - Global Error Banner
+    // MARK: - Pink Error Banner (Top)
     
+    /**
+     * 粉红色错误横幅 - 顶部显示
+     * Pink error banner - shown at top
+     * 
+     * 特点 / Features:
+     * - 只重试失败的接口 / Only retry failed APIs
+     * - 显示具体错误信息 / Show specific error messages
+     * - 温和的粉红色背景 / Soft pink background
+     */
+    private var pinkErrorBanner: some View {
+        VStack(spacing: 12) {
+            // Error icon and title / 错误图标和标题
+            HStack(spacing: 12) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.white)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("用户信息加载失败 / User info failed")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    // Show which APIs failed / 显示哪些API失败了
+                    Text(failedAPIsDescription)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.9))
+                        .lineLimit(2)
+                }
+                
+                Spacer()
+            }
+            
+            // Smart retry button / 智能重试按钮
+            Button(action: { store.send(.retryFailedCoreAPIs) }) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                    Text("重试失败项 / Retry Failed")
+                }
+                .font(.caption)
+                .fontWeight(.semibold)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.3))
+                .cornerRadius(20)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding()
+        .background(
+            LinearGradient(
+                colors: [Color.pink.opacity(0.9), Color.pink.opacity(0.7)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .cornerRadius(16)
+        .shadow(color: Color.pink.opacity(0.3), radius: 8, x: 0, y: 4)
+        .padding(.horizontal)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+    
+    // 获取失败的API描述 / Get failed APIs description
+    private var failedAPIsDescription: String {
+        var failed: [String] = []
+        if case .failed = store.userProfileState { failed.append("用户资料") }
+        if case .failed = store.userSettingsState { failed.append("设置") }
+        if case .failed = store.userStatisticsState { failed.append("统计") }
+        if case .failed = store.userPermissionsState { failed.append("权限") }
+        if case .failed = store.userNotificationsState { failed.append("通知") }
+        
+        if failed.isEmpty {
+            return ""
+        }
+        return "失败: \(failed.joined(separator: ", ")) / Failed: \(failed.count) items"
+    }
+    
+    // MARK: - Section With Error
+    
+    /**
+     * 带错误的区域组件
+     * Section component with error
+     * 
+     * 用于核心API失败时显示 / Used when core APIs fail
+     */
+    private func sectionWithError(title: String, message: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section title / 区域标题
+            Text(title)
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            // Error message box / 错误消息框
+            HStack(spacing: 12) {
+                Image(systemName: "info.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.orange)
+                
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+    }
+    
+    // MARK: - Global Error Banner (Bottom)
+    
+    /**
+     * 橙色全局错误横幅 - 底部悬浮
+     * Orange global error banner - floating at bottom
+     * 
+     * 特点 / Features:
+     * - 重试所有5个核心接口 / Retry all 5 core APIs
+     * - 悬浮在底部 / Floating at bottom
+     * - 醒目的橙色背景 / Eye-catching orange background
+     */
     private var globalErrorBanner: some View {
         VStack {
             Spacer()
@@ -287,12 +471,12 @@ struct ECommerceHomeView: View {
                         .foregroundColor(.white)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("加载用户信息失败 / Failed to load user info")
+                        Text("核心服务加载失败 / Core services failed")
                             .font(.subheadline)
-                            .fontWeight(.semibold)
+                            .fontWeight(.bold)
                             .foregroundColor(.white)
                         
-                        Text(store.globalErrorMessage)
+                        Text("部分用户信息无法加载，功能受限 / Some features limited")
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.9))
                             .lineLimit(2)
@@ -301,34 +485,39 @@ struct ECommerceHomeView: View {
                     Spacer()
                 }
                 
-                // Retry button / 重试按钮
+                Divider()
+                    .background(Color.white.opacity(0.3))
+                
+                // Retry all button / 重试所有按钮
                 Button(action: { store.send(.retryAllCoreAPIs) }) {
                     HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("重试所有 / Retry All")
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.body)
+                        Text("重新加载所有信息 / Reload All Info")
+                            .fontWeight(.semibold)
                     }
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                     .background(Color.white.opacity(0.2))
-                    .cornerRadius(20)
+                    .cornerRadius(12)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20)
+                        RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.white.opacity(0.3), lineWidth: 1)
                     )
                 }
+                .buttonStyle(PlainButtonStyle())
             }
             .padding()
             .background(
                 LinearGradient(
-                    colors: [Color.orange, Color.orange.opacity(0.9)],
-                    startPoint: .leading,
-                    endPoint: .trailing
+                    colors: [Color.orange, Color.orange.opacity(0.85)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
             )
             .cornerRadius(20)
-            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: -5)
+            .shadow(color: Color.orange.opacity(0.4), radius: 15, x: 0, y: -5)
             .padding()
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }

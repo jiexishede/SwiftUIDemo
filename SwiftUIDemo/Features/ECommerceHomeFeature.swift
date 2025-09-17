@@ -172,6 +172,7 @@ struct ECommerceHomeFeature {
         
         // MARK: Error Handling / 错误处理
         case retryAllCoreAPIs
+        case retryFailedCoreAPIs  // 只重试失败的核心API / Only retry failed core APIs
         case retryComponentAPI(ComponentType)
         case dismissGlobalError
         
@@ -524,6 +525,28 @@ struct ECommerceHomeFeature {
                     .send(.loadUserPermissions),
                     .send(.loadUserNotifications)
                 )
+                
+            case .retryFailedCoreAPIs:
+                // 只重试失败的接口 / Only retry failed APIs
+                var effects: [Effect<Action>] = []
+                
+                if case .failed = state.userProfileState {
+                    effects.append(.send(.loadUserProfile))
+                }
+                if case .failed = state.userSettingsState {
+                    effects.append(.send(.loadUserSettings))
+                }
+                if case .failed = state.userStatisticsState {
+                    effects.append(.send(.loadUserStatistics))
+                }
+                if case .failed = state.userPermissionsState {
+                    effects.append(.send(.loadUserPermissions))
+                }
+                if case .failed = state.userNotificationsState {
+                    effects.append(.send(.loadUserNotifications))
+                }
+                
+                return .merge(effects)
                 
             case let .retryComponentAPI(component):
                 switch component {

@@ -44,6 +44,8 @@ struct AppFeature {
                     state.path.append(.networkStatus)
                 case "advancedNetworkMonitoring":
                     state.path.append(.advancedNetworkMonitoring)
+                case "ecommerce":
+                    state.path.append(.ecommerceLogin(ECommerceLoginFeature.State()))
                 default:
                     break
                 }
@@ -72,6 +74,7 @@ struct AppFeature {
             case networkStatus
             case networkAwareDemo
             case advancedNetworkMonitoring
+            case ecommerceLogin(ECommerceLoginFeature.State)
         }
 
         enum Action {
@@ -85,6 +88,7 @@ struct AppFeature {
             case networkStatus
             case networkAwareDemo
             case advancedNetworkMonitoring
+            case ecommerceLogin(ECommerceLoginFeature.Action)
         }
 
         var body: some ReducerOf<Self> {
@@ -105,6 +109,9 @@ struct AppFeature {
             }
             Scope(state: \.networkErrorDemo, action: \.networkErrorDemo) {
                 NetworkErrorDemoFeature()
+            }
+            Scope(state: \.ecommerceLogin, action: \.ecommerceLogin) {
+                ECommerceLoginFeature()
             }
         }
     }
@@ -165,6 +172,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "高级网络监控 / Advanced Network Monitoring",
             subtitle: "自定义错误模拟与智能重试 / Custom error simulation & intelligent retry",
             systemImage: "network.badge.shield.half.filled"
+        ),
+        DemoItem(
+            id: "ecommerce",
+            title: "电商首页 / E-Commerce Home",
+            subtitle: "登录+复杂首页+分层错误处理 / Login + Complex Home + Layered Error Handling",
+            systemImage: "cart.fill.badge.plus"
         )
     ]
 }

@@ -193,6 +193,10 @@ struct ContentView: View {
             NetworkAwareDemoView()
         case .advancedNetworkMonitoring:
             AdvancedNetworkMonitoringDemoView()
+        case .ecommerceLogin:
+            if let store = store.scope(state: \.ecommerceLogin, action: \.ecommerceLogin) {
+                ECommerceLoginView(store: store)
+            }
         }
     }
 }
@@ -373,6 +377,14 @@ struct iOS15DestinationView: View {
             childStore = AnyView(NetworkStatusDemoView())
         case "advancedNetworkMonitoring":
             childStore = AnyView(AdvancedNetworkMonitoringDemoView())
+        case "ecommerce":
+            childStore = AnyView(
+                ECommerceLoginView(
+                    store: Store(initialState: ECommerceLoginFeature.State()) {
+                        ECommerceLoginFeature()
+                    }
+                )
+            )
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

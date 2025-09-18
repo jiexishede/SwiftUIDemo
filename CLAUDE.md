@@ -203,6 +203,30 @@ This is a SwiftUI project using The Composable Architecture (TCA) pattern for st
 ### Minimum iOS Version: 15.0 / 最低 iOS 版本：15.0
 - **This project only supports iOS 15.0 and above** / **本项目仅支持 iOS 15.0 及以上版本**
 - **NO support for iOS 14 or below** / **不支持 iOS 14 或更低版本**
+- **Compilation target MUST be set to iOS 15.0 or newer** / **编译目标必须设置为 iOS 15.0 或更新版本**
+- **All code MUST be compatible with iOS 15.0** / **所有代码必须兼容 iOS 15.0**
+
+### Compilation Environment Requirements / 编译环境要求
+- **Build Settings**: iOS Deployment Target = 15.0 / **构建设置**：iOS 部署目标 = 15.0
+- **When fixing build errors**: Ensure all APIs used are available in iOS 15.0 / **修复构建错误时**：确保使用的所有 API 在 iOS 15.0 中可用
+- **Avoid iOS 16.0+ exclusive APIs unless wrapped with availability checks** / **避免使用 iOS 16.0+ 独有的 API，除非使用可用性检查包装**
+- **Avoid iOS 17.0+ exclusive APIs unless wrapped with availability checks** / **避免使用 iOS 17.0+ 独有的 API，除非使用可用性检查包装**
+
+### Common iOS Version API Compatibility Issues / 常见 iOS 版本 API 兼容性问题
+1. **iOS 15.0 Compatible APIs / iOS 15.0 兼容的 API**:
+   - `Task.sleep(nanoseconds:)` ✅
+   - `.onChange(of:) { newValue in }` ✅ (single parameter)
+   - Basic `.refreshable` ✅
+
+2. **iOS 16.0+ Only APIs (需要适配检查) / iOS 16.0+ 独有 API (需要适配检查)**:
+   - `.fontWeight()` on non-Text views ❌ → Apply to Text directly
+   - `Color.gradient` ❌ → Use plain Color for iOS 15
+   - `.onChange(of:initial:_:)` with two parameters ❌ → Use single parameter version
+   - `continuousClock` ❌ → Use Task.sleep instead
+
+3. **iOS 17.0+ Only APIs (需要适配检查) / iOS 17.0+ 独有 API (需要适配检查)**:
+   - `.scrollTargetLayout()` ❌ → Skip for older versions
+   - `.scrollTargetBehavior()` ❌ → Skip for older versions
 
 ### Version Adaptation Rules / 版本适配规则
 The code should only differentiate between two iOS versions:
@@ -234,6 +258,13 @@ if #available(iOS 14.0, *) {
 
 ## 🚨 IMPORTANT: Auto-Build and Fix Rules / 重要：自动构建和修复规则
 
+### Build Environment Setup / 构建环境设置
+**CRITICAL**: Always ensure iOS Deployment Target is set to 15.0 / **关键**：始终确保 iOS 部署目标设置为 15.0
+```bash
+# Check and fix compilation with iOS 15.0 target / 使用 iOS 15.0 目标检查和修复编译
+xcodebuild -project SwiftUIDemo.xcodeproj -scheme SwiftUIDemo -destination "platform=iOS Simulator,name=iPhone 16" build
+```
+
 ### Automatic Error Detection and Fixing / 自动错误检测和修复
 When working on this project, the AI assistant MUST:
 在处理此项目时，AI助手必须：
@@ -256,6 +287,12 @@ When working on this project, the AI assistant MUST:
    构建项目 → 检测错误 → 显示错误给用户 → 自动修复 → 重新构建 → 直到成功
    Build project → Detect errors → Show errors to user → Auto-fix → Rebuild → Until success
    ```
+
+4. **iOS Version Compatibility Fixes** / **iOS 版本兼容性修复**:
+   - Check for "only available in iOS X.0 or newer" errors / 检查 "仅在 iOS X.0 或更新版本中可用" 错误
+   - Apply appropriate availability checks or use iOS 15 compatible alternatives / 应用适当的可用性检查或使用 iOS 15 兼容的替代方案
+   - Replace iOS 16+ APIs with iOS 15 compatible versions / 将 iOS 16+ API 替换为 iOS 15 兼容版本
+   - Use `if #available(iOS 16.0, *)` for features that require newer versions / 对需要新版本的功能使用 `if #available(iOS 16.0, *)`
 
 ### Example Auto-Fix Process / 自动修复流程示例
 ```bash

@@ -135,8 +135,9 @@ struct NetworkErrorDemoFeature {
     }
 
     // MARK: - Dependencies / 依赖
-
-    @Dependency(\.continuousClock) var clock
+    
+    // continuousClock is iOS 16.0+, removed for iOS 15 compatibility
+    // continuousClock 是 iOS 16.0+，为了 iOS 15 兼容性已移除
 
     // MARK: - Reducer Body / Reducer 主体
 
@@ -158,7 +159,9 @@ struct NetworkErrorDemoFeature {
 
                 return .run { [scenario = state.selectedScenario] send in
                     // Simulate network delay / 模拟网络延迟
-                    try await clock.sleep(for: .seconds(1.5))
+                    // Use Task.sleep for iOS 15 compatibility
+                    // 使用 Task.sleep 以兼容 iOS 15
+                    try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
 
                     // Generate response based on scenario / 根据场景生成响应
                     let result = await NetworkErrorDemoFeature.simulateNetworkRequest(scenario: scenario)
@@ -172,7 +175,9 @@ struct NetworkErrorDemoFeature {
 
                 return .run { [scenario = state.selectedScenario] send in
                     // Simulate refresh delay / 模拟刷新延迟
-                    try await clock.sleep(for: .seconds(1))
+                    // Use Task.sleep for iOS 15 compatibility
+                    // 使用 Task.sleep 以兼容 iOS 15
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
 
                     // Generate response / 生成响应
                     let result = await NetworkErrorDemoFeature.simulateNetworkRequest(scenario: scenario)
@@ -190,7 +195,9 @@ struct NetworkErrorDemoFeature {
                 let shouldSucceed = state.retryCount >= 3
 
                 return .run { send in
-                    try await clock.sleep(for: .seconds(1))
+                    // Use Task.sleep for iOS 15 compatibility
+                    // 使用 Task.sleep 以兼容 iOS 15
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
 
                     if shouldSucceed {
                         // Success after retries / 重试后成功

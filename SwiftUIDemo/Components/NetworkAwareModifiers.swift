@@ -208,7 +208,7 @@ struct NetworkAwareModifier: ViewModifier {
             // ─────────────────────────────────────────
             // onChange 是 SwiftUI 的响应式编程核心
             // 监听 @Published 属性的变化并执行相应操作
-            .onChange(of: monitor.isConnected) { _, isConnected in
+            .onChange(of: monitor.isConnected) { isConnected in
                 // 📊 DECISION TREE (决策树)
                 // ┌─ isConnected = true ──→ 执行 onConnected
                 // └─ isConnected = false ─→ 执行 onDisconnected
@@ -221,7 +221,7 @@ struct NetworkAwareModifier: ViewModifier {
                     onDisconnected?()
                 }
             }
-            .onChange(of: monitor.connectionType) { _, newType in
+            .onChange(of: monitor.connectionType) { newType in
                 // 🔄 CONNECTION TYPE MONITORING (连接类型监控)
                 // ─────────────────────────────────────────────
                 // 监控网络类型变化 (WiFi ↔ Cellular ↔ Ethernet)
@@ -396,7 +396,7 @@ struct AutoRetryOnReconnectModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: monitor.isConnected) { _, isConnected in
+            .onChange(of: monitor.isConnected) { isConnected in
                 if !isConnected {
                     wasDisconnected = true
                 } else if wasDisconnected {
@@ -634,7 +634,7 @@ struct UniversalNetworkStateModifier<T: Equatable>: ViewModifier {
         .animation(.easeInOut(duration: 0.3), value: state)
         .animation(.easeInOut(duration: 0.2), value: monitor.isConnected)
         // Auto-retry on reconnect / 重连时自动重试
-        .onChange(of: monitor.isConnected) { _, isConnected in
+        .onChange(of: monitor.isConnected) { isConnected in
             if autoRetry && isConnected && !hasRetried {
                 hasRetried = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

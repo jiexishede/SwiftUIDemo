@@ -194,7 +194,8 @@ struct ECommerceHomeFeature {
     // MARK: - Dependencies
     
     @Dependency(\.ecommerceService) var service
-    @Dependency(\.continuousClock) var clock
+    // continuousClock is iOS 16.0+, removed for iOS 15 compatibility
+    // continuousClock 是 iOS 16.0+，为了 iOS 15 兼容性已移除
     
     // MARK: - Reducer
     

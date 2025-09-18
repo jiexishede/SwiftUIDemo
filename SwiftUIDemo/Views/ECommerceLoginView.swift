@@ -68,20 +68,24 @@ struct ECommerceLoginView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 40)
                 }
-                .scrollDismissesKeyboard(.interactively)
+                // Apply scrollDismissesKeyboard for iOS 16.0+
+                // 为 iOS 16.0+ 应用 scrollDismissesKeyboard
+                .modifier(ScrollDismissesKeyboardModifier())
             }
             .navigationBarHidden(true)
             .onAppear {
                 animateEntrance()
             }
             // iOS 15 compatible onChange / iOS 15 兼容的 onChange
-            .onReceive(viewStore.publisher.shouldNavigateToHome) { shouldNavigate in
+            .onReceive(viewStore.publisher.shouldNavigateToHome.removeDuplicates()) { shouldNavigate in
                 print("📱 shouldNavigateToHome changed to: \(shouldNavigate)")
                 // Call the success callback when login succeeds
                 // 登录成功时调用回调
                 if shouldNavigate {
                     print("✅ Calling onLoginSuccess callback")
-                    onLoginSuccess?()
+                    DispatchQueue.main.async {
+                        onLoginSuccess?()
+                    }
                 }
             }
         }
@@ -393,6 +397,32 @@ struct SocialLoginButton: View {
             .background(Color.white)
             .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        }
+    }
+}
+
+// MARK: - ScrollDismissesKeyboard Modifier for iOS Compatibility
+// ScrollDismissesKeyboard 修饰符用于 iOS 兼容性
+
+/**
+ * Compatibility modifier for scrollDismissesKeyboard
+ * scrollDismissesKeyboard 的兼容性修饰符
+ * 
+ * iOS 16.0+: Uses scrollDismissesKeyboard(.interactively)
+ * iOS 15.0: No keyboard dismissal on scroll (system default)
+ * 
+ * iOS 16.0+: 使用 scrollDismissesKeyboard(.interactively)
+ * iOS 15.0: 滚动时不自动收起键盘（系统默认）
+ */
+struct ScrollDismissesKeyboardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .scrollDismissesKeyboard(.interactively)
+        } else {
+            // iOS 15 doesn't have this modifier, use default behavior
+            // iOS 15 没有此修饰符，使用默认行为
+            content
         }
     }
 }

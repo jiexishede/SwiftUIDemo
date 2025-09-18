@@ -322,9 +322,17 @@ struct MiniCard: View {
     let index: Int
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(Color.orange.gradient)
-            .frame(width: 100, height: 100)
+        Group {
+            if #available(iOS 16.0, *) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.orange.gradient)
+                    .frame(width: 100, height: 100)
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.orange)
+                    .frame(width: 100, height: 100)
+            }
+        }
             .overlay(
                 VStack {
                     Image(systemName: "star")
@@ -375,13 +383,19 @@ struct AdaptiveVerticalScrollView<Content: View>: View {
     }
 
     var body: some View {
-        if #available(iOS 16.0, *) {
-            // iOS 16+ features / iOS 16+ 特性
+        if #available(iOS 17.0, *) {
+            // iOS 17+ advanced features / iOS 17+ 高级特性
             ScrollView {
                 content
                     .scrollTargetLayout()
             }
             .scrollTargetBehavior(.viewAligned)
+            .scrollIndicators(.visible)
+        } else if #available(iOS 16.0, *) {
+            // iOS 16 features / iOS 16 特性
+            ScrollView {
+                content
+            }
             .scrollIndicators(.visible)
         } else {
             // iOS 15 fallback / iOS 15 后备方案

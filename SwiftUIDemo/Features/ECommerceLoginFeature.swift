@@ -53,9 +53,9 @@ import Combine
 
 @Reducer
 struct ECommerceLoginFeature {
-    
+
     // MARK: - State
-    
+
     /**
      * 登录状态定义
      * Login state definition
@@ -68,34 +68,34 @@ struct ECommerceLoginFeature {
         // Form fields / 表单字段
         var username: String = ""
         var password: String = ""
-        
+
         // UI States / UI状态
         var isLoading: Bool = false
         var isPasswordVisible: Bool = false
         var rememberMe: Bool = false
-        
+
         // Validation / 验证
         var usernameError: String?
         var passwordError: String?
         var generalError: String?
-        
+
         // Navigation / 导航
         var isLoginSuccessful: Bool = false
         var shouldNavigateToHome: Bool = false
-        
+
         // Computed properties / 计算属性
         var isFormValid: Bool {
             !username.isEmpty && !password.isEmpty &&
             usernameError == nil && passwordError == nil
         }
-        
+
         var hasAnyError: Bool {
             usernameError != nil || passwordError != nil || generalError != nil
         }
     }
-    
+
     // MARK: - Action
-    
+
     /**
      * 用户动作定义
      * User action definition
@@ -109,28 +109,28 @@ struct ECommerceLoginFeature {
         case passwordChanged(String)
         case togglePasswordVisibility
         case toggleRememberMe
-        
+
         // Form actions / 表单操作
         case validateUsername
         case validatePassword
         case clearErrors
-        
+
         // Authentication / 认证
         case loginButtonTapped
         case loginResponse(Result<AuthResponse, AuthError>)
-        
+
         // Navigation / 导航
         case navigateToHome
         case forgotPasswordTapped
         case registerTapped
-        
+
         // Social login / 社交登录
         case wechatLoginTapped
         case appleLoginTapped
     }
-    
+
     // MARK: - Dependencies
-    
+
     /**
      * 依赖注入
      * Dependency Injection
@@ -139,10 +139,9 @@ struct ECommerceLoginFeature {
      * Inject external services, following DIP principle
      */
     @Dependency(\.authenticationService) var authService
-    @Dependency(\.continuousClock) var clock
-    
+
     // MARK: - Reducer
-    
+
     /**
      * 核心业务逻辑
      * Core business logic
@@ -153,31 +152,31 @@ struct ECommerceLoginFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-                
+
             // MARK: Username handling
             case let .usernameChanged(username):
                 state.username = username
                 state.usernameError = nil
                 state.generalError = nil
                 return .none
-                
+
             // MARK: Password handling
             case let .passwordChanged(password):
                 state.password = password
                 state.passwordError = nil
                 state.generalError = nil
                 return .none
-                
+
             // MARK: Toggle visibility
             case .togglePasswordVisibility:
                 state.isPasswordVisible.toggle()
                 return .none
-                
+
             // MARK: Toggle remember me
             case .toggleRememberMe:
                 state.rememberMe.toggle()
                 return .none
-                
+
             // MARK: Validate username
             case .validateUsername:
                 if state.username.isEmpty {
@@ -190,7 +189,7 @@ struct ECommerceLoginFeature {
                     state.usernameError = nil
                 }
                 return .none
-                
+
             // MARK: Validate password
             case .validatePassword:
                 if state.password.isEmpty {
@@ -201,57 +200,75 @@ struct ECommerceLoginFeature {
                     state.passwordError = nil
                 }
                 return .none
-                
+
             // MARK: Clear errors
             case .clearErrors:
                 state.usernameError = nil
                 state.passwordError = nil
                 state.generalError = nil
                 return .none
-                
+
             // MARK: Login action
             case .loginButtonTapped:
+                print("🔵 Login button tapped")
+                print("📝 Username: \(state.username)")
+                print("📝 Password: \(state.password)")
+
                 // Validate before login / 登录前验证
                 guard state.isFormValid else {
                     state.generalError = "请填写正确的信息 / Please fill in correct information"
                     return .none
                 }
-                
+
                 state.isLoading = true
                 state.generalError = nil
-                
+
+                print("🚀 Starting login request...")
+
                 // Perform login / 执行登录
                 return .run { [username = state.username, password = state.password] send in
                     do {
+                        print("🔄 Calling authService.login with username: \(username)")
                         let response = try await authService.login(username, password)
+                        print("✅ Login successful, sending success response")
                         await send(.loginResponse(.success(response)))
                     } catch let error as AuthError {
+                        print("❌ Login failed with error: \(error)")
                         await send(.loginResponse(.failure(error)))
                     } catch {
+                        print("❌ Login failed with unknown error")
                         await send(.loginResponse(.failure(.unknown)))
                     }
                 }
-                
+
             // MARK: Login response
-            case let .loginResponse(.success(response)):
+            case .loginResponse(.success(_)):
+                print("🎉 Login response received successfully")
+                print("📊 Current shouldNavigateToHome: \(state.shouldNavigateToHome)")
+
                 state.isLoading = false
                 state.isLoginSuccessful = true
-                
+
                 // Store token if remember me is checked / 如果选择记住我则存储token
                 if state.rememberMe {
                     // Store token logic here
                 }
-                
+
+                print("⏱️ Waiting 500ms before navigation...")
+
                 // Navigate to home after short delay / 短暂延迟后导航到首页
                 return .run { send in
-                    try await clock.sleep(for: .milliseconds(500))
+                    // Use Task.sleep which is iOS 15 compatible
+                    // 使用兼容 iOS 15 的 Task.sleep
+                    try await Task.sleep(nanoseconds: 500_000_000) // 500ms
+                    print("🔄 Sending navigateToHome action")
                     await send(.navigateToHome)
                 }
-                
+
             case let .loginResponse(.failure(error)):
                 state.isLoading = false
                 state.isLoginSuccessful = false
-                
+
                 switch error {
                 case .invalidCredentials:
                     state.generalError = "用户名或密码错误 / Invalid username or password"
@@ -263,26 +280,29 @@ struct ECommerceLoginFeature {
                     state.generalError = "未知错误 / Unknown error"
                 }
                 return .none
-                
+
             // MARK: Navigation
             case .navigateToHome:
+                print("🏠 NavigateToHome action received")
+                print("📊 Setting shouldNavigateToHome from \(state.shouldNavigateToHome) to true")
                 state.shouldNavigateToHome = true
+                print("✅ shouldNavigateToHome is now: \(state.shouldNavigateToHome)")
                 return .none
-                
+
             case .forgotPasswordTapped:
                 // Handle forgot password / 处理忘记密码
                 return .none
-                
+
             case .registerTapped:
                 // Handle registration / 处理注册
                 return .none
-                
+
             // MARK: Social login
             case .wechatLoginTapped:
                 state.isLoading = true
                 // Implement WeChat login / 实现微信登录
                 return .none
-                
+
             case .appleLoginTapped:
                 state.isLoading = true
                 // Implement Apple login / 实现Apple登录
@@ -290,9 +310,9 @@ struct ECommerceLoginFeature {
             }
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     /**
      * 验证用户名格式
      * Validate username format
@@ -357,7 +377,7 @@ struct MockAuthenticationService: AuthenticationServiceProtocol {
     func login(_ username: String, _ password: String) async throws -> AuthResponse {
         // Simulate network delay / 模拟网络延迟
         try await Task.sleep(nanoseconds: 2_000_000_000)
-        
+
         // Simulate validation / 模拟验证
         if username == "demo" && password == "123456" {
             return AuthResponse(
@@ -374,11 +394,11 @@ struct MockAuthenticationService: AuthenticationServiceProtocol {
             throw AuthError.invalidCredentials
         }
     }
-    
+
     func logout() async throws {
         try await Task.sleep(nanoseconds: 500_000_000)
     }
-    
+
     func refreshToken(_ refreshToken: String) async throws -> AuthResponse {
         try await Task.sleep(nanoseconds: 1_000_000_000)
         return AuthResponse(

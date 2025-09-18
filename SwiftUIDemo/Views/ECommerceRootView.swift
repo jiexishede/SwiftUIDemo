@@ -53,9 +53,12 @@ struct ECommerceRootView: View {
                 // Show login page / 显示登录页
                 ECommerceLoginWrapperView(
                     onLoginSuccess: {
-                        print("🎯 Login success callback triggered / 登录成功回调触发")
+                        print("🎯 Login success callback triggered in ECommerceRootView / 登录成功回调触发")
+                        print("📊 Current isLoggedIn: \(isLoggedIn)")
                         withAnimation(.easeInOut(duration: 0.3)) {
+                            print("🔄 Setting isLoggedIn to true")
                             isLoggedIn = true
+                            print("✅ isLoggedIn is now: \(isLoggedIn)")
                         }
                     }
                 )
@@ -63,6 +66,10 @@ struct ECommerceRootView: View {
             }
         }
         .animation(.default, value: isLoggedIn)
+        .onAppear {
+            print("🚀 ECommerceRootView appeared")
+            print("📊 Initial isLoggedIn state: \(isLoggedIn)")
+        }
     }
 }
 

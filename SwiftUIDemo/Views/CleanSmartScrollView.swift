@@ -287,10 +287,20 @@ struct CleanCardView: View {
     let color: Color
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(color.gradient)
-            .frame(width: 150, height: 180)
-            .overlay(
+        // iOS 16.0+ has gradient, iOS 15 uses plain color
+        // iOS 16.0+ 有渐变，iOS 15 使用纯色
+        Group {
+            if #available(iOS 16.0, *) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(color.gradient)
+                    .frame(width: 150, height: 180)
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(color)
+                    .frame(width: 150, height: 180)
+            }
+        }
+        .overlay(
                 VStack {
                     Image(systemName: "star.fill")
                         .font(.largeTitle)
@@ -382,12 +392,23 @@ struct AdaptiveScrollView<Content: View>: View {
     }
 
     @available(iOS 16.0, *)
+    @ViewBuilder
     private var modernImplementation: some View {
-        ScrollView {
-            content
-                .scrollTargetLayout()
+        // iOS 17.0+ has advanced scroll APIs
+        // iOS 17.0+ 有高级滚动 API
+        if #available(iOS 17.0, *) {
+            ScrollView {
+                content
+                    .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+        } else {
+            // iOS 16 implementation without advanced scroll APIs
+            // iOS 16 实现，没有高级滚动 API
+            ScrollView {
+                content
+            }
         }
-        .scrollTargetBehavior(.viewAligned)
     }
 
     private var legacyImplementation: some View {

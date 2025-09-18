@@ -382,8 +382,8 @@ struct ErrorStateView: View {
                         HStack {
                             Image(systemName: "arrow.clockwise")
                             Text("重试 / Retry")
+                                .fontWeight(.medium)
                         }
-                        .fontWeight(.medium)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                     }

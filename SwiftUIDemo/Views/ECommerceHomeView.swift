@@ -375,9 +375,9 @@ struct ECommerceHomeView: View {
                 HStack {
                     Image(systemName: "arrow.clockwise")
                     Text("重试失败项 / Retry Failed")
+                        .fontWeight(.semibold)
                 }
                 .font(.caption)
-                .fontWeight(.semibold)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(Color.white.opacity(0.3))
@@ -1037,12 +1037,14 @@ struct InlineError: View {
             }
             
             // Retry button row / 重试按钮行
-            Button("重试 / Retry", action: onRetry)
-                .font(.caption)
-                .fontWeight(.medium)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .frame(maxWidth: .infinity)
+            Button(action: onRetry) {
+                Text("重试 / Retry")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .frame(maxWidth: .infinity)
         }
         .padding(12)
         .background(Color.orange.opacity(0.1))

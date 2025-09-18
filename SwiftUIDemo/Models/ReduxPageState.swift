@@ -384,4 +384,12 @@ public enum ReduxPageState<Content: Equatable>: Equatable {
     public var errorMessage: String? {
         errorInfo?.message
     }
+    
+    /// 检查是否为失败状态 / Check if state is failed
+    public var isFailed: Bool {
+        if case .failed = self {
+            return true
+        }
+        return false
+    }
 }

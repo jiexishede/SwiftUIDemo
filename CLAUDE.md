@@ -1257,6 +1257,470 @@ xcodebuild -project ReduxSwiftUIDemo.xcodeproj -scheme ReduxSwiftUIDemo -destina
 swift test
 ```
 
+## 🎯 MVP Development Principles / MVP 开发原则
+
+### Minimum Viable Product First / 最小可行产品优先
+
+每个功能开发必须遵循 MVP 原则，并预留扩展空间。
+
+Every feature development must follow MVP principles and reserve space for extensions.
+
+#### MVP Implementation Strategy / MVP 实现策略
+
+```swift
+/**
+ * MVP DEVELOPMENT PATTERN - MVP 开发模式
+ * 
+ * CORE PRINCIPLE / 核心原则:
+ * - Start with the smallest working version
+ * - 从最小的可工作版本开始
+ * - Reserve clear extension points for future features
+ * - 为未来功能预留明确的扩展点
+ * 
+ * STRUCTURE / 结构:
+ * 1. Core MVP Feature - 核心 MVP 功能
+ * 2. Extension Point 1 - 扩展点 1
+ * 3. Extension Point 2 - 扩展点 2
+ * 4. Extension Point 3 - 扩展点 3
+ */
+
+// EXAMPLE: User Authentication MVP / 示例：用户认证 MVP
+struct AuthenticationFeature {
+    // MVP: Basic email/password login / MVP: 基础邮箱密码登录
+    func basicLogin(email: String, password: String) async throws -> User {
+        // Minimum implementation / 最小实现
+    }
+    
+    // Extension 1: Social login support / 扩展 1：社交登录支持
+    // TODO: Reserved for OAuth integration
+    // protocol SocialAuthProvider { }
+    
+    // Extension 2: Biometric authentication / 扩展 2：生物识别认证
+    // TODO: Reserved for Face ID / Touch ID
+    // protocol BiometricAuthenticator { }
+    
+    // Extension 3: Multi-factor authentication / 扩展 3：多因素认证
+    // TODO: Reserved for 2FA/MFA
+    // protocol MultiFactorAuth { }
+}
+```
+
+### Three Common Extensions Rule / 三个常见扩展规则
+
+每个 MVP 功能必须预留 3 个最常见的扩展点：
+
+Each MVP feature must reserve 3 most common extension points:
+
+1. **Data Extension / 数据扩展**: Additional fields or data types / 额外字段或数据类型
+2. **Behavior Extension / 行为扩展**: New operations or workflows / 新操作或工作流程
+3. **Integration Extension / 集成扩展**: Third-party service connections / 第三方服务连接
+
+#### Extension Points Example / 扩展点示例
+
+```swift
+/**
+ * PRODUCT LIST MVP WITH EXTENSIONS - 带扩展的产品列表 MVP
+ */
+struct ProductListFeature {
+    struct State {
+        // MVP State / MVP 状态
+        var products: [Product] = []
+        var isLoading = false
+        
+        // Extension 1: Filter & Sort (Data) / 扩展 1：过滤和排序（数据）
+        // var filters: ProductFilters?
+        // var sortOption: SortOption = .default
+        
+        // Extension 2: Batch Operations (Behavior) / 扩展 2：批量操作（行为）
+        // var selectedProducts: Set<Product.ID> = []
+        // var batchAction: BatchAction?
+        
+        // Extension 3: Analytics Integration / 扩展 3：分析集成
+        // var analyticsTracker: AnalyticsTracker?
+    }
+    
+    enum Action {
+        // MVP Actions / MVP 动作
+        case loadProducts
+        case productsLoaded([Product])
+        
+        // Extension 1 Actions / 扩展 1 动作
+        // case applyFilter(ProductFilters)
+        // case changeSort(SortOption)
+        
+        // Extension 2 Actions / 扩展 2 动作
+        // case selectProduct(Product.ID)
+        // case performBatchAction(BatchAction)
+        
+        // Extension 3 Actions / 扩展 3 动作
+        // case trackEvent(AnalyticsEvent)
+    }
+}
+```
+
+## 🧪 Testing Requirements / 测试要求
+
+### 95% Code Coverage Requirement / 95% 代码覆盖率要求
+
+所有代码必须达到 95% 的测试覆盖率。
+
+All code must achieve 95% test coverage.
+
+#### Coverage Strategy / 覆盖策略
+
+```swift
+/**
+ * TEST COVERAGE REQUIREMENTS - 测试覆盖率要求
+ * 
+ * MINIMUM COVERAGE / 最低覆盖率: 95%
+ * 
+ * COVERAGE BREAKDOWN / 覆盖率分解:
+ * - Business Logic / 业务逻辑: 100%
+ * - Data Models / 数据模型: 100%
+ * - View Models / 视图模型: 95%
+ * - UI Components / UI 组件: 90%
+ * - Utilities / 工具函数: 100%
+ */
+```
+
+### XCTest Unit Testing / XCTest 单元测试
+
+#### Test Structure Template / 测试结构模板
+
+```swift
+import XCTest
+@testable import SwiftUIDemo
+
+/**
+ * UNIT TEST TEMPLATE - 单元测试模板
+ * 
+ * TEST PRINCIPLES / 测试原则:
+ * 1. Arrange-Act-Assert pattern / 准备-执行-断言模式
+ * 2. Test one thing at a time / 一次测试一件事
+ * 3. Cover all branches and edge cases / 覆盖所有分支和边界情况
+ * 4. Use descriptive test names / 使用描述性测试名称
+ */
+final class FeatureTests: XCTestCase {
+    
+    // MARK: - Properties / 属性
+    var sut: SystemUnderTest! // System Under Test / 被测系统
+    
+    // MARK: - Setup / 设置
+    override func setUp() {
+        super.setUp()
+        sut = SystemUnderTest()
+    }
+    
+    override func tearDown() {
+        sut = nil
+        super.tearDown()
+    }
+    
+    // MARK: - Positive Tests / 正向测试
+    func test_functionName_withValidInput_shouldReturnExpectedResult() {
+        // Arrange / 准备
+        let input = "valid"
+        let expected = "result"
+        
+        // Act / 执行
+        let result = sut.function(input)
+        
+        // Assert / 断言
+        XCTAssertEqual(result, expected)
+    }
+    
+    // MARK: - Negative Tests / 负向测试
+    func test_functionName_withInvalidInput_shouldThrowError() {
+        // Arrange / 准备
+        let invalidInput = ""
+        
+        // Act & Assert / 执行和断言
+        XCTAssertThrowsError(try sut.function(invalidInput)) { error in
+            XCTAssertEqual(error as? CustomError, CustomError.invalidInput)
+        }
+    }
+    
+    // MARK: - Edge Cases / 边界情况
+    func test_functionName_withBoundaryValue_shouldHandleCorrectly() {
+        // Test minimum boundary / 测试最小边界
+        XCTAssertEqual(sut.function(Int.min), expectedMin)
+        
+        // Test maximum boundary / 测试最大边界
+        XCTAssertEqual(sut.function(Int.max), expectedMax)
+        
+        // Test nil/empty cases / 测试空值情况
+        XCTAssertNil(sut.function(nil))
+    }
+    
+    // MARK: - Async Tests / 异步测试
+    func test_asyncFunction_shouldCompleteSuccessfully() async throws {
+        // Arrange / 准备
+        let expectation = XCTestExpectation(description: "Async operation")
+        
+        // Act / 执行
+        let result = try await sut.asyncFunction()
+        
+        // Assert / 断言
+        XCTAssertNotNil(result)
+        expectation.fulfill()
+    }
+}
+```
+
+### UI Testing with XCUITest / 使用 XCUITest 进行 UI 测试
+
+```swift
+import XCTest
+
+/**
+ * UI TEST TEMPLATE - UI 测试模板
+ * 
+ * UI TEST COVERAGE / UI 测试覆盖:
+ * - User flows / 用户流程: 100%
+ * - Critical paths / 关键路径: 100%
+ * - Error scenarios / 错误场景: 95%
+ * - Edge UI states / 边界 UI 状态: 90%
+ */
+final class AppUITests: XCTestCase {
+    
+    var app: XCUIApplication!
+    
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        app = XCUIApplication()
+        app.launch()
+    }
+    
+    // MARK: - User Flow Tests / 用户流程测试
+    func test_completeUserLoginFlow() {
+        // Test complete login flow / 测试完整登录流程
+        
+        // 1. Navigate to login / 导航到登录
+        app.buttons["Login"].tap()
+        
+        // 2. Enter credentials / 输入凭据
+        let emailField = app.textFields["Email"]
+        emailField.tap()
+        emailField.typeText("test@example.com")
+        
+        let passwordField = app.secureTextFields["Password"]
+        passwordField.tap()
+        passwordField.typeText("password123")
+        
+        // 3. Submit login / 提交登录
+        app.buttons["Sign In"].tap()
+        
+        // 4. Verify success / 验证成功
+        XCTAssertTrue(app.navigationBars["Home"].exists)
+    }
+    
+    // MARK: - Accessibility Tests / 可访问性测试
+    func test_accessibility_allElementsHaveLabels() {
+        // Verify all interactive elements have accessibility labels
+        // 验证所有交互元素都有可访问性标签
+        
+        let buttons = app.buttons.allElementsBoundByIndex
+        for button in buttons {
+            XCTAssertFalse(button.label.isEmpty, "Button missing accessibility label")
+        }
+    }
+}
+```
+
+## 🔬 Pure Function Design / 纯函数设计
+
+### Pure Function Principles / 纯函数原则
+
+所有业务逻辑必须尽可能设计为纯函数。
+
+All business logic must be designed as pure functions whenever possible.
+
+```swift
+/**
+ * PURE FUNCTION DESIGN - 纯函数设计
+ * 
+ * PRINCIPLES / 原则:
+ * 1. No side effects / 无副作用
+ * 2. Same input always produces same output / 相同输入总是产生相同输出
+ * 3. No external dependencies / 无外部依赖
+ * 4. Easily testable / 易于测试
+ */
+
+// ❌ BAD - Impure function / 不纯的函数
+class PriceCalculator {
+    var taxRate: Double = 0.1 // External state / 外部状态
+    
+    func calculatePrice(amount: Double) -> Double {
+        // Depends on external state / 依赖外部状态
+        return amount * (1 + taxRate)
+    }
+}
+
+// ✅ GOOD - Pure function / 纯函数
+enum PriceCalculator {
+    static func calculatePrice(amount: Double, taxRate: Double) -> Double {
+        // Pure: same inputs always give same output
+        // 纯函数：相同输入总是给出相同输出
+        return amount * (1 + taxRate)
+    }
+    
+    static func applyDiscount(price: Double, discountPercent: Double) -> Double {
+        guard discountPercent >= 0 && discountPercent <= 100 else {
+            return price
+        }
+        return price * (1 - discountPercent / 100)
+    }
+}
+```
+
+### Testable Pure Functions / 可测试的纯函数
+
+```swift
+/**
+ * TESTABLE PURE FUNCTIONS - 可测试的纯函数
+ * 
+ * All conditions and boundaries are testable
+ * 所有条件和边界都是可测试的
+ */
+
+// Pure function with all branches testable / 所有分支都可测试的纯函数
+func validateEmail(_ email: String) -> Result<String, ValidationError> {
+    // Empty check / 空值检查
+    guard !email.isEmpty else {
+        return .failure(.empty)
+    }
+    
+    // Length check / 长度检查
+    guard email.count <= 255 else {
+        return .failure(.tooLong)
+    }
+    
+    // Format check / 格式检查
+    let emailRegex = "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$"
+    let emailPredicate = NSPredicate(format: "SELF MATCHES[c] %@", emailRegex)
+    guard emailPredicate.evaluate(with: email) else {
+        return .failure(.invalidFormat)
+    }
+    
+    return .success(email.lowercased())
+}
+
+// Corresponding tests covering all branches / 覆盖所有分支的对应测试
+class EmailValidationTests: XCTestCase {
+    // Test empty input / 测试空输入
+    func test_validateEmail_withEmptyString_shouldReturnEmptyError() {
+        let result = validateEmail("")
+        XCTAssertEqual(result, .failure(.empty))
+    }
+    
+    // Test boundary - max length / 测试边界 - 最大长度
+    func test_validateEmail_with256Characters_shouldReturnTooLongError() {
+        let longEmail = String(repeating: "a", count: 247) + "@test.com" // 256 chars
+        let result = validateEmail(longEmail)
+        XCTAssertEqual(result, .failure(.tooLong))
+    }
+    
+    // Test valid format / 测试有效格式
+    func test_validateEmail_withValidEmail_shouldReturnSuccess() {
+        let result = validateEmail("Test@Example.COM")
+        XCTAssertEqual(result, .success("test@example.com"))
+    }
+    
+    // Test invalid format / 测试无效格式
+    func test_validateEmail_withInvalidFormat_shouldReturnInvalidFormatError() {
+        let testCases = [
+            "no-at-sign.com",
+            "@no-local-part.com",
+            "no-domain@",
+            "spaces in@email.com"
+        ]
+        
+        for email in testCases {
+            let result = validateEmail(email)
+            XCTAssertEqual(result, .failure(.invalidFormat))
+        }
+    }
+}
+```
+
+### Functional Composition / 函数组合
+
+```swift
+/**
+ * FUNCTIONAL COMPOSITION - 函数组合
+ * 
+ * Combine pure functions for complex logic
+ * 组合纯函数实现复杂逻辑
+ */
+
+// Composable pure functions / 可组合的纯函数
+enum DataProcessor {
+    // Individual pure functions / 独立的纯函数
+    static func trim(_ string: String) -> String {
+        string.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    static func lowercase(_ string: String) -> String {
+        string.lowercased()
+    }
+    
+    static func removeSpecialChars(_ string: String) -> String {
+        string.replacingOccurrences(of: "[^a-zA-Z0-9]", with: "", options: .regularExpression)
+    }
+    
+    // Composition / 组合
+    static func sanitize(_ input: String) -> String {
+        // Compose pure functions / 组合纯函数
+        return removeSpecialChars(lowercase(trim(input)))
+    }
+}
+
+// Function composition operator / 函数组合操作符
+precedencegroup CompositionPrecedence {
+    associativity: left
+}
+
+infix operator >>>: CompositionPrecedence
+
+func >>> <A, B, C>(f: @escaping (A) -> B, g: @escaping (B) -> C) -> (A) -> C {
+    return { g(f($0)) }
+}
+
+// Usage / 使用
+let sanitize = DataProcessor.trim >>> DataProcessor.lowercase >>> DataProcessor.removeSpecialChars
+let result = sanitize("  Hello World!  ")
+```
+
+## 📊 Test Coverage Monitoring / 测试覆盖率监控
+
+### Coverage Commands / 覆盖率命令
+
+```bash
+# Generate test coverage report / 生成测试覆盖率报告
+xcodebuild test -scheme SwiftUIDemo \
+    -destination 'platform=iOS Simulator,name=iPhone 16' \
+    -enableCodeCoverage YES
+
+# View coverage in Xcode / 在 Xcode 中查看覆盖率
+# Product -> Show Build Folder -> Navigate to Coverage.profdata
+
+# Generate HTML coverage report / 生成 HTML 覆盖率报告
+xcrun llvm-cov show \
+    -instr-profile=Coverage.profdata \
+    -format=html \
+    -output-dir=coverage_report \
+    Build/Products/Debug-iphonesimulator/SwiftUIDemo.app/SwiftUIDemo
+```
+
+### Coverage Requirements Checklist / 覆盖率要求清单
+
+- [ ] Unit Tests / 单元测试: ≥ 95%
+- [ ] Integration Tests / 集成测试: ≥ 90%
+- [ ] UI Tests / UI 测试: ≥ 85%
+- [ ] Edge Cases / 边界情况: 100%
+- [ ] Error Paths / 错误路径: 100%
+- [ ] Async Operations / 异步操作: ≥ 95%
+
 ## Development Process / 开发流程
 
 ### Requirements Discussion First / 需求讨论优先

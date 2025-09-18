@@ -72,6 +72,14 @@ struct ECommerceHomeFeature {
         var globalErrorMessage: String = ""
         var isInitialLoadComplete: Bool = false
         
+        // MARK: New Error Display States / 新的错误显示状态
+        var errorDisplayMode: ErrorDisplayMode = .none
+        var showPinkErrorBanner: Bool = false
+        var showOrangeFloatingAlert: Bool = false
+        var showBlueRetryBanner: Bool = false
+        var failedCoreAPIs: [String] = []
+        var failedComponentAPIs: [String] = []
+        
         // MARK: Computed Properties / 计算属性
         
         /**
@@ -85,6 +93,47 @@ struct ECommerceHomeFeature {
             if case .failed = userPermissionsState { return true }
             if case .failed = userNotificationsState { return true }
             return false
+        }
+        
+        /**
+         * 核心API错误数量（使用纯函数）
+         * Core API error count (using pure function)
+         */
+        var coreErrorCount: Int {
+            let states = [
+                userProfileState.isFailed,
+                userSettingsState.isFailed,
+                userStatisticsState.isFailed,
+                userPermissionsState.isFailed,
+                userNotificationsState.isFailed
+            ]
+            return ErrorStateCalculator.countCoreErrors(states)
+        }
+        
+        /**
+         * 组件错误数量（使用纯函数）
+         * Component error count (using pure function)
+         */
+        var componentErrorCount: Int {
+            let states = [
+                bannersState.isFailed,
+                recommendedProductsState.isFailed,
+                flashSalesState.isFailed,
+                categoriesState.isFailed,
+                orderStatusState.isFailed
+            ]
+            return ErrorStateCalculator.countComponentErrors(states)
+        }
+        
+        /**
+         * 计算当前错误显示模式（使用纯函数）
+         * Calculate current error display mode (using pure function)
+         */
+        var calculatedDisplayMode: ErrorDisplayMode {
+            ErrorStateCalculator.determineDisplayMode(
+                coreErrors: coreErrorCount,
+                componentErrors: componentErrorCount
+            )
         }
         
         /**
@@ -174,7 +223,11 @@ struct ECommerceHomeFeature {
         case retryAllCoreAPIs
         case retryFailedCoreAPIs  // 只重试失败的核心API / Only retry failed core APIs
         case retryComponentAPI(ComponentType)
+        case retryBatchAPIs([String])  // 批量重试指定的API / Batch retry specified APIs
         case dismissGlobalError
+        case dismissPinkBanner
+        case dismissOrangeAlert
+        case dismissBlueBanner
         
         // MARK: Navigation / 导航
         case productTapped(Product)
@@ -205,10 +258,36 @@ struct ECommerceHomeFeature {
                 
             // MARK: Lifecycle
             case .onAppear:
-                guard !state.isInitialLoadComplete else { return .none }
+                print("🏪 ECommerceHomeFeature.onAppear called")
+                let systemVersion = ProcessInfo.processInfo.operatingSystemVersion
+                print("📱 iOS Version: \(systemVersion.majorVersion).\(systemVersion.minorVersion).\(systemVersion.patchVersion)")
+                print("📊 isInitialLoadComplete: \(state.isInitialLoadComplete)")
+                
+                // iOS 15.0 specific handling / iOS 15.0 特殊处理
+                if #available(iOS 16.0, *) {
+                    // iOS 16.0+ normal flow / iOS 16.0+ 正常流程
+                    guard !state.isInitialLoadComplete else { 
+                        print("⚠️ Initial load already complete, skipping")
+                        return .none 
+                    }
+                } else {
+                    // iOS 15.0: Always reload to fix skeleton issue / iOS 15.0: 总是重新加载以修复骨架图问题
+                    print("🔄 iOS 15.0 detected, forcing data reload")
+                    state.isInitialLoadComplete = false
+                }
+                
+                print("🚀 Sending loadInitialData action")
                 return .send(.loadInitialData)
                 
             case .loadInitialData:
+                print("📋 Loading initial data...")
+                let systemVersion = ProcessInfo.processInfo.operatingSystemVersion
+                print("📱 iOS Version: \(systemVersion.majorVersion).\(systemVersion.minorVersion)")
+                
+                // Don't set complete until data actually loads / 不要在数据实际加载前设置完成
+                // This was causing iOS 15.0 skeleton issue / 这导致了 iOS 15.0 骨架图问题
+                // state.isInitialLoadComplete = true  // REMOVED / 已移除
+                
                 // Load all core APIs in parallel / 并行加载所有核心API
                 return .merge(
                     .send(.loadUserProfile),
@@ -226,24 +305,37 @@ struct ECommerceHomeFeature {
                 
             // MARK: User Profile
             case .loadUserProfile:
+                print("👤 Loading user profile...")
                 state.userProfileState = .loading(.initial)
                 return .run { send in
                     do {
                         let profile = try await service.fetchUserProfile()
+                        print("✅ User profile loaded successfully")
                         await send(.userProfileResponse(.success(profile)))
                     } catch let error as ECommerceError {
+                        print("❌ User profile failed: \(error)")
                         await send(.userProfileResponse(.failure(error)))
                     } catch {
+                        print("❌ User profile failed with unknown error")
                         await send(.userProfileResponse(.failure(.unknown)))
                     }
                 }
                 
             case let .userProfileResponse(.success(profile)):
+                print("✅ User profile state set to loaded")
                 state.userProfileState = .loaded(profile, .idle)
                 checkAndUpdateGlobalError(&state)
+                
+                // Mark initial load complete when user profile loads successfully
+                // 当用户资料加载成功时标记初始加载完成
+                if !state.isInitialLoadComplete {
+                    print("🎆 Setting isInitialLoadComplete = true")
+                    state.isInitialLoadComplete = true
+                }
                 return .none
                 
             case let .userProfileResponse(.failure(error)):
+                print("❌ User profile state set to failed: \(error)")
                 state.userProfileState = .failed(
                     .initial,
                     ReduxPageState<UserProfile>.ErrorInfo(
@@ -563,8 +655,59 @@ struct ECommerceHomeFeature {
                     return .send(.loadOrderStatus)
                 }
                 
+            case let .retryBatchAPIs(apis):
+                // 批量重试指定的API / Batch retry specified APIs
+                var effects: [Effect<Action>] = []
+                
+                for api in apis {
+                    if api.contains("Profile") || api.contains("资料") {
+                        effects.append(.send(.loadUserProfile))
+                    }
+                    if api.contains("Settings") || api.contains("设置") {
+                        effects.append(.send(.loadUserSettings))
+                    }
+                    if api.contains("Statistics") || api.contains("统计") {
+                        effects.append(.send(.loadUserStatistics))
+                    }
+                    if api.contains("Permissions") || api.contains("权限") {
+                        effects.append(.send(.loadUserPermissions))
+                    }
+                    if api.contains("Notifications") || api.contains("通知") {
+                        effects.append(.send(.loadUserNotifications))
+                    }
+                    if api.contains("Banners") || api.contains("轮播") {
+                        effects.append(.send(.loadBanners))
+                    }
+                    if api.contains("Products") || api.contains("商品") {
+                        effects.append(.send(.loadRecommendedProducts))
+                    }
+                    if api.contains("Flash") || api.contains("秒杀") {
+                        effects.append(.send(.loadFlashSales))
+                    }
+                    if api.contains("Categories") || api.contains("分类") {
+                        effects.append(.send(.loadCategories))
+                    }
+                    if api.contains("Orders") || api.contains("订单") {
+                        effects.append(.send(.loadOrderStatus))
+                    }
+                }
+                
+                return .merge(effects)
+                
             case .dismissGlobalError:
                 state.showGlobalErrorBanner = false
+                return .none
+                
+            case .dismissPinkBanner:
+                state.showPinkErrorBanner = false
+                return .none
+                
+            case .dismissOrangeAlert:
+                state.showOrangeFloatingAlert = false
+                return .none
+                
+            case .dismissBlueBanner:
+                state.showBlueRetryBanner = false
                 return .none
                 
             // MARK: Navigation
@@ -578,10 +721,95 @@ struct ECommerceHomeFeature {
     // MARK: - Helper Methods
     
     /**
-     * 更新全局错误状态
-     * Update global error state
+     * 更新错误显示状态（使用纯函数）
+     * Update error display state (using pure functions)
+     */
+    private func updateErrorDisplayState(_ state: inout State) {
+        // 收集失败的API名称 / Collect failed API names
+        state.failedCoreAPIs = []
+        state.failedComponentAPIs = []
+        
+        // 核心API失败检查 / Core API failure check
+        if case .failed = state.userProfileState {
+            state.failedCoreAPIs.append("用户资料 / Profile")
+        }
+        if case .failed = state.userSettingsState {
+            state.failedCoreAPIs.append("用户设置 / Settings")
+        }
+        if case .failed = state.userStatisticsState {
+            state.failedCoreAPIs.append("用户统计 / Statistics")
+        }
+        if case .failed = state.userPermissionsState {
+            state.failedCoreAPIs.append("用户权限 / Permissions")
+        }
+        if case .failed = state.userNotificationsState {
+            state.failedCoreAPIs.append("通知配置 / Notifications")
+        }
+        
+        // 组件API失败检查 / Component API failure check
+        if case .failed = state.bannersState {
+            state.failedComponentAPIs.append("轮播图 / Banners")
+        }
+        if case .failed = state.recommendedProductsState {
+            state.failedComponentAPIs.append("推荐商品 / Products")
+        }
+        if case .failed = state.flashSalesState {
+            state.failedComponentAPIs.append("限时秒杀 / Flash Sales")
+        }
+        if case .failed = state.categoriesState {
+            state.failedComponentAPIs.append("分类 / Categories")
+        }
+        if case .failed = state.orderStatusState {
+            state.failedComponentAPIs.append("订单状态 / Orders")
+        }
+        
+        // 使用纯函数计算显示模式 / Calculate display mode using pure function
+        state.errorDisplayMode = ErrorStateCalculator.determineDisplayMode(
+            coreErrors: state.coreErrorCount,
+            componentErrors: state.componentErrorCount
+        )
+        
+        // 根据显示模式设置UI状态 / Set UI states based on display mode
+        switch state.errorDisplayMode {
+        case .none:
+            state.showPinkErrorBanner = false
+            state.showOrangeFloatingAlert = false
+            state.showBlueRetryBanner = false
+            
+        case .blankPageWithAlerts:
+            // 空白页面：显示粉色和橙色提示 / Blank page: show pink and orange alerts
+            state.showPinkErrorBanner = true
+            state.showOrangeFloatingAlert = true
+            state.showBlueRetryBanner = true  // 蓝色横幅用于批量重试 / Blue banner for batch retry
+            
+        case .normalPageWithGlobalError:
+            // 正常页面但有全局错误：显示蓝色批量重试 / Normal page with global error: show blue batch retry
+            state.showPinkErrorBanner = false
+            state.showOrangeFloatingAlert = false
+            state.showBlueRetryBanner = true
+            
+        case .normalPageWithComponentErrors:
+            // 正常页面但有组件错误：组件内显示错误 / Normal page with component errors: show errors in components
+            state.showPinkErrorBanner = false
+            state.showOrangeFloatingAlert = false
+            state.showBlueRetryBanner = false
+        }
+        
+        print("🔍 Error Display State Updated:")
+        print("  - Display Mode: \(state.errorDisplayMode)")
+        print("  - Core Errors: \(state.coreErrorCount)")
+        print("  - Component Errors: \(state.componentErrorCount)")
+        print("  - Failed Core APIs: \(state.failedCoreAPIs)")
+        print("  - Failed Component APIs: \(state.failedComponentAPIs)")
+    }
+    
+    /**
+     * 旧的更新全局错误状态方法（保留兼容性）
+     * Legacy update global error state (keep for compatibility)
      */
     private func updateGlobalError(_ state: inout State) {
+        updateErrorDisplayState(&state)
+        
         if state.hasAnyCoreError {
             state.showGlobalErrorBanner = true
             state.globalErrorMessage = state.coreErrorMessages.first ?? "加载失败 / Load failed"
@@ -589,13 +817,23 @@ struct ECommerceHomeFeature {
     }
     
     /**
-     * 检查并更新全局错误
-     * Check and update global error
+     * 旧的检查并更新全局错误方法（保留兼容性）
+     * Legacy check and update global error (keep for compatibility)
      */
     private func checkAndUpdateGlobalError(_ state: inout State) {
+        updateErrorDisplayState(&state)
+        
+        print("🔍 Checking global error state...")
+        print("  - hasAnyCoreError: \(state.hasAnyCoreError)")
+        print("  - userProfileState: \(String(describing: state.userProfileState))")
+        print("  - userSettingsState: \(String(describing: state.userSettingsState))")
+        
         if !state.hasAnyCoreError {
+            print("✅ No core errors, hiding global error banner")
             state.showGlobalErrorBanner = false
             state.globalErrorMessage = ""
+        } else {
+            print("⚠️ Core errors detected, showing global error banner")
         }
     }
 }

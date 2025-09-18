@@ -54,10 +54,8 @@ struct ECommerceHomeView: View {
             // Main content / 主内容
             mainContent
             
-            // Global error banner / 全局错误横幅
-            if store.showGlobalErrorBanner {
-                globalErrorBanner
-            }
+            // Error banners overlay / 错误横幅覆盖层
+            errorBannersOverlay
         }
         .navigationTitle("购物商城 / E-Commerce")
         .navigationBarTitleDisplayMode(.inline)
@@ -74,28 +72,78 @@ struct ECommerceHomeView: View {
     private var mainContent: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Pink error banner at top / 顶部粉红色错误横幅
-                if store.hasAnyCoreError {
-                    pinkErrorBanner
+                // Blue retry banner at top (for multiple errors) / 顶部蓝色重试横幅（多个错误）
+                if store.showBlueRetryBanner {
+                    BlueErrorBanner(
+                        errorCount: store.coreErrorCount + store.componentErrorCount,
+                        failedAPIs: store.failedCoreAPIs + store.failedComponentAPIs,
+                        onRetryAll: {
+                            store.send(.retryBatchAPIs(store.failedCoreAPIs + store.failedComponentAPIs))
+                        },
+                        onRetrySelected: { apis in
+                            store.send(.retryBatchAPIs(apis))
+                        },
+                        isExpanded: .constant(false)
+                    )
+                    .padding(.horizontal)
                 }
                 
                 // User header section / 用户头部区域
                 userHeaderSection
                 
-                // 根据核心API状态决定显示内容 / Content based on core API status
-                if store.hasAnyCoreError {
-                    // 核心API有错误时，只显示标题和错误提示 / Show only titles and errors when core APIs fail
-                    errorStateContent
-                } else {
-                    // 所有核心API成功时，显示正常内容 / Show normal content when all core APIs succeed
+                // 根据错误显示模式决定显示内容 / Content based on error display mode
+                switch store.errorDisplayMode {
+                case .blankPageWithAlerts:
+                    // 空白页面带提示 / Blank page with alerts
+                    blankPageContent
+                    
+                case .none, .normalPageWithGlobalError, .normalPageWithComponentErrors:
+                    // 正常页面内容 / Normal page content
                     normalContent
                 }
             }
-            .padding(.bottom, store.showGlobalErrorBanner ? 100 : 20)
+            .padding(.bottom, store.showOrangeFloatingAlert ? 100 : 20)
         }
         .refreshable {
             await store.send(.loadInitialData).finish()
         }
+    }
+    
+    // MARK: - Error Banners Overlay
+    
+    private var errorBannersOverlay: some View {
+        VStack {
+            // Pink error banner at top / 顶部粉色错误横幅
+            if store.showPinkErrorBanner {
+                PinkErrorBanner(
+                    message: store.coreErrorMessages.first ?? "核心服务加载失败",
+                    onRetry: {
+                        store.send(.retryFailedCoreAPIs)
+                    },
+                    isVisible: Binding(
+                        get: { store.showPinkErrorBanner },
+                        set: { _ in store.send(.dismissPinkBanner) }
+                    )
+                )
+                .padding()
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            Spacer()
+            
+            // Orange floating alert at bottom / 底部橙色悬浮提示
+            if store.showOrangeFloatingAlert {
+                OrangeFloatingAlert(
+                    message: "检测到 \(store.coreErrorCount) 个核心服务异常，页面功能受限",
+                    onDismiss: {
+                        store.send(.dismissOrangeAlert)
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: store.showPinkErrorBanner)
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: store.showOrangeFloatingAlert)
     }
     
     // MARK: - Normal Content
@@ -117,6 +165,41 @@ struct ECommerceHomeView: View {
             // Recommended products / 推荐商品
             recommendedProductsSection
         }
+    }
+    
+    // MARK: - Blank Page Content
+    
+    private var blankPageContent: some View {
+        VStack(spacing: 30) {
+            // Empty state icon / 空状态图标
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.orange)
+            
+            // Error message / 错误消息
+            VStack(spacing: 10) {
+                Text("无法加载页面内容")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Text("Page content cannot be loaded")
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+                
+                Text("请检查网络连接并重试")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                
+                Text("Please check your network and retry")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .multilineTextAlignment(.center)
+            
+            Spacer(minLength: 100)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Error State Content
@@ -196,7 +279,7 @@ struct ECommerceHomeView: View {
                     ComponentErrorCard(
                         title: "轮播图 / Banners",
                         error: error.message,
-                        onRetry: { store.send(.loadBanners) }
+                        onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadBanners) } : nil
                     )
                 }
             }
@@ -229,7 +312,7 @@ struct ECommerceHomeView: View {
             case let .failed(_, error):
                 InlineError(
                     message: error.message,
-                    onRetry: { store.send(.loadCategories) }
+                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadCategories) } : nil
                 )
             }
         }
@@ -255,7 +338,7 @@ struct ECommerceHomeView: View {
             case let .failed(_, error):
                 InlineError(
                     message: error.message,
-                    onRetry: { store.send(.loadOrderStatus) }
+                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadOrderStatus) } : nil
                 )
             }
         }
@@ -293,7 +376,7 @@ struct ECommerceHomeView: View {
             case let .failed(_, error):
                 InlineError(
                     message: error.message,
-                    onRetry: { store.send(.loadFlashSales) }
+                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadFlashSales) } : nil
                 )
                 .padding(.horizontal)
             }
@@ -328,7 +411,7 @@ struct ECommerceHomeView: View {
             case let .failed(_, error):
                 InlineError(
                     message: error.message,
-                    onRetry: { store.send(.loadRecommendedProducts) }
+                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadRecommendedProducts) } : nil
                 )
                 .padding(.horizontal)
             }
@@ -988,7 +1071,7 @@ struct ProductCard: View {
 struct ComponentErrorCard: View {
     let title: String
     let error: String
-    let onRetry: () -> Void
+    let onRetry: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 12) {
@@ -1006,9 +1089,11 @@ struct ComponentErrorCard: View {
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            Button("重试 / Retry", action: onRetry)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+            if let onRetry = onRetry {
+                Button("重试 / Retry", action: onRetry)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
         }
         .padding()
         .background(Color(.systemGray6))
@@ -1019,7 +1104,7 @@ struct ComponentErrorCard: View {
 // Inline Error / 内联错误
 struct InlineError: View {
     let message: String
-    let onRetry: () -> Void
+    let onRetry: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 8) {
@@ -1037,14 +1122,16 @@ struct InlineError: View {
             }
             
             // Retry button row / 重试按钮行
-            Button(action: onRetry) {
-                Text("重试 / Retry")
-                    .font(.caption)
-                    .fontWeight(.medium)
+            if let onRetry = onRetry {
+                Button(action: onRetry) {
+                    Text("重试 / Retry")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .frame(maxWidth: .infinity)
         }
         .padding(12)
         .background(Color.orange.opacity(0.1))

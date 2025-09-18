@@ -194,9 +194,9 @@ struct ContentView: View {
         case .advancedNetworkMonitoring:
             AdvancedNetworkMonitoringDemoView()
         case .ecommerceLogin:
-            if let store = store.scope(state: \.ecommerceLogin, action: \.ecommerceLogin) {
-                ECommerceLoginView(store: store)
-            }
+            // Use ECommerceRootView which handles login-to-home transition
+            // 使用 ECommerceRootView 处理登录到首页的转换
+            ECommerceRootView()
         }
     }
 }

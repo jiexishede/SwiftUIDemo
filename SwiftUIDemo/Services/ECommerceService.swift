@@ -74,7 +74,7 @@ protocol ECommerceServiceProtocol {
 class MockECommerceService: ECommerceServiceProtocol {
     
     // Configuration / 配置
-    private let errorRate: Double = 0.2  // 20% error rate for testing / 20%错误率用于测试
+    private let errorRate: Double = 0.0  // 0% error rate - disabled for now / 0%错误率 - 暂时禁用
     private let minDelay: UInt64 = 100_000_000  // 0.1 seconds / 0.1秒
     private let maxDelay: UInt64 = 300_000_000  // 0.3 seconds / 0.3秒
     
@@ -82,7 +82,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchUserProfile() async throws -> UserProfile {
         try await simulateNetworkDelay(for: "UserProfile")
-        try simulateRandomError(api: "UserProfile")
+        // try simulateRandomError(api: "UserProfile")  // Disabled for normal operation
         
         return UserProfile(
             userId: "user_\(UUID().uuidString.prefix(8))",
@@ -98,7 +98,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchUserSettings() async throws -> UserSettings {
         try await simulateNetworkDelay(for: "UserSettings")
-        try simulateRandomError(api: "UserSettings")
+        // try simulateRandomError(api: "UserSettings")  // Disabled for normal operation
         
         return UserSettings(
             userId: "user_123",
@@ -114,7 +114,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchUserStatistics() async throws -> UserStatistics {
         try await simulateNetworkDelay(for: "UserStatistics")
-        try simulateRandomError(api: "UserStatistics")
+        // try simulateRandomError(api: "UserStatistics")  // Disabled for normal operation
         
         return UserStatistics(
             userId: "user_123",
@@ -131,7 +131,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchUserPermissions() async throws -> UserPermissions {
         try await simulateNetworkDelay(for: "UserPermissions")
-        try simulateRandomError(api: "UserPermissions")
+        // try simulateRandomError(api: "UserPermissions")  // Disabled for normal operation
         
         return UserPermissions(
             userId: "user_123",
@@ -148,7 +148,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchUserNotifications() async throws -> UserNotifications {
         try await simulateNetworkDelay(for: "UserNotifications")
-        try simulateRandomError(api: "UserNotifications")
+        // try simulateRandomError(api: "UserNotifications")  // Disabled for normal operation
         
         return UserNotifications(
             userId: "user_123",
@@ -167,7 +167,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchBanners() async throws -> [Banner] {
         try await simulateNetworkDelay(for: "Banners")
-        try simulateRandomError(api: "Banners", rate: 0.4)  // 40% error rate for testing / 40%错误率用于测试
+        try simulateRandomError(api: "Banners", rate: 0.3)  // 30% error rate / 30%错误率
         
         return [
             Banner(
@@ -193,7 +193,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchRecommendedProducts() async throws -> [Product] {
         try await simulateNetworkDelay(for: "Products")
-        try simulateRandomError(api: "Products", rate: 0.35)  // 35% error rate / 35%错误率
+        try simulateRandomError(api: "Products", rate: 0.3)  // 30% error rate / 30%错误率
         
         return (1...8).map { index in
             Product(
@@ -216,7 +216,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchFlashSales() async throws -> [FlashSale] {
         try await simulateNetworkDelay(for: "FlashSales")
-        try simulateRandomError(api: "FlashSales", rate: 0.45)  // 45% error rate / 45%错误率
+        try simulateRandomError(api: "FlashSales", rate: 0.3)  // 30% error rate / 30%错误率
         
         let now = Date()
         return (1...4).map { index in
@@ -265,7 +265,7 @@ class MockECommerceService: ECommerceServiceProtocol {
     
     func fetchOrderStatus() async throws -> UserOrderStatus {
         try await simulateNetworkDelay(for: "OrderStatus")
-        try simulateRandomError(api: "OrderStatus", rate: 0.5)  // 50% error rate / 50%错误率
+        try simulateRandomError(api: "OrderStatus", rate: 0.3)  // 30% error rate / 30%错误率
         
         return UserOrderStatus(
             pendingPayment: Int.random(in: 0...5),

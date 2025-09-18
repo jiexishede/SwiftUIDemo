@@ -66,8 +66,9 @@ struct ECommerceLoginFeature {
     @ObservableState
     struct State: Equatable {
         // Form fields / 表单字段
-        var username: String = ""
-        var password: String = ""
+        // Pre-filled with default credentials / 预填充默认凭据
+        var username: String = "demo"  // Pre-filled / 预填充
+        var password: String = "123456"  // Pre-filled / 预填充
 
         // UI States / UI状态
         var isLoading: Bool = false

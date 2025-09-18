@@ -78,13 +78,16 @@ struct ECommerceLoginView: View {
             }
             // iOS 15 compatible onChange / iOS 15 兼容的 onChange
             .onReceive(viewStore.publisher.shouldNavigateToHome.removeDuplicates()) { shouldNavigate in
-                print("📱 shouldNavigateToHome changed to: \(shouldNavigate)")
+                print("📱 ECommerceLoginView - shouldNavigateToHome changed to: \(shouldNavigate)")
                 // Call the success callback when login succeeds
                 // 登录成功时调用回调
                 if shouldNavigate {
-                    print("✅ Calling onLoginSuccess callback")
+                    print("✅ ECommerceLoginView - Calling onLoginSuccess callback")
+                    print("📌 ECommerceLoginView - onLoginSuccess is nil? \(onLoginSuccess == nil)")
                     DispatchQueue.main.async {
+                        print("🚀 ECommerceLoginView - Executing onLoginSuccess callback on main queue")
                         onLoginSuccess?()
+                        print("✔️ ECommerceLoginView - onLoginSuccess callback executed")
                     }
                 }
             }
@@ -173,7 +176,8 @@ struct ECommerceLoginView: View {
                 .textFieldStyle(CustomTextFieldStyle())
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
-                .onChange(of: viewStore.username) { _ in
+                .onChange(of: viewStore.username) { newValue in
+                    print("📝 Username changed to: \(newValue)")
                     viewStore.send(.validateUsername)
                 }
             
@@ -206,7 +210,8 @@ struct ECommerceLoginView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .onChange(of: viewStore.password) { _ in
+            .onChange(of: viewStore.password) { newValue in
+                print("🔑 Password changed to: \(String(repeating: "*", count: newValue.count))")
                 viewStore.send(.validatePassword)
             }
             

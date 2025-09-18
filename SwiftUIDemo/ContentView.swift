@@ -379,11 +379,7 @@ struct iOS15DestinationView: View {
             childStore = AnyView(AdvancedNetworkMonitoringDemoView())
         case "ecommerce":
             childStore = AnyView(
-                ECommerceLoginView(
-                    store: Store(initialState: ECommerceLoginFeature.State()) {
-                        ECommerceLoginFeature()
-                    }
-                )
+                ECommerceRootView()
             )
         default:
             childStore = AnyView(Text("Unknown Demo"))

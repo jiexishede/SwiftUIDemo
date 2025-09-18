@@ -40,6 +40,9 @@ struct ECommerceLoginView: View {
     // Store for TCA / TCA存储
     let store: StoreOf<ECommerceLoginFeature>
     
+    // Login success callback / 登录成功回调
+    var onLoginSuccess: (() -> Void)? = nil
+    
     // Animation states / 动画状态
     @State private var logoScale: CGFloat = 0.5
     @State private var formOffset: CGFloat = 50
@@ -71,14 +74,15 @@ struct ECommerceLoginView: View {
             .onAppear {
                 animateEntrance()
             }
-            .navigationDestination(
-                isPresented: .constant(viewStore.shouldNavigateToHome)
-            ) {
-                ECommerceHomeView(
-                    store: Store(initialState: ECommerceHomeFeature.State()) {
-                        ECommerceHomeFeature()
-                    }
-                )
+            // iOS 15 compatible onChange / iOS 15 兼容的 onChange
+            .onReceive(viewStore.publisher.shouldNavigateToHome) { shouldNavigate in
+                print("📱 shouldNavigateToHome changed to: \(shouldNavigate)")
+                // Call the success callback when login succeeds
+                // 登录成功时调用回调
+                if shouldNavigate {
+                    print("✅ Calling onLoginSuccess callback")
+                    onLoginSuccess?()
+                }
             }
         }
     }

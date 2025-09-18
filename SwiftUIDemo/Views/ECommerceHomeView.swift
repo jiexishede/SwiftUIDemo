@@ -271,10 +271,12 @@ struct ECommerceHomeView: View {
                 subtitle: "⚡ 手慢无",
                 hasError: store.flashSalesState.errorInfo != nil
             )
+            .padding(.horizontal)  // 添加水平边距 / Add horizontal padding
             
             switch store.flashSalesState {
             case .idle, .loading:
                 FlashSaleSkeleton()
+                // 骨架屏已经包含padding / Skeleton already includes padding
                 
             case let .loaded(sales, _):
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -1020,24 +1022,29 @@ struct InlineError: View {
     let onRetry: () -> Void
     
     var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.circle.fill")
-                .foregroundColor(.orange)
-                .font(.caption)
+        VStack(spacing: 8) {
+            // Error message row / 错误消息行
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+                
+                Text(message)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             
-            Text(message)
+            // Retry button row / 重试按钮行
+            Button("重试 / Retry", action: onRetry)
                 .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-            
-            Spacer()
-            
-            Button("重试", action: onRetry)
-                .font(.caption)
+                .fontWeight(.medium)
                 .buttonStyle(.bordered)
-                .controlSize(.mini)
+                .controlSize(.small)
+                .frame(maxWidth: .infinity)
         }
-        .padding(8)
+        .padding(12)
         .background(Color.orange.opacity(0.1))
         .cornerRadius(8)
     }

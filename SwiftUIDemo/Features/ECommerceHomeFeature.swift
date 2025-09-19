@@ -186,6 +186,7 @@ struct ECommerceHomeFeature {
         // MARK: Lifecycle / 生命周期
         case onAppear
         case loadInitialData
+        case resetForRefresh  // 重置状态以进行刷新 / Reset states for refresh
         
         // MARK: Core Data Actions / 核心数据动作
         case loadUserProfile
@@ -262,18 +263,19 @@ struct ECommerceHomeFeature {
                 let systemVersion = ProcessInfo.processInfo.operatingSystemVersion
                 print("📱 iOS Version: \(systemVersion.majorVersion).\(systemVersion.minorVersion).\(systemVersion.patchVersion)")
                 print("📊 isInitialLoadComplete: \(state.isInitialLoadComplete)")
+                print("📊 userProfileState: \(state.userProfileState)")
+                print("📊 bannersState: \(state.bannersState)")
                 
-                // iOS 15.0 specific handling / iOS 15.0 特殊处理
-                if #available(iOS 16.0, *) {
-                    // iOS 16.0+ normal flow / iOS 16.0+ 正常流程
-                    guard !state.isInitialLoadComplete else { 
-                        print("⚠️ Initial load already complete, skipping")
-                        return .none 
-                    }
-                } else {
-                    // iOS 15.0: Always reload to fix skeleton issue / iOS 15.0: 总是重新加载以修复骨架图问题
-                    print("🔄 iOS 15.0 detected, forcing data reload")
-                    state.isInitialLoadComplete = false
+                // Always load data if states are idle / 如果状态是 idle 则总是加载数据
+                if case .idle = state.userProfileState {
+                    print("⚡ User profile is idle, need to load data")
+                    return .send(.loadInitialData)
+                }
+                
+                // If data already loaded, don't reload / 如果数据已加载，不要重新加载
+                if state.isInitialLoadComplete {
+                    print("✅ Data already loaded, skipping reload")
+                    return .none
                 }
                 
                 print("🚀 Sending loadInitialData action")
@@ -325,6 +327,7 @@ struct ECommerceHomeFeature {
                 print("✅ User profile state set to loaded")
                 state.userProfileState = .loaded(profile, .idle)
                 checkAndUpdateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 
                 // Mark initial load complete when user profile loads successfully
                 // 当用户资料加载成功时标记初始加载完成
@@ -344,6 +347,7 @@ struct ECommerceHomeFeature {
                     )
                 )
                 updateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: User Settings
@@ -363,6 +367,7 @@ struct ECommerceHomeFeature {
             case let .userSettingsResponse(.success(settings)):
                 state.userSettingsState = .loaded(settings, .idle)
                 checkAndUpdateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .userSettingsResponse(.failure(error)):
@@ -374,6 +379,7 @@ struct ECommerceHomeFeature {
                     )
                 )
                 updateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: User Statistics
@@ -393,6 +399,7 @@ struct ECommerceHomeFeature {
             case let .userStatisticsResponse(.success(statistics)):
                 state.userStatisticsState = .loaded(statistics, .idle)
                 checkAndUpdateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .userStatisticsResponse(.failure(error)):
@@ -404,6 +411,7 @@ struct ECommerceHomeFeature {
                     )
                 )
                 updateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: User Permissions
@@ -423,6 +431,7 @@ struct ECommerceHomeFeature {
             case let .userPermissionsResponse(.success(permissions)):
                 state.userPermissionsState = .loaded(permissions, .idle)
                 checkAndUpdateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .userPermissionsResponse(.failure(error)):
@@ -434,6 +443,7 @@ struct ECommerceHomeFeature {
                     )
                 )
                 updateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: User Notifications
@@ -453,6 +463,7 @@ struct ECommerceHomeFeature {
             case let .userNotificationsResponse(.success(notifications)):
                 state.userNotificationsState = .loaded(notifications, .idle)
                 checkAndUpdateGlobalError(&state)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 state.isInitialLoadComplete = true
                 return .none
                 
@@ -484,6 +495,7 @@ struct ECommerceHomeFeature {
                 
             case let .bannersResponse(.success(banners)):
                 state.bannersState = .loaded(banners, .idle)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .bannersResponse(.failure(error)):
@@ -494,6 +506,7 @@ struct ECommerceHomeFeature {
                         message: error.localizedDescription
                     )
                 )
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: Component Data - Products
@@ -512,6 +525,7 @@ struct ECommerceHomeFeature {
                 
             case let .recommendedProductsResponse(.success(products)):
                 state.recommendedProductsState = .loaded(products, .idle)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .recommendedProductsResponse(.failure(error)):
@@ -522,6 +536,7 @@ struct ECommerceHomeFeature {
                         message: error.localizedDescription
                     )
                 )
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: Component Data - Flash Sales
@@ -540,6 +555,7 @@ struct ECommerceHomeFeature {
                 
             case let .flashSalesResponse(.success(sales)):
                 state.flashSalesState = .loaded(sales, .idle)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .flashSalesResponse(.failure(error)):
@@ -550,6 +566,7 @@ struct ECommerceHomeFeature {
                         message: error.localizedDescription
                     )
                 )
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: Component Data - Categories
@@ -568,6 +585,7 @@ struct ECommerceHomeFeature {
                 
             case let .categoriesResponse(.success(categories)):
                 state.categoriesState = .loaded(categories, .idle)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .categoriesResponse(.failure(error)):
@@ -578,6 +596,7 @@ struct ECommerceHomeFeature {
                         message: error.localizedDescription
                     )
                 )
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: Component Data - Order Status
@@ -596,6 +615,7 @@ struct ECommerceHomeFeature {
                 
             case let .orderStatusResponse(.success(status)):
                 state.orderStatusState = .loaded(status, .idle)
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             case let .orderStatusResponse(.failure(error)):
@@ -606,6 +626,7 @@ struct ECommerceHomeFeature {
                         message: error.localizedDescription
                     )
                 )
+                updateErrorDisplayState(&state)  // 更新错误显示状态 / Update error display state
                 return .none
                 
             // MARK: Error Handling
@@ -709,6 +730,39 @@ struct ECommerceHomeFeature {
             case .dismissBlueBanner:
                 state.showBlueRetryBanner = false
                 return .none
+                
+            // MARK: Refresh
+            case .resetForRefresh:
+                print("♻️ Resetting states for refresh...")
+                // Reset all states to loading to show refresh is happening
+                // 重置所有状态为加载中以显示正在刷新
+                state.userProfileState = .loading(.initial)
+                state.userSettingsState = .loading(.initial)
+                state.userStatisticsState = .loading(.initial)
+                state.userPermissionsState = .loading(.initial)
+                state.userNotificationsState = .loading(.initial)
+                state.bannersState = .loading(.initial)
+                state.recommendedProductsState = .loading(.initial)
+                state.flashSalesState = .loading(.initial)
+                state.categoriesState = .loading(.initial)
+                state.orderStatusState = .loading(.initial)
+                
+                // Clear error states / 清除错误状态
+                state.showGlobalErrorBanner = false
+                state.globalErrorMessage = ""
+                state.errorDisplayMode = .none
+                state.showPinkErrorBanner = false
+                state.showOrangeFloatingAlert = false
+                state.showBlueRetryBanner = false
+                state.failedCoreAPIs = []
+                state.failedComponentAPIs = []
+                
+                // Reset initial load flag to ensure fresh load
+                // 重置初始加载标志以确保重新加载
+                state.isInitialLoadComplete = false
+                
+                print("✅ States reset, triggering loadInitialData")
+                return .send(.loadInitialData)
                 
             // MARK: Navigation
             case .productTapped, .categoryTapped, .flashSaleTapped, .bannerTapped:

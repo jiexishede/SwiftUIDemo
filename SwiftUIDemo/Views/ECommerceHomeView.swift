@@ -39,6 +39,7 @@ import SwiftUI
 import ComposableArchitecture
 
 struct ECommerceHomeView: View {
+    @ObservedObject var viewStore: ViewStore<ECommerceHomeFeature.State, ECommerceHomeFeature.Action>
     let store: StoreOf<ECommerceHomeFeature>
     
     // Layout constants / 布局常量
@@ -49,13 +50,22 @@ struct ECommerceHomeView: View {
     
     private let categoryColumns = Array(repeating: GridItem(.flexible()), count: 4)
     
+    init(store: StoreOf<ECommerceHomeFeature>) {
+        self.store = store
+        self.viewStore = ViewStore(store, observe: { $0 })
+    }
+    
     var body: some View {
-        ZStack {
-            // Main content / 主内容
-            mainContent
-            
-            // Error banners overlay / 错误横幅覆盖层
-            errorBannersOverlay
+        // Use Group to apply refreshable properly for iOS 15
+        // 使用 Group 以便为 iOS 15 正确应用 refreshable
+        Group {
+            if #available(iOS 16.0, *) {
+                // iOS 16+: Use modern implementation
+                contentWithOverlay
+            } else {
+                // iOS 15: Ensure refreshable works properly
+                contentWithOverlay
+            }
         }
         .navigationTitle("购物商城 / E-Commerce")
         .navigationBarTitleDisplayMode(.inline)
@@ -63,7 +73,27 @@ struct ECommerceHomeView: View {
             toolbarContent
         }
         .onAppear {
-            store.send(.onAppear)
+            // Ensure data is loaded when view appears / 确保视图出现时数据已加载
+            print("🛍️ ECommerceHomeView.onAppear")
+            print("📱 Running on iOS \(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).\(ProcessInfo.processInfo.operatingSystemVersion.minorVersion)")
+            print("📊 Current userProfileState: \(viewStore.userProfileState)")
+            print("📊 Current bannersState: \(viewStore.bannersState)")
+            
+            // If data not loaded, trigger loading / 如果数据未加载，触发加载
+            if case .idle = viewStore.userProfileState {
+                print("🔄 Data not loaded, sending onAppear action")
+                store.send(.onAppear)
+            }
+        }
+    }
+    
+    private var contentWithOverlay: some View {
+        ZStack {
+            // Main content / 主内容
+            mainContent
+            
+            // Error banners overlay / 错误横幅覆盖层
+            errorBannersOverlay
         }
     }
     
@@ -71,14 +101,16 @@ struct ECommerceHomeView: View {
     
     private var mainContent: some View {
         ScrollView {
+            // Pull-to-refresh indicator for iOS 15 manual feedback
+            // iOS 15 下拉刷新的手动反馈指示器
             VStack(spacing: 20) {
                 // Blue retry banner at top (for multiple errors) / 顶部蓝色重试横幅（多个错误）
-                if store.showBlueRetryBanner {
+                if viewStore.showBlueRetryBanner {
                     BlueErrorBanner(
-                        errorCount: store.coreErrorCount + store.componentErrorCount,
-                        failedAPIs: store.failedCoreAPIs + store.failedComponentAPIs,
+                        errorCount: viewStore.coreErrorCount + viewStore.componentErrorCount,
+                        failedAPIs: viewStore.failedCoreAPIs + viewStore.failedComponentAPIs,
                         onRetryAll: {
-                            store.send(.retryBatchAPIs(store.failedCoreAPIs + store.failedComponentAPIs))
+                            store.send(.retryBatchAPIs(viewStore.failedCoreAPIs + viewStore.failedComponentAPIs))
                         },
                         onRetrySelected: { apis in
                             store.send(.retryBatchAPIs(apis))
@@ -91,22 +123,62 @@ struct ECommerceHomeView: View {
                 // User header section / 用户头部区域
                 userHeaderSection
                 
-                // 根据错误显示模式决定显示内容 / Content based on error display mode
-                switch store.errorDisplayMode {
-                case .blankPageWithAlerts:
-                    // 空白页面带提示 / Blank page with alerts
-                    blankPageContent
-                    
-                case .none, .normalPageWithGlobalError, .normalPageWithComponentErrors:
-                    // 正常页面内容 / Normal page content
-                    normalContent
-                }
+                // 总是显示正常内容，让各组件自己处理错误 / Always show normal content, let components handle their own errors
+                // Always show normal content regardless of error state
+                // 始终显示正常内容，不管错误状态如何
+                normalContent
             }
-            .padding(.bottom, store.showOrangeFloatingAlert ? 100 : 20)
+            .padding(.bottom, viewStore.showOrangeFloatingAlert ? 100 : 20)
         }
+        // iOS 15 specific fixes for refreshable / iOS 15 refreshable 特定修复
+        .background(Color(.systemGroupedBackground))
         .refreshable {
-            await store.send(.loadInitialData).finish()
+            await performRefresh()
         }
+    }
+    
+    // Separate refresh function for better debugging
+    // 独立的刷新函数以便更好地调试
+    @MainActor
+    private func performRefresh() async {
+        print("🔄 Pull-to-refresh triggered / 下拉刷新触发")
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        print("📱 iOS Version: \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)")
+        print("⏰ Refresh started at: \(Date())")
+        
+        // Send reset action to clear all states / 发送重置动作清除所有状态
+        store.send(.resetForRefresh)
+        
+        // Wait for data to actually load / 等待数据实际加载
+        // iOS 15 needs more time for the refresh indicator to work properly
+        // iOS 15 需要更多时间让刷新指示器正常工作
+        var waitTime = 0
+        let maxWaitTime = 30 // 3 seconds max / 最多3秒
+        
+        while waitTime < maxWaitTime {
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
+            waitTime += 1
+            
+            // Check if any data has loaded / 检查是否有数据已加载
+            if case .loaded = viewStore.userProfileState,
+               case .loaded = viewStore.bannersState {
+                print("✅ Data loaded, stopping refresh")
+                break
+            }
+            
+            // Also stop if there are errors (data attempted to load)
+            // 如果有错误也停止（数据尝试加载了）
+            if viewStore.errorDisplayMode != .none {
+                print("⚠️ Errors detected, stopping refresh")
+                break
+            }
+        }
+        
+        print("✅ Refresh completed at: \(Date())")
+        print("📊 States after refresh:")
+        print("  - userProfileState: \(viewStore.userProfileState)")
+        print("  - bannersState: \(viewStore.bannersState)")
+        print("  - errorDisplayMode: \(viewStore.errorDisplayMode)")
     }
     
     // MARK: - Error Banners Overlay
@@ -114,14 +186,14 @@ struct ECommerceHomeView: View {
     private var errorBannersOverlay: some View {
         VStack {
             // Pink error banner at top / 顶部粉色错误横幅
-            if store.showPinkErrorBanner {
+            if viewStore.showPinkErrorBanner {
                 PinkErrorBanner(
-                    message: store.coreErrorMessages.first ?? "核心服务加载失败",
+                    message: viewStore.coreErrorMessages.first ?? "核心服务加载失败",
                     onRetry: {
                         store.send(.retryFailedCoreAPIs)
                     },
                     isVisible: Binding(
-                        get: { store.showPinkErrorBanner },
+                        get: { viewStore.showPinkErrorBanner },
                         set: { _ in store.send(.dismissPinkBanner) }
                     )
                 )
@@ -132,9 +204,9 @@ struct ECommerceHomeView: View {
             Spacer()
             
             // Orange floating alert at bottom / 底部橙色悬浮提示
-            if store.showOrangeFloatingAlert {
+            if viewStore.showOrangeFloatingAlert {
                 OrangeFloatingAlert(
-                    message: "检测到 \(store.coreErrorCount) 个核心服务异常，页面功能受限",
+                    message: "检测到 \(viewStore.coreErrorCount) 个核心服务异常，页面功能受限",
                     onDismiss: {
                         store.send(.dismissOrangeAlert)
                     }
@@ -142,8 +214,8 @@ struct ECommerceHomeView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: store.showPinkErrorBanner)
-        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: store.showOrangeFloatingAlert)
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: viewStore.showPinkErrorBanner)
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: viewStore.showOrangeFloatingAlert)
     }
     
     // MARK: - Normal Content
@@ -243,12 +315,12 @@ struct ECommerceHomeView: View {
     
     private var userHeaderSection: some View {
         Group {
-            switch store.userProfileState {
+            switch viewStore.userProfileState {
             case .idle, .loading:
                 userHeaderSkeleton
                 
             case let .loaded(profile, _):
-                UserHeaderView(profile: profile, statistics: store.userStatisticsState)
+                UserHeaderView(profile: profile, statistics: viewStore.userStatisticsState)
                 
             case .failed:
                 errorPlaceholder(
@@ -264,9 +336,16 @@ struct ECommerceHomeView: View {
     
     private var bannerSection: some View {
         Group {
-            // 只有核心API全部成功时才显示组件内容 / Show content only when all core APIs succeed
-            if !store.hasAnyCoreError {
-                switch store.bannersState {
+            // When global error (>1 component errors), show error without retry
+            // 当全局错误（>1个组件错误）时，显示无重试按钮的错误
+            if viewStore.errorDisplayMode == .normalPageWithGlobalError {
+                ComponentErrorCard(
+                    title: "轮播图 / Banners",
+                    error: "加载失败 / Load failed",
+                    onRetry: nil  // No retry button when global error / 全局错误时无重试按钮
+                )
+            } else {
+                switch viewStore.bannersState {
                 case .idle, .loading:
                     BannerSkeleton()
                     
@@ -279,7 +358,7 @@ struct ECommerceHomeView: View {
                     ComponentErrorCard(
                         title: "轮播图 / Banners",
                         error: error.message,
-                        onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadBanners) } : nil
+                        onRetry: { store.send(.loadBanners) }
                     )
                 }
             }
@@ -293,27 +372,35 @@ struct ECommerceHomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(
                 title: "分类 / Categories",
-                hasError: store.categoriesState.errorInfo != nil
+                hasError: viewStore.categoriesState.errorInfo != nil || viewStore.errorDisplayMode == .normalPageWithGlobalError
             )
             
-            switch store.categoriesState {
-            case .idle, .loading:
-                CategoryGridSkeleton()
-                
-            case let .loaded(categories, _):
-                LazyVGrid(columns: categoryColumns, spacing: 16) {
-                    ForEach(categories) { category in
-                        CategoryItem(category: category) {
-                            store.send(.categoryTapped(category))
+            // When global error, show error without retry / 全局错误时显示无重试按钮的错误
+            if viewStore.errorDisplayMode == .normalPageWithGlobalError {
+                InlineError(
+                    message: "加载失败 / Load failed",
+                    onRetry: nil  // No retry button / 无重试按钮
+                )
+            } else {
+                switch viewStore.categoriesState {
+                case .idle, .loading:
+                    CategoryGridSkeleton()
+                    
+                case let .loaded(categories, _):
+                    LazyVGrid(columns: categoryColumns, spacing: 16) {
+                        ForEach(categories) { category in
+                            CategoryItem(category: category) {
+                                store.send(.categoryTapped(category))
+                            }
                         }
                     }
+                    
+                case let .failed(_, error):
+                    InlineError(
+                        message: error.message,
+                        onRetry: { store.send(.loadCategories) }
+                    )
                 }
-                
-            case let .failed(_, error):
-                InlineError(
-                    message: error.message,
-                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadCategories) } : nil
-                )
             }
         }
         .padding(.horizontal)
@@ -325,21 +412,29 @@ struct ECommerceHomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(
                 title: "我的订单 / My Orders",
-                hasError: store.orderStatusState.errorInfo != nil
+                hasError: viewStore.orderStatusState.errorInfo != nil || viewStore.errorDisplayMode == .normalPageWithGlobalError
             )
             
-            switch store.orderStatusState {
-            case .idle, .loading:
-                OrderStatusSkeleton()
-                
-            case let .loaded(status, _):
-                OrderStatusCard(status: status)
-                
-            case let .failed(_, error):
+            // When global error, show error without retry / 全局错误时显示无重试按钮的错误
+            if viewStore.errorDisplayMode == .normalPageWithGlobalError {
                 InlineError(
-                    message: error.message,
-                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadOrderStatus) } : nil
+                    message: "加载失败 / Load failed",
+                    onRetry: nil  // No retry button / 无重试按钮
                 )
+            } else {
+                switch viewStore.orderStatusState {
+                case .idle, .loading:
+                    OrderStatusSkeleton()
+                    
+                case let .loaded(status, _):
+                    OrderStatusCard(status: status)
+                    
+                case let .failed(_, error):
+                    InlineError(
+                        message: error.message,
+                        onRetry: { store.send(.loadOrderStatus) }
+                    )
+                }
             }
         }
         .padding(.horizontal)
@@ -352,33 +447,42 @@ struct ECommerceHomeView: View {
             sectionHeader(
                 title: "限时秒杀 / Flash Sale",
                 subtitle: "⚡ 手慢无",
-                hasError: store.flashSalesState.errorInfo != nil
+                hasError: viewStore.flashSalesState.errorInfo != nil || viewStore.errorDisplayMode == .normalPageWithGlobalError
             )
             .padding(.horizontal)  // 添加水平边距 / Add horizontal padding
             
-            switch store.flashSalesState {
-            case .idle, .loading:
-                FlashSaleSkeleton()
-                // 骨架屏已经包含padding / Skeleton already includes padding
-                
-            case let .loaded(sales, _):
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(sales) { sale in
-                            FlashSaleCard(sale: sale) {
-                                store.send(.flashSaleTapped(sale))
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                
-            case let .failed(_, error):
+            // When global error, show error without retry / 全局错误时显示无重试按钮的错误
+            if viewStore.errorDisplayMode == .normalPageWithGlobalError {
                 InlineError(
-                    message: error.message,
-                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadFlashSales) } : nil
+                    message: "加载失败 / Load failed",
+                    onRetry: nil  // No retry button / 无重试按钮
                 )
                 .padding(.horizontal)
+            } else {
+                switch viewStore.flashSalesState {
+                case .idle, .loading:
+                    FlashSaleSkeleton()
+                    // 骨架屏已经包含padding / Skeleton already includes padding
+                    
+                case let .loaded(sales, _):
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(sales) { sale in
+                                FlashSaleCard(sale: sale) {
+                                    store.send(.flashSaleTapped(sale))
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                case let .failed(_, error):
+                    InlineError(
+                        message: error.message,
+                        onRetry: { store.send(.loadFlashSales) }
+                    )
+                    .padding(.horizontal)
+                }
             }
         }
     }
@@ -389,31 +493,40 @@ struct ECommerceHomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(
                 title: "为你推荐 / Recommended",
-                hasError: store.recommendedProductsState.errorInfo != nil
+                hasError: viewStore.recommendedProductsState.errorInfo != nil || viewStore.errorDisplayMode == .normalPageWithGlobalError
             )
             .padding(.horizontal)
             
-            switch store.recommendedProductsState {
-            case .idle, .loading:
-                ProductGridSkeleton()
-                    .padding(.horizontal)
-                
-            case let .loaded(products, _):
-                LazyVGrid(columns: gridColumns, spacing: 16) {
-                    ForEach(products) { product in
-                        ProductCard(product: product) {
-                            store.send(.productTapped(product))
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                
-            case let .failed(_, error):
+            // When global error, show error without retry / 全局错误时显示无重试按钮的错误
+            if viewStore.errorDisplayMode == .normalPageWithGlobalError {
                 InlineError(
-                    message: error.message,
-                    onRetry: store.errorDisplayMode == .normalPageWithComponentErrors ? { store.send(.loadRecommendedProducts) } : nil
+                    message: "加载失败 / Load failed",
+                    onRetry: nil  // No retry button / 无重试按钮
                 )
                 .padding(.horizontal)
+            } else {
+                switch viewStore.recommendedProductsState {
+                case .idle, .loading:
+                    ProductGridSkeleton()
+                        .padding(.horizontal)
+                    
+                case let .loaded(products, _):
+                    LazyVGrid(columns: gridColumns, spacing: 16) {
+                        ForEach(products) { product in
+                            ProductCard(product: product) {
+                                store.send(.productTapped(product))
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                case let .failed(_, error):
+                    InlineError(
+                        message: error.message,
+                        onRetry: { store.send(.loadRecommendedProducts) }
+                    )
+                    .padding(.horizontal)
+                }
             }
         }
     }
@@ -489,11 +602,11 @@ struct ECommerceHomeView: View {
     // 获取失败的API描述 / Get failed APIs description
     private var failedAPIsDescription: String {
         var failed: [String] = []
-        if case .failed = store.userProfileState { failed.append("用户资料") }
-        if case .failed = store.userSettingsState { failed.append("设置") }
-        if case .failed = store.userStatisticsState { failed.append("统计") }
-        if case .failed = store.userPermissionsState { failed.append("权限") }
-        if case .failed = store.userNotificationsState { failed.append("通知") }
+        if case .failed = viewStore.userProfileState { failed.append("用户资料") }
+        if case .failed = viewStore.userSettingsState { failed.append("设置") }
+        if case .failed = viewStore.userStatisticsState { failed.append("统计") }
+        if case .failed = viewStore.userPermissionsState { failed.append("权限") }
+        if case .failed = viewStore.userNotificationsState { failed.append("通知") }
         
         if failed.isEmpty {
             return ""
@@ -632,7 +745,7 @@ struct ECommerceHomeView: View {
     
     private var cartBadge: some View {
         Group {
-            if case let .loaded(statistics, _) = store.userStatisticsState,
+            if case let .loaded(statistics, _) = viewStore.userStatisticsState,
                statistics.cartItemCount > 0 {
                 Text("\(statistics.cartItemCount)")
                     .font(.caption2)

@@ -40,15 +40,19 @@ import ComposableArchitecture
 struct ECommerceRootView: View {
     // State to track if user is logged in / 追踪用户是否已登录
     // NOW: Default to false to enable login / 现在：默认为false以启用登录
-    @State private var isLoggedIn = false  // Changed to false / 改为false
+    @State private var isLoggedIn = false  // Enable login / 启用登录
     @State private var showLoginAnimation = false
+    
+    // Store for home page (created lazily) / 首页的Store（延迟创建）
+    @State private var homeStore: StoreOf<ECommerceHomeFeature>?
     
     // Initialize with login enabled / 初始化时启用登录
     init() {
-        print("🔨 ECommerceRootView init - setting isLoggedIn = false")
+        print("🔨 ECommerceRootView init - setting isLoggedIn = false (enable login)")
         // Force the initial state / 强制初始状态
-        _isLoggedIn = State(initialValue: false)
+        _isLoggedIn = State(initialValue: false)  // Enable login / 启用登录
         _showLoginAnimation = State(initialValue: false)
+        _homeStore = State(initialValue: nil)
     }
     
     var body: some View {
@@ -56,14 +60,20 @@ struct ECommerceRootView: View {
             // Conditional display based on login state / 根据登录状态条件显示
             if isLoggedIn {
                 // Show home page after successful login / 登录成功后显示首页
-                ECommerceHomeView(
-                    store: Store(initialState: ECommerceHomeFeature.State()) {
-                        ECommerceHomeFeature()
-                    }
-                )
-                .transition(.opacity)
-                .onAppear {
-                    print("✨ ECommerceHomeView appeared - Login successful! / 商城首页出现 - 登录成功！")
+                if let store = homeStore {
+                    ECommerceHomeView(store: store)
+                        .transition(.opacity)
+                        .onAppear {
+                            print("✨ ECommerceHomeView appeared - Login successful! / 商城首页出现 - 登录成功！")
+                            // Trigger data loading when view appears / 视图出现时触发数据加载
+                            store.send(.onAppear)
+                        }
+                } else {
+                    // Loading state while creating store / 创建Store时的加载状态
+                    ProgressView("Loading...")
+                        .onAppear {
+                            print("📦 Creating homeStore after login success")
+                        }
                 }
             } else {
                 // Show login page when not logged in / 未登录时显示登录页
@@ -71,6 +81,14 @@ struct ECommerceRootView: View {
                     onLoginSuccess: {
                         print("🎯 Login success callback triggered in ECommerceRootView / 登录成功回调触发")
                         print("📊 Current isLoggedIn: \(isLoggedIn)")
+                        
+                        // Create homeStore when login succeeds / 登录成功时创建homeStore
+                        if homeStore == nil {
+                            print("🏪 Creating ECommerceHomeFeature store after login")
+                            homeStore = Store(initialState: ECommerceHomeFeature.State()) {
+                                ECommerceHomeFeature()
+                            }
+                        }
                         
                         // Use DispatchQueue.main to ensure UI update / 使用主队列确保 UI 更新
                         DispatchQueue.main.async {
@@ -80,10 +98,12 @@ struct ECommerceRootView: View {
                                 print("✅ isLoggedIn is now: \(self.isLoggedIn)")
                             }
                             
-                            // Force UI update / 强制 UI 更新
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                print("🔍 Double checking - isLoggedIn: \(self.isLoggedIn)")
-                                print("📍 Should now show: \(self.isLoggedIn ? "Home" : "Login")")
+                            // Trigger data loading immediately after login / 登录后立即触发数据加载
+                            if let store = self.homeStore {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    print("🚀 Triggering initial data load after login")
+                                    store.send(.onAppear)
+                                }
                             }
                         }
                     }

@@ -1216,10 +1216,117 @@ ReduxSwiftUIDemo/
 ├── Features/         # TCA reducers and business logic / TCA reducers 和业务逻辑
 ├── Views/           # SwiftUI view components / SwiftUI 视图组件
 │   ├── Components/  # Reusable UI components / 可重用的 UI 组件
-│   └── Screens/     # Full screen views / 全屏视图
+│   ├── Screens/     # Full screen views / 全屏视图
+│   └── UIKitViews/  # UIKit wrapped components / UIKit 包装组件
 ├── Services/        # Network and data services / 网络和数据服务
 └── Resources/       # Assets and configuration / 资源和配置
 ```
+
+## UIKit Usage Guidelines / UIKit 使用指南
+
+### UIKit Import Restrictions / UIKit 导入限制
+
+UIKit 应该在一般情况下避免导入。只有在 SwiftUI 无法很好实现某些功能时才使用 UIKit。
+
+UIKit should generally be avoided. Only use UIKit when SwiftUI cannot adequately implement certain features.
+
+### UIKit Wrapping Strategy / UIKit 包装策略
+
+1. **创建专用文件夹 / Create Dedicated Folder**:
+   - 单独建立 `UIKitViews` 文件夹用来存放目前 SwiftUI 做不好的地方
+   - Create a separate `UIKitViews` folder for features that SwiftUI doesn't handle well
+
+2. **使用桥接包装 / Use Bridge Wrapping**:
+   - 使用 UIKit 桥接包装处理复杂功能
+   - Use UIKit bridging to wrap complex functionality
+   - 通过 `UIViewRepresentable` 或 `UIViewControllerRepresentable` 包装
+   - Wrap via `UIViewRepresentable` or `UIViewControllerRepresentable`
+
+3. **适用场景 / Use Cases**:
+   - 对性能要求较高的视图（如复杂列表、大量数据渲染）
+   - High-performance views (complex lists, large data rendering)
+   - 功能交互要求比较高的视图（如富文本编辑器、自定义手势）
+   - Complex interaction requirements (rich text editors, custom gestures)
+   - SwiftUI 尚未支持或支持不完善的功能
+   - Features not yet supported or poorly supported by SwiftUI
+
+### UIKit Wrapping Example / UIKit 包装示例
+
+```swift
+// File: Views/UIKitViews/CustomTextEditor.swift
+// 文件：Views/UIKitViews/CustomTextEditor.swift
+
+import SwiftUI
+import UIKit
+
+/**
+ * CUSTOM TEXT EDITOR - 自定义文本编辑器
+ * 
+ * WHY UIKIT / 为什么使用 UIKit:
+ * - SwiftUI TextEditor lacks advanced formatting options
+ * - SwiftUI TextEditor 缺少高级格式化选项
+ * - Need better performance for large documents
+ * - 大文档需要更好的性能
+ * - Custom keyboard handling required
+ * - 需要自定义键盘处理
+ */
+struct CustomTextEditor: UIViewRepresentable {
+    @Binding var text: String
+    var onTextChange: ((String) -> Void)?
+    
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.delegate = context.coordinator
+        // Configure UIKit view / 配置 UIKit 视图
+        textView.font = UIFont.systemFont(ofSize: 16)
+        textView.isScrollEnabled = true
+        textView.isUserInteractionEnabled = true
+        return textView
+    }
+    
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UITextViewDelegate {
+        let parent: CustomTextEditor
+        
+        init(_ parent: CustomTextEditor) {
+            self.parent = parent
+        }
+        
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
+            parent.onTextChange?(textView.text)
+        }
+    }
+}
+
+// Usage in SwiftUI / 在 SwiftUI 中使用
+struct ContentView: View {
+    @State private var text = ""
+    
+    var body: some View {
+        CustomTextEditor(text: $text) { newText in
+            print("Text changed: \(newText)")
+        }
+    }
+}
+```
+
+### UIKit Integration Rules / UIKit 集成规则
+
+1. **最小化使用 / Minimize Usage**: 只在必要时使用 UIKit / Only use UIKit when necessary
+2. **完整封装 / Full Encapsulation**: UIKit 代码应完全封装在 UIViewRepresentable 中 / UIKit code should be fully encapsulated in UIViewRepresentable
+3. **SwiftUI 接口 / SwiftUI Interface**: 对外只暴露 SwiftUI 友好的接口 / Only expose SwiftUI-friendly interfaces
+4. **文档说明 / Documentation**: 必须说明为什么需要使用 UIKit / Must document why UIKit is needed
+5. **性能测试 / Performance Testing**: 验证 UIKit 方案确实提供了性能优势 / Verify that UIKit solution actually provides performance benefits
 
 ## Testing Requirements / 测试要求
 

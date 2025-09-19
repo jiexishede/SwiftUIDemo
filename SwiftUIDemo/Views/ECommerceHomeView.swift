@@ -38,32 +38,126 @@
 import SwiftUI
 import ComposableArchitecture
 
+/**
+ * 主视图结构体 - 电商首页视图
+ * Main View Structure - E-Commerce Home View
+ * 
+ * 技术栈 / Tech Stack:
+ * - SwiftUI: 声明式UI框架
+ * - TCA (The Composable Architecture): 状态管理
+ * - Combine: 响应式编程
+ * 
+ * 关键技术点 / Key Technical Points:
+ * 1. ViewStore: TCA的核心概念，用于观察状态变化并触发视图更新
+ * 2. @ObservedObject: SwiftUI属性包装器，确保视图响应状态变化
+ * 3. Store: TCA的状态容器，管理所有业务逻辑
+ */
 struct ECommerceHomeView: View {
+    // MARK: - Properties / 属性
+    
+    /**
+     * ViewStore - TCA的视图状态观察器
+     * ViewStore - TCA's view state observer
+     * 
+     * 作用 / Purpose:
+     * - 观察状态变化并自动更新UI
+     * - 提供类型安全的状态访问
+     * - 优化性能，只在相关状态变化时更新
+     */
     @ObservedObject var viewStore: ViewStore<ECommerceHomeFeature.State, ECommerceHomeFeature.Action>
+    
+    /**
+     * Store - TCA的核心状态容器
+     * Store - TCA's core state container
+     * 
+     * 职责 / Responsibilities:
+     * - 持有应用状态
+     * - 处理动作（Actions）
+     * - 执行副作用（Effects）
+     */
     let store: StoreOf<ECommerceHomeFeature>
     
-    // Layout constants / 布局常量
+    // MARK: - Layout Constants / 布局常量
+    
+    /**
+     * 网格列定义 - 用于推荐商品的两列布局
+     * Grid columns definition - Two column layout for recommended products
+     * 
+     * 使用场景 / Use case:
+     * LazyVGrid 中展示商品卡片
+     */
     private let gridColumns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
+        GridItem(.flexible()),  // 第一列，自适应宽度 / First column, flexible width
+        GridItem(.flexible())   // 第二列，自适应宽度 / Second column, flexible width
     ]
     
+    /**
+     * 分类网格列定义 - 四列布局
+     * Category grid columns - Four column layout
+     * 
+     * 设计考虑 / Design consideration:
+     * - 4列适合展示图标类分类
+     * - 在小屏幕上仍能保持良好可读性
+     */
     private let categoryColumns = Array(repeating: GridItem(.flexible()), count: 4)
     
+    // MARK: - Initialization / 初始化
+    
+    /**
+     * 视图初始化器
+     * View Initializer
+     * 
+     * 关键步骤 / Key steps:
+     * 1. 保存store引用
+     * 2. 创建ViewStore用于状态观察
+     * 3. observe: { $0 } 表示观察所有状态变化
+     * 
+     * 注意 / Note:
+     * ViewStore的创建是性能优化的关键
+     * 只有通过ViewStore访问的状态变化才会触发视图更新
+     */
     init(store: StoreOf<ECommerceHomeFeature>) {
         self.store = store
+        // 创建ViewStore，观察所有状态变化
+        // Create ViewStore, observe all state changes
         self.viewStore = ViewStore(store, observe: { $0 })
     }
     
+    // MARK: - Body / 主体视图
+    
+    /**
+     * SwiftUI视图主体
+     * SwiftUI View Body
+     * 
+     * 架构设计 / Architecture Design:
+     * - 使用Group包装以支持条件编译
+     * - iOS版本适配策略
+     * - 响应式布局设计
+     * 
+     * 性能优化 / Performance Optimization:
+     * - 使用计算属性分解复杂视图
+     * - 避免body中的复杂逻辑
+     * - 利用SwiftUI的视图重用机制
+     */
     var body: some View {
-        // Use Group to apply refreshable properly for iOS 15
-        // 使用 Group 以便为 iOS 15 正确应用 refreshable
+        /**
+         * Group容器的作用 / Purpose of Group container:
+         * 1. 允许在不同iOS版本间切换实现
+         * 2. 确保refreshable修饰符正确应用
+         * 3. 避免条件编译导致的视图类型不一致
+         * 
+         * iOS兼容性策略 / iOS Compatibility Strategy:
+         * - iOS 15: 基础refreshable支持
+         * - iOS 16+: 增强的refreshable功能
+         */
         Group {
             if #available(iOS 16.0, *) {
-                // iOS 16+: Use modern implementation
+                // iOS 16+: 使用现代实现，支持更多特性
+                // iOS 16+: Use modern implementation with more features
                 contentWithOverlay
             } else {
-                // iOS 15: Ensure refreshable works properly
+                // iOS 15: 确保基础功能正常工作
+                // iOS 15: Ensure basic functionality works
                 contentWithOverlay
             }
         }
@@ -87,24 +181,74 @@ struct ECommerceHomeView: View {
         }
     }
     
+    /**
+     * 内容与覆盖层组合视图
+     * Content with Overlay Combined View
+     * 
+     * 设计模式 / Design Pattern:
+     * - 使用ZStack实现分层架构
+     * - 主内容层：ScrollView包含所有业务组件
+     * - 覆盖层：错误提示和通知横幅
+     * 
+     * 为什么使用ZStack / Why use ZStack:
+     * 1. 允许错误横幅浮动在内容之上
+     * 2. 不影响主内容的滚动行为
+     * 3. 提供更好的视觉层次
+     * 
+     * 渲染顺序 / Rendering Order:
+     * 1. mainContent (底层)
+     * 2. errorBannersOverlay (顶层)
+     */
     private var contentWithOverlay: some View {
         ZStack {
-            // Main content / 主内容
+            // 主内容层 - 包含所有业务组件
+            // Main content layer - Contains all business components
             mainContent
             
-            // Error banners overlay / 错误横幅覆盖层
+            // 错误横幅覆盖层 - 浮动显示错误信息
+            // Error banners overlay - Floating error messages
             errorBannersOverlay
         }
     }
     
-    // MARK: - Main Content
+    // MARK: - Main Content / 主内容视图
     
+    /**
+     * 主内容ScrollView
+     * Main Content ScrollView
+     * 
+     * 架构设计 / Architecture Design:
+     * - ScrollView作为容器，支持垂直滚动
+     * - VStack组织内容的垂直布局
+     * - 响应式padding适应不同状态
+     * 
+     * 性能优化 / Performance Optimization:
+     * - 使用计算属性分解复杂视图
+     * - 条件渲染减少不必要的视图构建
+     * - 背景色设置优化iOS 15刷新体验
+     */
     private var mainContent: some View {
         ScrollView {
-            // Pull-to-refresh indicator for iOS 15 manual feedback
-            // iOS 15 下拉刷新的手动反馈指示器
+            /**
+             * 内容垂直堆栈
+             * Content Vertical Stack
+             * 
+             * spacing: 20 - 组件间的统一间距
+             * 设计原则: 保持视觉一致性和呼吸感
+             */
             VStack(spacing: 20) {
-                // Blue retry banner at top (for multiple errors) / 顶部蓝色重试横幅（多个错误）
+                /**
+                 * 蓝色批量重试横幅
+                 * Blue Batch Retry Banner
+                 * 
+                 * 显示条件 / Display Condition:
+                 * - 多个API失败时显示
+                 * - 提供批量重试功能
+                 * 
+                 * 用户体验设计 / UX Design:
+                 * - 蓝色表示信息提示，非严重错误
+                 * - 支持全部重试或选择性重试
+                 */
                 if viewStore.showBlueRetryBanner {
                     BlueErrorBanner(
                         errorCount: viewStore.coreErrorCount + viewStore.componentErrorCount,
@@ -130,15 +274,47 @@ struct ECommerceHomeView: View {
             }
             .padding(.bottom, viewStore.showOrangeFloatingAlert ? 100 : 20)
         }
-        // iOS 15 specific fixes for refreshable / iOS 15 refreshable 特定修复
-        .background(Color(.systemGroupedBackground))
+        /**
+         * iOS 15 刷新功能修复
+         * iOS 15 Refresh Functionality Fix
+         * 
+         * 关键修复点 / Key Fixes:
+         * 1. background: 必须设置背景色，否则iOS 15无法显示刷新指示器
+         * 2. refreshable: 直接应用在ScrollView上，不能嵌套过深
+         * 3. await: 必须等待异步操作完成，否则刷新立即结束
+         * 
+         * 兼容性说明 / Compatibility Note:
+         * - iOS 15.0: 基础refreshable支持
+         * - iOS 16.0+: 增强的refreshable功能
+         */
+        .background(Color(.systemGroupedBackground))  // 关键: iOS 15必需
         .refreshable {
+            // 执行异步刷新操作
             await performRefresh()
         }
     }
     
-    // Separate refresh function for better debugging
-    // 独立的刷新函数以便更好地调试
+    // MARK: - Refresh Implementation / 刷新实现
+    
+    /**
+     * 执行下拉刷新的异步函数
+     * Async function to perform pull-to-refresh
+     * 
+     * 技术实现 / Technical Implementation:
+     * 1. 使用 @MainActor 确保UI更新在主线程
+     * 2. async/await 处理异步操作
+     * 3. 轮询检查数据加载状态
+     * 
+     * 为什么需要这个函数 / Why this function is needed:
+     * - iOS 15 的 .refreshable 需要明确的异步处理
+     * - 需要等待数据实际加载完成才能结束刷新
+     * - 提供更好的用户体验反馈
+     * 
+     * 关键技术点 / Key Technical Points:
+     * - Task.sleep: iOS 15兼容的等待方式
+     * - ViewStore状态检查: 确保数据更新
+     * - 错误状态处理: 适时停止刷新
+     */
     @MainActor
     private func performRefresh() async {
         print("🔄 Pull-to-refresh triggered / 下拉刷新触发")
@@ -146,28 +322,70 @@ struct ECommerceHomeView: View {
         print("📱 iOS Version: \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)")
         print("⏰ Refresh started at: \(Date())")
         
-        // Send reset action to clear all states / 发送重置动作清除所有状态
+        /**
+         * 步骤1: 发送重置动作
+         * Step 1: Send reset action
+         * 
+         * 这个action会:
+         * - 将所有数据状态重置为.loading
+         * - 清除所有错误状态
+         * - 触发loadInitialData重新加载数据
+         */
         store.send(.resetForRefresh)
         
-        // Wait for data to actually load / 等待数据实际加载
-        // iOS 15 needs more time for the refresh indicator to work properly
-        // iOS 15 需要更多时间让刷新指示器正常工作
+        /**
+         * 步骤2: 等待数据加载
+         * Step 2: Wait for data to load
+         * 
+         * 轮询策略 / Polling Strategy:
+         * - 每100ms检查一次状态
+         * - 最多等待3秒
+         * - 检测到数据加载或错误时立即停止
+         * 
+         * iOS 15特殊处理 / iOS 15 Special Handling:
+         * - iOS 15的refreshable需要明确的等待时间
+         * - 否则刷新指示器可能立即消失
+         */
         var waitTime = 0
-        let maxWaitTime = 30 // 3 seconds max / 最多3秒
+        let maxWaitTime = 30 // 3秒最大等待时间 / 3 seconds max wait time
         
+        /**
+         * 轮询循环 - 检查数据加载状态
+         * Polling Loop - Check data loading status
+         * 
+         * 退出条件 / Exit Conditions:
+         * 1. 核心数据加载成功 (userProfile + banners)
+         * 2. 出现错误状态
+         * 3. 超过最大等待时间
+         */
         while waitTime < maxWaitTime {
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
+            // 使用Task.sleep实现非阻塞等待
+            // Use Task.sleep for non-blocking wait
+            // 100_000_000纳秒 = 0.1秒
+            try? await Task.sleep(nanoseconds: 100_000_000)
             waitTime += 1
             
-            // Check if any data has loaded / 检查是否有数据已加载
+            /**
+             * 成功条件检查
+             * Success condition check
+             * 
+             * 为什么检查这两个状态 / Why check these two states:
+             * - userProfileState: 核心用户数据，必须加载
+             * - bannersState: 首屏展示内容，用户可见
+             */
             if case .loaded = viewStore.userProfileState,
                case .loaded = viewStore.bannersState {
                 print("✅ Data loaded, stopping refresh")
                 break
             }
             
-            // Also stop if there are errors (data attempted to load)
-            // 如果有错误也停止（数据尝试加载了）
+            /**
+             * 错误条件检查
+             * Error condition check
+             * 
+             * 即使有错误也要停止刷新，避免无限等待
+             * Stop refresh even on error to avoid infinite waiting
+             */
             if viewStore.errorDisplayMode != .none {
                 print("⚠️ Errors detected, stopping refresh")
                 break

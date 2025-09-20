@@ -171,7 +171,12 @@ struct ContentView: View {
             }
         case .refreshableList:
             if let store = store.scope(state: \.refreshableList, action: \.refreshableList) {
-                RefreshableListView(store: store)
+                // iOS 15 使用简化版本 / Use simplified version for iOS 15
+                if #available(iOS 16.0, *) {
+                    RefreshableListView(store: store)
+                } else {
+                    RefreshableListViewSimple(store: store)
+                }
             }
         case .smartScroll:
             SmartScrollDemoView()
@@ -340,21 +345,27 @@ struct iOS15DestinationView: View {
                 )
             )
         case "refreshableList":
-            // 确保每次都是全新的状态，toggles 都是 false / Ensure fresh state with toggles set to false
-            childStore = AnyView(
-                RefreshableListView(
-                    store: Store(
-                        initialState: RefreshableListFeature.State(
-                            pageState: .idle,
-                            simulateError: false,  // 重置为 false / Reset to false
-                            simulateEmpty: false,  // 重置为 false / Reset to false
-                            refreshErrorInfo: nil
-                        )
-                    ) {
-                        RefreshableListFeature()
-                    }
+            // iOS 15 专用诊断视图 / iOS 15 specific diagnostic view
+            if #available(iOS 16.0, *) {
+                // iOS 16+ 使用完整功能版本 / iOS 16+ use full feature version
+                childStore = AnyView(
+                    RefreshableListView(
+                        store: Store(
+                            initialState: RefreshableListFeature.State(
+                                pageState: .idle,
+                                simulateError: false,  // 重置为 false / Reset to false
+                                simulateEmpty: false,  // 重置为 false / Reset to false
+                                refreshErrorInfo: nil
+                            )
+                        ) {
+                            RefreshableListFeature()
+                        }
+                    )
                 )
-            )
+            } else {
+                // iOS 15 使用诊断测试视图 / iOS 15 use diagnostic test view
+                childStore = AnyView(iOS15RefreshDiagnostic())
+            }
         case "smartScroll":
             childStore = AnyView(SmartScrollDemoView())
         case "dialogDemo":

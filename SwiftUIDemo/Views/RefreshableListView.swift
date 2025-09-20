@@ -465,79 +465,148 @@ struct ModernRefreshableScrollView: View {
 // iOS 15 可刷新滚动视图 / iOS 15 Refreshable ScrollView
 struct LegacyRefreshableScrollView: View {
     let viewStore: ViewStore<RefreshableListFeature.State, RefreshableListFeature.Action>
+    @State private var refreshID = UUID()
 
     var body: some View {
-        // iOS 15 使用 List 以支持 refreshable / Use List for iOS 15 to support refreshable
+        // iOS 15 必须使用 List 且必须有内容 / iOS 15 must use List with content
         List {
-            // 刷新错误横幅（与 iOS 16 相同的样式）/ Refresh error banner (same style as iOS 16)
-            if case let .failed(.refresh, errorInfo) = viewStore.pageState {
-                RefreshErrorBanner(errorInfo: errorInfo, viewStore: viewStore)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-            } else if let errorInfo = viewStore.refreshErrorInfo {
-                // 显示刷新错误信息 / Show refresh error info
-                RefreshErrorBanner(errorInfo: errorInfo, viewStore: viewStore)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-            }
-
-            // 列表项 / List items
-            ForEach(viewStore.items) { item in
-                RefreshableListItemView(item: item)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-            }
-
+            // 关键修复：确保 List 始终有足够内容来支持滚动 / Key fix: ensure List always has enough content to support scrolling
+            placeholderContentIfNeeded
+            
+            // 刷新错误横幅 / Refresh error banner
+            errorBannerSection
+            
+            // 列表项 / List items  
+            itemsSection
+            
             // 加载更多部分 / Load more section
-            if case let .loaded(data, loadMoreState) = viewStore.pageState {
-                LoadMoreView(
-                    loadMoreState: loadMoreState,
-                    hasMore: data.hasMorePages,
-                    autoLoadMore: true  // 启用自动加载更多 / Enable auto load more
-                ) {
-                    viewStore.send(.loadMore)
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
-                .onAppear {
-                    // 当加载更多视图出现时自动触发加载 / Auto trigger when load more view appears
-                    if data.hasMorePages && loadMoreState == .idle {
-                        viewStore.send(.loadMore)
-                    }
-                }
-            }
+            loadMoreSection
+            
+            // 确保内容足够高以支持下拉刷新 / Ensure content is tall enough to support pull-to-refresh
+            additionalContentPadding
         }
         .listStyle(PlainListStyle())
+        .background(Color(.systemGroupedBackground))
         .refreshable {
-            // 异步刷新处理 / Async refresh handling
+            // iOS 15 关键：必须等待异步操作完成 / iOS 15 key: must await async operation
             await performRefresh()
         }
     }
+    
+    // MARK: - Content Sections
+    
+    @ViewBuilder
+    private var placeholderContentIfNeeded: some View {
+        // iOS 15 关键：List 必须有实际内容才能触发刷新 / iOS 15 key: List must have actual content to trigger refresh
+        if viewStore.items.isEmpty && !viewStore.pageState.isLoading {
+            // 当没有数据时，添加足够的占位内容 / When no data, add enough placeholder content
+            ForEach(0..<15, id: \.self) { index in
+                HStack {
+                    Image(systemName: "circle.dotted")
+                        .foregroundColor(.gray.opacity(0.3))
+                    Text("等待数据加载...")
+                        .foregroundColor(.gray.opacity(0.5))
+                        .font(.caption)
+                    Spacer()
+                }
+                .padding(.vertical, 12)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var errorBannerSection: some View {
+        if case let .failed(.refresh, errorInfo) = viewStore.pageState {
+            RefreshErrorBanner(errorInfo: errorInfo, viewStore: viewStore)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        } else if let errorInfo = viewStore.refreshErrorInfo {
+            RefreshErrorBanner(errorInfo: errorInfo, viewStore: viewStore)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        }
+    }
+    
+    @ViewBuilder
+    private var itemsSection: some View {
+        ForEach(viewStore.items) { item in
+            RefreshableListItemView(item: item)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.white)
+        }
+    }
+    
+    @ViewBuilder
+    private var loadMoreSection: some View {
+        if case let .loaded(data, loadMoreState) = viewStore.pageState {
+            LoadMoreView(
+                loadMoreState: loadMoreState,
+                hasMore: data.hasMorePages,
+                autoLoadMore: true
+            ) {
+                viewStore.send(.loadMore)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .onAppear {
+                if data.hasMorePages && loadMoreState == .idle {
+                    viewStore.send(.loadMore)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var additionalContentPadding: some View {
+        // 添加额外的空间确保内容足够高 / Add extra space to ensure content is tall enough
+        Color.clear
+            .frame(height: 100)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+    }
 
     // 执行刷新的异步函数 / Async function to perform refresh
+    /**
+     * iOS 15 优化的刷新实现
+     * iOS 15 optimized refresh implementation
+     * 
+     * 关键改进 / Key improvements:
+     * 1. 简化等待逻辑，减少复杂的状态轮询 / Simplified wait logic, reduced complex state polling
+     * 2. 增加最小显示时间，确保用户看到刷新效果 / Added minimum display time to ensure user sees refresh effect
+     * 3. 更稳定的错误处理 / More stable error handling
+     * 4. 减少不必要的延迟 / Reduced unnecessary delays
+     */
     private func performRefresh() async {
+        print("🔄 [LegacyRefreshableScrollView] iOS 15 刷新开始 / iOS 15 refresh started")
+        
         // 发送刷新动作 / Send refresh action
         viewStore.send(.pullToRefresh)
-
-        // 等待一小段时间确保动作被处理 / Wait a moment to ensure action is processed
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒 / 0.1 second
-
-        // 等待刷新完成（最多5秒）/ Wait for refresh to complete (max 5 seconds)
-        var attempts = 0
-        let maxAttempts = 50
-
-        // 等待刷新开始 / Wait for refresh to start
-        while !viewStore.pageState.isRefreshing && attempts < 5 {
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            attempts += 1
+        
+        // iOS 15 关键：等待足够时间确保刷新指示器显示 / iOS 15 key: wait enough time to ensure refresh indicator shows
+        do {
+            // 最小刷新时间，确保用户体验 / Minimum refresh time for user experience
+            try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5秒 / 1.5 seconds
+            
+            // 简化的状态检查 / Simplified state check
+            var waitCount = 0
+            while viewStore.pageState.isRefreshing && waitCount < 20 {
+                try await Task.sleep(nanoseconds: 250_000_000) // 0.25秒 / 0.25 seconds
+                waitCount += 1
+            }
+            
+        } catch {
+            print("⚠️ [LegacyRefreshableScrollView] 刷新等待被中断: \(error)")
         }
-
-        // 等待刷新完成 / Wait for refresh to complete
-        attempts = 0
-        while viewStore.pageState.isRefreshing && attempts < maxAttempts {
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            attempts += 1
-        }
+        
+        print("✅ [LegacyRefreshableScrollView] iOS 15 刷新完成 / iOS 15 refresh completed")
     }
 }
 

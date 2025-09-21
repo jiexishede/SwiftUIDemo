@@ -4195,6 +4195,1700 @@ In actual project development, this architectural design brings significant impr
 
 This architectural pattern has been validated in real projects and can support the development and maintenance needs of large, complex applications. It is particularly suitable for modern mobile application scenarios that require multi-page data synchronization and functionality reuse.
 
+## 复杂交易应用架构案例
+
+### 案例背景：多模块交易应用
+
+以一个包含买卖、置换、典当等多个交易模块的复杂应用为例，每个模块都有多个页面，且在最终确认页面需要获取订单号接口。
+
+Taking a complex application with multiple trading modules (buy, sell, exchange, pawn) as an example, where each module has multiple pages and requires order number API calls on the final confirmation page.
+
+### 四层架构设计
+
+对于这种复杂度的应用，我们采用四层架构：
+
+For applications of this complexity, we adopt a four-tier architecture:
+
+```
+📱 交易应用架构 / Trading App Architecture
+├── 🏛️ AppReducer (应用层 / App Layer)
+│   ├── 🛒 TradeModuleReducer (模块层 / Module Layer)
+│   │   ├── 💰 BuyFlowReducer (流程层 / Flow Layer)
+│   │   │   ├── 📋 ProductSelectionReducer (页面层 / Page Layer)
+│   │   │   ├── 📊 PriceCalculationReducer (页面层 / Page Layer)
+│   │   │   └── ✅ OrderConfirmationReducer (页面层 / Page Layer)
+│   │   ├── 💸 SellFlowReducer (流程层 / Flow Layer)
+│   │   ├── 🔄 ExchangeFlowReducer (流程层 / Flow Layer)
+│   │   └── 🏦 PawnFlowReducer (流程层 / Flow Layer)
+│   ├── 👤 UserModuleReducer (模块层 / Module Layer)
+│   └── 📊 AnalyticsModuleReducer (模块层 / Module Layer)
+```
+
+### 具体实现架构
+
+```swift
+/**
+ * 复杂交易应用的四层架构实现
+ * Four-tier Architecture Implementation for Complex Trading App
+ */
+
+// MARK: - 第一层：应用根 Reducer / Layer 1: App Root Reducer
+struct AppReducer: ReducerProtocol {
+    struct State: Equatable {
+        // 全局共享状态 / Global shared state
+        var globalUserInfo: UserInfo?
+        var globalOrderCache: [String: Order] = [:]
+        var globalNetworkStatus: NetworkStatus = .online
+        
+        // 模块状态 / Module states
+        var tradeModule = TradeModuleReducer.State()
+        var userModule = UserModuleReducer.State()
+        var analyticsModule = AnalyticsModuleReducer.State()
+        
+        // 全局共享组件状态 / Global shared component states
+        var globalNotifications = NotificationReducer.State()
+        var globalShoppingCart = ShoppingCartReducer.State()
+    }
+    
+    enum Action: Equatable {
+        // 模块动作 / Module actions
+        case tradeModule(TradeModuleReducer.Action)
+        case userModule(UserModuleReducer.Action)
+        case analyticsModule(AnalyticsModuleReducer.Action)
+        
+        // 全局共享组件动作 / Global shared component actions
+        case notifications(NotificationReducer.Action)
+        case shoppingCart(ShoppingCartReducer.Action)
+        
+        // 全局同步动作 / Global synchronization actions
+        case syncOrderAcrossModules(Order)
+        case syncUserInfoUpdate(UserInfo)
+        case networkStatusChanged(NetworkStatus)
+    }
+    
+    var body: some ReducerProtocol<State, Action> {
+        // 模块级 Reducer 组合 / Module-level reducer composition
+        Scope(state: \.tradeModule, action: /Action.tradeModule) {
+            TradeModuleReducer()
+        }
+        
+        Scope(state: \.userModule, action: /Action.userModule) {
+            UserModuleReducer()
+        }
+        
+        Scope(state: \.analyticsModule, action: /Action.analyticsModule) {
+            AnalyticsModuleReducer()
+        }
+        
+        // 全局共享组件 / Global shared components
+        Scope(state: \.notifications, action: /Action.notifications) {
+            NotificationReducer()
+        }
+        
+        Scope(state: \.shoppingCart, action: /Action.shoppingCart) {
+            ShoppingCartReducer()
+        }
+        
+        Reduce { state, action in
+            switch action {
+            case let .syncOrderAcrossModules(order):
+                // 订单信息同步到所有相关模块 / Sync order info to all relevant modules
+                state.globalOrderCache[order.id] = order
+                
+                return .merge(
+                    EffectTask(value: .tradeModule(.syncOrder(order))),
+                    EffectTask(value: .userModule(.syncOrder(order))),
+                    EffectTask(value: .analyticsModule(.trackOrder(order)))
+                )
+                
+            case let .syncUserInfoUpdate(userInfo):
+                state.globalUserInfo = userInfo
+                
+                // 用户信息更新同步到所有模块 / Sync user info updates to all modules
+                return .merge(
+                    EffectTask(value: .tradeModule(.userInfoUpdated(userInfo))),
+                    EffectTask(value: .userModule(.userInfoUpdated(userInfo)))
+                )
+                
+            case let .networkStatusChanged(status):
+                state.globalNetworkStatus = status
+                
+                // 网络状态变化处理 / Handle network status changes
+                if status == .online {
+                    return EffectTask(value: .tradeModule(.retryPendingOrders))
+                }
+                return .none
+                
+            default:
+                return .none
+            }
+        }
+    }
+}
+
+// MARK: - 第二层：交易模块 Reducer / Layer 2: Trade Module Reducer
+struct TradeModuleReducer: ReducerProtocol {
+    struct State: Equatable {
+        // 模块级共享状态 / Module-level shared state
+        var activeOrderNumbers: Set<String> = []
+        var moduleUserPermissions: TradePermissions?
+        
+        // 各交易流程状态 / Individual trade flow states
+        var buyFlow = BuyFlowReducer.State()
+        var sellFlow = SellFlowReducer.State()
+        var exchangeFlow = ExchangeFlowReducer.State()
+        var pawnFlow = PawnFlowReducer.State()
+        
+        // 模块级共享组件 / Module-level shared components
+        var orderHistory = OrderHistoryReducer.State()
+        var tradeStatistics = TradeStatisticsReducer.State()
+    }
+    
+    enum Action: Equatable {
+        // 流程动作 / Flow actions
+        case buyFlow(BuyFlowReducer.Action)
+        case sellFlow(SellFlowReducer.Action)
+        case exchangeFlow(ExchangeFlowReducer.Action)
+        case pawnFlow(PawnFlowReducer.Action)
+        
+        // 模块级共享组件动作 / Module-level shared component actions
+        case orderHistory(OrderHistoryReducer.Action)
+        case tradeStatistics(TradeStatisticsReducer.Action)
+        
+        // 模块级同步动作 / Module-level sync actions
+        case syncOrder(Order)
+        case userInfoUpdated(UserInfo)
+        case retryPendingOrders
+        case orderNumberGenerated(String, TradeType)
+    }
+    
+    var body: some ReducerProtocol<State, Action> {
+        // 交易流程 Reducer 组合 / Trade flow reducer composition
+        Scope(state: \.buyFlow, action: /Action.buyFlow) {
+            BuyFlowReducer()
+        }
+        
+        Scope(state: \.sellFlow, action: /Action.sellFlow) {
+            SellFlowReducer()
+        }
+        
+        Scope(state: \.exchangeFlow, action: /Action.exchangeFlow) {
+            ExchangeFlowReducer()
+        }
+        
+        Scope(state: \.pawnFlow, action: /Action.pawnFlow) {
+            PawnFlowReducer()
+        }
+        
+        // 模块级共享组件 / Module-level shared components
+        Scope(state: \.orderHistory, action: /Action.orderHistory) {
+            OrderHistoryReducer()
+        }
+        
+        Scope(state: \.tradeStatistics, action: /Action.tradeStatistics) {
+            TradeStatisticsReducer()
+        }
+        
+        Reduce { state, action in
+            switch action {
+            case let .orderNumberGenerated(orderNumber, tradeType):
+                // 新订单号生成，同步到相关流程 / New order number generated, sync to relevant flows
+                state.activeOrderNumbers.insert(orderNumber)
+                
+                switch tradeType {
+                case .buy:
+                    return EffectTask(value: .buyFlow(.orderNumberReceived(orderNumber)))
+                case .sell:
+                    return EffectTask(value: .sellFlow(.orderNumberReceived(orderNumber)))
+                case .exchange:
+                    return EffectTask(value: .exchangeFlow(.orderNumberReceived(orderNumber)))
+                case .pawn:
+                    return EffectTask(value: .pawnFlow(.orderNumberReceived(orderNumber)))
+                }
+                
+            case let .syncOrder(order):
+                // 订单同步到历史记录和统计 / Sync order to history and statistics
+                return .merge(
+                    EffectTask(value: .orderHistory(.addOrder(order))),
+                    EffectTask(value: .tradeStatistics(.updateWithOrder(order)))
+                )
+                
+            case let .userInfoUpdated(userInfo):
+                // 更新模块级用户权限 / Update module-level user permissions
+                state.moduleUserPermissions = TradePermissions(from: userInfo)
+                
+                // 通知所有流程用户信息更新 / Notify all flows of user info update
+                return .merge(
+                    EffectTask(value: .buyFlow(.userPermissionsUpdated(state.moduleUserPermissions!))),
+                    EffectTask(value: .sellFlow(.userPermissionsUpdated(state.moduleUserPermissions!))),
+                    EffectTask(value: .exchangeFlow(.userPermissionsUpdated(state.moduleUserPermissions!))),
+                    EffectTask(value: .pawnFlow(.userPermissionsUpdated(state.moduleUserPermissions!)))
+                )
+                
+            case .retryPendingOrders:
+                // 网络恢复后重试待处理订单 / Retry pending orders after network recovery
+                let retryEffects = state.activeOrderNumbers.map { orderNumber in
+                    // 根据订单类型重试相应流程 / Retry corresponding flow based on order type
+                    EffectTask(value: .orderHistory(.retryOrder(orderNumber)))
+                }
+                return .merge(retryEffects)
+                
+            default:
+                return .none
+            }
+        }
+    }
+}
+
+// MARK: - 第三层：买卖流程 Reducer / Layer 3: Buy Flow Reducer
+struct BuyFlowReducer: ReducerProtocol {
+    struct State: Equatable {
+        // 流程级状态 / Flow-level state
+        var currentStep: BuyFlowStep = .productSelection
+        var flowData: BuyFlowData = BuyFlowData()
+        var generatedOrderNumber: String?
+        
+        // 流程内页面状态 / Page states within flow
+        var productSelection = ProductSelectionReducer.State()
+        var priceCalculation = PriceCalculationReducer.State()
+        var orderConfirmation = OrderConfirmationReducer.State()
+        
+        // 流程级共享组件 / Flow-level shared components
+        var paymentMethod = PaymentMethodReducer.State()
+        var deliveryOptions = DeliveryOptionsReducer.State()
+    }
+    
+    enum BuyFlowStep: Equatable {
+        case productSelection
+        case priceCalculation
+        case orderConfirmation
+        case payment
+        case completed
+    }
+    
+    enum Action: Equatable {
+        // 页面动作 / Page actions
+        case productSelection(ProductSelectionReducer.Action)
+        case priceCalculation(PriceCalculationReducer.Action)
+        case orderConfirmation(OrderConfirmationReducer.Action)
+        
+        // 流程级共享组件动作 / Flow-level shared component actions
+        case paymentMethod(PaymentMethodReducer.Action)
+        case deliveryOptions(DeliveryOptionsReducer.Action)
+        
+        // 流程控制动作 / Flow control actions
+        case proceedToNextStep
+        case goBackToPreviousStep
+        case generateOrderNumber
+        case orderNumberReceived(String)
+        case userPermissionsUpdated(TradePermissions)
+        case resetFlow
+    }
+    
+    var body: some ReducerProtocol<State, Action> {
+        // 页面级 Reducer 组合 / Page-level reducer composition
+        Scope(state: \.productSelection, action: /Action.productSelection) {
+            ProductSelectionReducer()
+        }
+        
+        Scope(state: \.priceCalculation, action: /Action.priceCalculation) {
+            PriceCalculationReducer()
+        }
+        
+        Scope(state: \.orderConfirmation, action: /Action.orderConfirmation) {
+            OrderConfirmationReducer()
+        }
+        
+        // 流程级共享组件 / Flow-level shared components
+        Scope(state: \.paymentMethod, action: /Action.paymentMethod) {
+            PaymentMethodReducer()
+        }
+        
+        Scope(state: \.deliveryOptions, action: /Action.deliveryOptions) {
+            DeliveryOptionsReducer()
+        }
+        
+        Reduce { state, action in
+            switch action {
+            case .proceedToNextStep:
+                // 流程步骤控制 / Flow step control
+                switch state.currentStep {
+                case .productSelection:
+                    state.currentStep = .priceCalculation
+                    return EffectTask(value: .priceCalculation(.calculatePrice(state.flowData)))
+                    
+                case .priceCalculation:
+                    state.currentStep = .orderConfirmation
+                    // 在确认页面自动获取订单号 / Automatically get order number on confirmation page
+                    return EffectTask(value: .generateOrderNumber)
+                    
+                case .orderConfirmation:
+                    state.currentStep = .payment
+                    return EffectTask(value: .paymentMethod(.initiatePayment(state.generatedOrderNumber!)))
+                    
+                case .payment:
+                    state.currentStep = .completed
+                    return .none
+                    
+                case .completed:
+                    return .none
+                }
+                
+            case .generateOrderNumber:
+                // 获取订单号的核心逻辑 / Core logic for getting order number
+                return .task { [flowData = state.flowData] in
+                    do {
+                        let orderNumber = try await orderService.generateOrderNumber(
+                            tradeType: .buy,
+                            data: flowData
+                        )
+                        return .orderNumberReceived(orderNumber)
+                    } catch {
+                        return .orderConfirmation(.orderNumberGenerationFailed(error))
+                    }
+                }
+                
+            case let .orderNumberReceived(orderNumber):
+                state.generatedOrderNumber = orderNumber
+                
+                // 将订单号传递给确认页面 / Pass order number to confirmation page
+                return EffectTask(value: .orderConfirmation(.orderNumberUpdated(orderNumber)))
+                
+            case let .userPermissionsUpdated(permissions):
+                // 根据用户权限更新流程可用性 / Update flow availability based on user permissions
+                if !permissions.canBuy {
+                    return EffectTask(value: .resetFlow)
+                }
+                return .none
+                
+            case .resetFlow:
+                state = State() // 重置整个流程 / Reset entire flow
+                return .none
+                
+            case .goBackToPreviousStep:
+                // 返回上一步的逻辑 / Logic for going back to previous step
+                switch state.currentStep {
+                case .priceCalculation:
+                    state.currentStep = .productSelection
+                case .orderConfirmation:
+                    state.currentStep = .priceCalculation
+                case .payment:
+                    state.currentStep = .orderConfirmation
+                default:
+                    break
+                }
+                return .none
+                
+            default:
+                return .none
+            }
+        }
+    }
+}
+
+// MARK: - 第四层：订单确认页面 Reducer / Layer 4: Order Confirmation Page Reducer
+struct OrderConfirmationReducer: ReducerProtocol {
+    struct State: Equatable {
+        // 页面特有状态 / Page-specific state
+        var orderSummary: OrderSummary?
+        var orderNumber: String?
+        var isGeneratingOrderNumber = false
+        var confirmationStep: ConfirmationStep = .review
+        
+        // 页面内组件状态 / Component states within page
+        var orderSummaryComponent = OrderSummaryComponentReducer.State()
+        var termsAndConditions = TermsAndConditionsReducer.State()
+        var finalReview = FinalReviewComponentReducer.State()
+        
+        var errorMessage: String?
+    }
+    
+    enum ConfirmationStep: Equatable {
+        case review
+        case termsAcceptance
+        case finalConfirmation
+    }
+    
+    enum Action: Equatable {
+        // 页面内组件动作 / Component actions within page
+        case orderSummaryComponent(OrderSummaryComponentReducer.Action)
+        case termsAndConditions(TermsAndConditionsReducer.Action)
+        case finalReview(FinalReviewComponentReducer.Action)
+        
+        // 页面级动作 / Page-level actions
+        case loadOrderSummary(BuyFlowData)
+        case orderNumberUpdated(String)
+        case orderNumberGenerationFailed(Error)
+        case proceedToNextConfirmationStep
+        case confirmOrder
+        case editOrder
+        
+        // 页面生命周期 / Page lifecycle
+        case onAppear
+        case onDisappear
+    }
+    
+    var body: some ReducerProtocol<State, Action> {
+        // 页面内组件组合 / Component composition within page
+        Scope(state: \.orderSummaryComponent, action: /Action.orderSummaryComponent) {
+            OrderSummaryComponentReducer()
+        }
+        
+        Scope(state: \.termsAndConditions, action: /Action.termsAndConditions) {
+            TermsAndConditionsReducer()
+        }
+        
+        Scope(state: \.finalReview, action: /Action.finalReview) {
+            FinalReviewComponentReducer()
+        }
+        
+        Reduce { state, action in
+            switch action {
+            case let .orderNumberUpdated(orderNumber):
+                state.orderNumber = orderNumber
+                state.isGeneratingOrderNumber = false
+                state.errorMessage = nil
+                
+                // 订单号获取成功，更新相关组件 / Order number received successfully, update related components
+                return .merge(
+                    EffectTask(value: .orderSummaryComponent(.updateOrderNumber(orderNumber))),
+                    EffectTask(value: .finalReview(.updateOrderNumber(orderNumber)))
+                )
+                
+            case let .orderNumberGenerationFailed(error):
+                state.isGeneratingOrderNumber = false
+                state.errorMessage = error.localizedDescription
+                return .none
+                
+            case let .loadOrderSummary(flowData):
+                // 加载订单摘要 / Load order summary
+                return .task {
+                    do {
+                        let summary = try await orderService.generateOrderSummary(flowData)
+                        return .orderSummaryComponent(.summaryLoaded(.success(summary)))
+                    } catch {
+                        return .orderSummaryComponent(.summaryLoaded(.failure(error)))
+                    }
+                }
+                
+            case .proceedToNextConfirmationStep:
+                // 确认页面内的步骤控制 / Step control within confirmation page
+                switch state.confirmationStep {
+                case .review:
+                    state.confirmationStep = .termsAcceptance
+                    return EffectTask(value: .termsAndConditions(.loadTerms))
+                    
+                case .termsAcceptance:
+                    guard state.termsAndConditions.isAccepted else {
+                        return EffectTask(value: .termsAndConditions(.showAcceptanceRequired))
+                    }
+                    state.confirmationStep = .finalConfirmation
+                    return EffectTask(value: .finalReview(.prepareForFinalReview))
+                    
+                case .finalConfirmation:
+                    return EffectTask(value: .confirmOrder)
+                }
+                
+            case .confirmOrder:
+                // 最终确认订单 / Final order confirmation
+                guard let orderNumber = state.orderNumber else {
+                    state.errorMessage = "订单号缺失，请重试 / Order number missing, please retry"
+                    return .none
+                }
+                
+                return .task {
+                    do {
+                        let confirmedOrder = try await orderService.confirmOrder(orderNumber)
+                        return .finalReview(.orderConfirmed(.success(confirmedOrder)))
+                    } catch {
+                        return .finalReview(.orderConfirmed(.failure(error)))
+                    }
+                }
+                
+            case .editOrder:
+                // 编辑订单，返回上一步 / Edit order, go back to previous step
+                return .none // 这个动作会被父级流程处理 / This action will be handled by parent flow
+                
+            case .onAppear:
+                // 页面出现时的初始化 / Initialization when page appears
+                return .merge(
+                    EffectTask(value: .orderSummaryComponent(.refreshSummary)),
+                    EffectTask(value: .termsAndConditions(.loadTerms))
+                )
+                
+            case .onDisappear:
+                // 页面消失时的清理 / Cleanup when page disappears
+                return .none
+                
+            default:
+                return .none
+            }
+        }
+    }
+}
+```
+
+### 共享订单号服务设计
+
+```swift
+/**
+ * 订单号服务 - 处理跨模块的订单号生成和管理
+ * Order Number Service - Handles cross-module order number generation and management
+ */
+actor OrderNumberService {
+    private var activeOrderNumbers: Set<String> = []
+    private let orderRepository: OrderRepository
+    
+    init(orderRepository: OrderRepository) {
+        self.orderRepository = orderRepository
+    }
+    
+    /**
+     * 生成订单号 - 核心接口
+     * Generate order number - Core interface
+     */
+    func generateOrderNumber(tradeType: TradeType, data: TradeFlowData) async throws -> String {
+        let orderNumber = try await requestOrderNumberFromServer(tradeType: tradeType, data: data)
+        activeOrderNumbers.insert(orderNumber)
+        return orderNumber
+    }
+    
+    /**
+     * 确认订单
+     * Confirm order
+     */
+    func confirmOrder(_ orderNumber: String) async throws -> Order {
+        guard activeOrderNumbers.contains(orderNumber) else {
+            throw OrderError.invalidOrderNumber
+        }
+        
+        let confirmedOrder = try await orderRepository.confirmOrder(orderNumber)
+        activeOrderNumbers.remove(orderNumber)
+        return confirmedOrder
+    }
+    
+    /**
+     * 取消订单
+     * Cancel order
+     */
+    func cancelOrder(_ orderNumber: String) async throws {
+        guard activeOrderNumbers.contains(orderNumber) else {
+            throw OrderError.invalidOrderNumber
+        }
+        
+        try await orderRepository.cancelOrder(orderNumber)
+        activeOrderNumbers.remove(orderNumber)
+    }
+    
+    private func requestOrderNumberFromServer(tradeType: TradeType, data: TradeFlowData) async throws -> String {
+        // 实际的网络请求逻辑 / Actual network request logic
+        let request = OrderNumberRequest(tradeType: tradeType, data: data)
+        let response = try await networkClient.request(endpoint: .generateOrderNumber, parameters: request)
+        return response.orderNumber
+    }
+}
+```
+
+### 架构设计总结
+
+**四层架构的优势：**
+
+1. **应用层 (App Layer)**：管理全局状态和模块间通信
+2. **模块层 (Module Layer)**：管理业务模块内的共享状态和流程协调
+3. **流程层 (Flow Layer)**：管理完整的业务流程和页面间导航
+4. **页面层 (Page Layer)**：管理单个页面的 UI 状态和组件
+
+**关键设计原则：**
+
+✅ **职责分离**：每层只负责自己层级的职责
+✅ **状态隔离**：不同流程和页面的状态相互独立
+✅ **组件复用**：共享组件可以在适当的层级复用
+✅ **数据流清晰**：订单号等关键数据有明确的流向
+✅ **错误处理**：每层都有对应的错误处理机制
+
+这种架构特别适合复杂的多模块交易应用，能够确保代码的可维护性和可扩展性。
+
+## 项目案例：典当交易 App 完整实现
+
+### 项目背景与需求
+
+典当交易 App 是一个综合性的金融交易平台，支持多种交易模式：
+
+The Pawn Trading App is a comprehensive financial trading platform supporting multiple transaction modes:
+
+**核心功能模块 / Core Function Modules:**
+- 📱 **买入模块** / Buy Module：用户购买典当商品
+- 💰 **卖出模块** / Sell Module：用户出售物品给典当行
+- 🔄 **置换模块** / Exchange Module：物品置换交易
+- 🏦 **典当模块** / Pawn Module：传统典当业务（抵押借贷）
+
+**技术要求 / Technical Requirements:**
+- 每个模块包含 3-5 个页面的完整流程
+- 所有模块的确认页面都需要获取唯一订单号
+- 支持实时数据同步和离线缓存
+- 用户权限控制和风险评估
+- 完整的错误处理和重试机制
+
+### 应用架构设计图
+
+```
+🏛️ 典当交易 App 架构 / Pawn Trading App Architecture
+
+📱 PawnTradingApp
+└── 🎯 AppReducer (应用根节点 / App Root)
+    ├── 🛒 TradeModuleReducer (交易模块 / Trade Module)
+    │   ├── 💰 BuyFlowReducer (买入流程 / Buy Flow)
+    │   │   ├── 🔍 ItemSearchReducer (商品搜索页 / Item Search Page)
+    │   │   ├── 📋 ItemDetailReducer (商品详情页 / Item Detail Page)
+    │   │   ├── 💳 PaymentSelectionReducer (支付选择页 / Payment Selection Page)
+    │   │   └── ✅ OrderConfirmationReducer (订单确认页 / Order Confirmation Page)
+    │   │
+    │   ├── 💸 SellFlowReducer (卖出流程 / Sell Flow)
+    │   │   ├── 📸 ItemPhotoReducer (物品拍照页 / Item Photo Page)
+    │   │   ├── 📝 ItemDescriptionReducer (物品描述页 / Item Description Page)
+    │   │   ├── 💎 AppraisalReducer (估价页 / Appraisal Page)
+    │   │   └── ✅ SellConfirmationReducer (卖出确认页 / Sell Confirmation Page)
+    │   │
+    │   ├── 🔄 ExchangeFlowReducer (置换流程 / Exchange Flow)
+    │   │   ├── 📦 MyItemSelectionReducer (我的物品选择页 / My Item Selection Page)
+    │   │   ├── 🔍 TargetItemSearchReducer (目标物品搜索页 / Target Item Search Page)
+    │   │   ├── ⚖️ ValueComparisonReducer (价值比较页 / Value Comparison Page)
+    │   │   └── ✅ ExchangeConfirmationReducer (置换确认页 / Exchange Confirmation Page)
+    │   │
+    │   └── 🏦 PawnFlowReducer (典当流程 / Pawn Flow)
+    │       ├── 📸 CollateralPhotoReducer (抵押品拍照页 / Collateral Photo Page)
+    │       ├── 💰 LoanAmountReducer (借款金额页 / Loan Amount Page)
+    │       ├── 📅 RepaymentTermsReducer (还款条件页 / Repayment Terms Page)
+    │       └── ✅ PawnConfirmationReducer (典当确认页 / Pawn Confirmation Page)
+    │
+    ├── 👤 UserModuleReducer (用户模块 / User Module)
+    │   ├── 🔐 AuthenticationReducer (认证管理 / Authentication)
+    │   ├── 👤 ProfileReducer (用户资料 / Profile)
+    │   ├── 🎖️ CreditScoreReducer (信用评分 / Credit Score)
+    │   └── 📊 TransactionHistoryReducer (交易历史 / Transaction History)
+    │
+    ├── 💼 InventoryModuleReducer (库存模块 / Inventory Module)
+    │   ├── 📦 MyItemsReducer (我的物品 / My Items)
+    │   ├── 🏪 ShopInventoryReducer (店铺库存 / Shop Inventory)
+    │   └── 📈 ValuationHistoryReducer (估价历史 / Valuation History)
+    │
+    └── 📊 AnalyticsModuleReducer (分析模块 / Analytics Module)
+        ├── 📈 TradingStatisticsReducer (交易统计 / Trading Statistics)
+        ├── 💹 MarketTrendsReducer (市场趋势 / Market Trends)
+        └── 🎯 RecommendationReducer (推荐系统 / Recommendation System)
+```
+
+### 核心数据模型设计
+
+```swift
+/**
+ * 典当交易 App 核心数据模型
+ * Pawn Trading App Core Data Models
+ */
+
+// MARK: - 交易类型枚举 / Trade Type Enumeration
+enum TradeType: String, Codable, CaseIterable {
+    case buy = "buy"           // 买入 / Buy
+    case sell = "sell"         // 卖出 / Sell  
+    case exchange = "exchange" // 置换 / Exchange
+    case pawn = "pawn"         // 典当 / Pawn
+    
+    var displayName: String {
+        switch self {
+        case .buy: return "买入 / Buy"
+        case .sell: return "卖出 / Sell"
+        case .exchange: return "置换 / Exchange"
+        case .pawn: return "典当 / Pawn"
+        }
+    }
+}
+
+// MARK: - 物品数据模型 / Item Data Model
+struct PawnItem: Identifiable, Codable, Equatable {
+    let id: UUID
+    var title: String
+    var description: String
+    var category: ItemCategory
+    var photos: [PhotoData]
+    var currentValue: Money
+    var originalValue: Money?
+    var condition: ItemCondition
+    var authenticity: AuthenticityStatus
+    var location: Location?
+    
+    // 典当相关信息 / Pawn-related information
+    var pawnHistory: [PawnRecord]
+    var isAvailableForSale: Bool
+    var isAvailableForExchange: Bool
+    var isPawned: Bool
+    
+    // 元数据 / Metadata
+    var createdAt: Date
+    var updatedAt: Date
+    var ownerId: String
+}
+
+// MARK: - 交易订单模型 / Trade Order Model
+struct TradeOrder: Identifiable, Codable, Equatable {
+    let id: String  // 服务器生成的订单号 / Server-generated order number
+    let tradeType: TradeType
+    let status: OrderStatus
+    
+    // 交易双方信息 / Trading parties information
+    let buyerId: String?
+    let sellerId: String?
+    let pawnShopId: String?
+    
+    // 交易物品信息 / Trading item information
+    let primaryItem: PawnItem
+    let secondaryItem: PawnItem? // 用于置换 / For exchange
+    
+    // 财务信息 / Financial information
+    let transactionAmount: Money
+    let serviceFee: Money
+    let taxes: Money
+    let totalAmount: Money
+    
+    // 典当专用信息 / Pawn-specific information
+    let loanAmount: Money?
+    let interestRate: Decimal?
+    let loanTerm: TimeInterval?
+    let repaymentSchedule: [RepaymentInstallment]?
+    
+    // 订单元数据 / Order metadata
+    let createdAt: Date
+    let expiresAt: Date?
+    let completedAt: Date?
+    
+    // 支付信息 / Payment information
+    let paymentMethod: PaymentMethod?
+    let paymentStatus: PaymentStatus
+}
+
+// MARK: - 用户权限模型 / User Permissions Model
+struct TradePermissions: Codable, Equatable {
+    let canBuy: Bool
+    let canSell: Bool
+    let canExchange: Bool
+    let canPawn: Bool
+    let canBorrow: Bool
+    
+    let maxTransactionAmount: Money
+    let maxLoanAmount: Money
+    let creditScore: Int
+    let verificationLevel: VerificationLevel
+    
+    init(from userInfo: UserInfo) {
+        // 根据用户信息计算权限 / Calculate permissions based on user info
+        self.canBuy = userInfo.isVerified
+        self.canSell = userInfo.isVerified && userInfo.hasValidID
+        self.canExchange = userInfo.isVerified && userInfo.creditScore >= 600
+        self.canPawn = userInfo.isVerified && userInfo.creditScore >= 650
+        self.canBorrow = userInfo.isVerified && userInfo.creditScore >= 700
+        
+        self.maxTransactionAmount = Money(
+            amount: Decimal(userInfo.creditScore * 100),
+            currency: .CNY
+        )
+        self.maxLoanAmount = Money(
+            amount: Decimal(userInfo.creditScore * 50),
+            currency: .CNY
+        )
+        
+        self.creditScore = userInfo.creditScore
+        self.verificationLevel = userInfo.verificationLevel
+    }
+}
+
+// MARK: - 流程数据模型 / Flow Data Models
+struct BuyFlowData: Codable, Equatable {
+    var selectedItem: PawnItem?
+    var quantity: Int = 1
+    var selectedPaymentMethod: PaymentMethod?
+    var deliveryAddress: Address?
+    var specialInstructions: String?
+    
+    var isValid: Bool {
+        selectedItem != nil && 
+        quantity > 0 && 
+        selectedPaymentMethod != nil
+    }
+}
+
+struct SellFlowData: Codable, Equatable {
+    var itemPhotos: [PhotoData] = []
+    var itemDescription: String = ""
+    var itemCategory: ItemCategory?
+    var expectedPrice: Money?
+    var isAuthentic: Bool = false
+    var condition: ItemCondition?
+    
+    var isValid: Bool {
+        !itemPhotos.isEmpty &&
+        !itemDescription.isEmpty &&
+        itemCategory != nil &&
+        condition != nil
+    }
+}
+
+struct ExchangeFlowData: Codable, Equatable {
+    var myItem: PawnItem?
+    var targetItem: PawnItem?
+    var valueDifference: Money?
+    var agreedTerms: ExchangeTerms?
+    
+    var isValid: Bool {
+        myItem != nil && 
+        targetItem != nil && 
+        agreedTerms != nil
+    }
+}
+
+struct PawnFlowData: Codable, Equatable {
+    var collateralItem: PawnItem?
+    var requestedLoanAmount: Money?
+    var preferredTerm: TimeInterval?
+    var acceptedInterestRate: Decimal?
+    var repaymentPreference: RepaymentType?
+    
+    var isValid: Bool {
+        collateralItem != nil &&
+        requestedLoanAmount != nil &&
+        preferredTerm != nil &&
+        acceptedInterestRate != nil
+    }
+}
+```
+
+### 完整的应用 Reducer 实现
+
+```swift
+/**
+ * 典当交易 App 完整实现
+ * Complete Pawn Trading App Implementation
+ */
+
+// MARK: - 应用根 Reducer / App Root Reducer
+struct PawnTradingAppReducer: ReducerProtocol {
+    struct State: Equatable {
+        // 全局应用状态 / Global app state
+        var appVersion: String = "1.0.0"
+        var buildNumber: String = "1"
+        var isOnline: Bool = true
+        var lastSyncTime: Date?
+        
+        // 全局用户状态 / Global user state
+        var currentUser: UserInfo?
+        var userPermissions: TradePermissions?
+        var authenticationState: AuthenticationState = .unauthenticated
+        
+        // 全局缓存 / Global cache
+        var orderCache: [String: TradeOrder] = [:]
+        var itemCache: [UUID: PawnItem] = [:]
+        var marketDataCache: MarketData?
+        
+        // 模块状态 / Module states
+        var tradeModule = TradeModuleReducer.State()
+        var userModule = UserModuleReducer.State()
+        var inventoryModule = InventoryModuleReducer.State()
+        var analyticsModule = AnalyticsModuleReducer.State()
+        
+        // 全局共享组件状态 / Global shared component states
+        var globalNotifications = NotificationReducer.State()
+        var globalChat = ChatReducer.State()
+        var globalLocationService = LocationServiceReducer.State()
+        
+        // 应用配置 / App configuration
+        var appSettings = AppSettings()
+        var featureFlags = FeatureFlags()
+    }
+    
+    enum Action: Equatable {
+        // 应用生命周期 / App lifecycle
+        case appDidLaunch
+        case appWillTerminate
+        case appDidBecomeActive
+        case appDidEnterBackground
+        
+        // 模块动作 / Module actions
+        case tradeModule(TradeModuleReducer.Action)
+        case userModule(UserModuleReducer.Action)
+        case inventoryModule(InventoryModuleReducer.Action)
+        case analyticsModule(AnalyticsModuleReducer.Action)
+        
+        // 全局共享组件动作 / Global shared component actions
+        case notifications(NotificationReducer.Action)
+        case chat(ChatReducer.Action)
+        case locationService(LocationServiceReducer.Action)
+        
+        // 全局状态管理 / Global state management
+        case userAuthenticated(UserInfo)
+        case userLoggedOut
+        case networkStatusChanged(Bool)
+        case syncDataAcrossModules
+        
+        // 订单管理 / Order management
+        case orderCreated(TradeOrder)
+        case orderUpdated(TradeOrder)
+        case orderCompleted(TradeOrder)
+        case orderCancelled(String)
+        
+        // 错误处理 / Error handling
+        case globalError(AppError)
+        case recoverFromError
+    }
+    
+    @Dependency(\.orderService) var orderService
+    @Dependency(\.syncService) var syncService
+    @Dependency(\.analyticsService) var analyticsService
+    @Dependency(\.notificationService) var notificationService
+    
+    var body: some ReducerProtocol<State, Action> {
+        // 模块组合 / Module composition
+        Scope(state: \.tradeModule, action: /Action.tradeModule) {
+            TradeModuleReducer()
+        }
+        
+        Scope(state: \.userModule, action: /Action.userModule) {
+            UserModuleReducer()
+        }
+        
+        Scope(state: \.inventoryModule, action: /Action.inventoryModule) {
+            InventoryModuleReducer()
+        }
+        
+        Scope(state: \.analyticsModule, action: /Action.analyticsModule) {
+            AnalyticsModuleReducer()
+        }
+        
+        // 全局共享组件 / Global shared components
+        Scope(state: \.globalNotifications, action: /Action.notifications) {
+            NotificationReducer()
+        }
+        
+        Scope(state: \.globalChat, action: /Action.chat) {
+            ChatReducer()
+        }
+        
+        Scope(state: \.globalLocationService, action: /Action.locationService) {
+            LocationServiceReducer()
+        }
+        
+        // 主 Reducer 逻辑 / Main reducer logic
+        Reduce { state, action in
+            switch action {
+                
+            // MARK: - 应用生命周期 / App Lifecycle
+            case .appDidLaunch:
+                return .merge(
+                    // 初始化各个模块 / Initialize modules
+                    EffectTask(value: .tradeModule(.initialize)),
+                    EffectTask(value: .userModule(.loadSavedUser)),
+                    EffectTask(value: .inventoryModule(.loadLocalInventory)),
+                    EffectTask(value: .analyticsModule(.startTracking)),
+                    
+                    // 启动全局服务 / Start global services
+                    EffectTask(value: .notifications(.requestPermissions)),
+                    EffectTask(value: .locationService(.requestLocationPermission)),
+                    
+                    // 检查网络状态并同步数据 / Check network and sync data
+                    EffectTask(value: .networkStatusChanged(true)),
+                    EffectTask(value: .syncDataAcrossModules)
+                )
+                
+            case .appWillTerminate:
+                // 保存状态并清理资源 / Save state and cleanup resources
+                return .merge(
+                    EffectTask(value: .tradeModule(.saveAndCleanup)),
+                    EffectTask(value: .userModule(.saveUserData)),
+                    EffectTask(value: .inventoryModule(.saveInventoryData)),
+                    EffectTask(value: .analyticsModule(.stopTracking))
+                )
+                
+            case .appDidBecomeActive:
+                // 应用激活时刷新数据 / Refresh data when app becomes active
+                let timeSinceLastSync = Date().timeIntervalSince(state.lastSyncTime ?? Date.distantPast)
+                if timeSinceLastSync > 300 { // 5 分钟 / 5 minutes
+                    return EffectTask(value: .syncDataAcrossModules)
+                }
+                return .none
+                
+            case .appDidEnterBackground:
+                // 进入后台时保存状态 / Save state when entering background
+                return .run { [state] send in
+                    await saveAppState(state)
+                }
+                
+            // MARK: - 用户认证 / User Authentication
+            case let .userAuthenticated(userInfo):
+                state.currentUser = userInfo
+                state.userPermissions = TradePermissions(from: userInfo)
+                state.authenticationState = .authenticated
+                
+                // 通知所有模块用户已认证 / Notify all modules user is authenticated
+                return .merge(
+                    EffectTask(value: .tradeModule(.userAuthenticated(userInfo))),
+                    EffectTask(value: .userModule(.userAuthenticated(userInfo))),
+                    EffectTask(value: .inventoryModule(.userAuthenticated(userInfo))),
+                    EffectTask(value: .analyticsModule(.userAuthenticated(userInfo))),
+                    
+                    // 同步用户数据 / Sync user data
+                    EffectTask(value: .syncDataAcrossModules)
+                )
+                
+            case .userLoggedOut:
+                // 清理用户状态 / Clear user state
+                let previousState = state
+                state.currentUser = nil
+                state.userPermissions = nil
+                state.authenticationState = .unauthenticated
+                
+                // 清理缓存 / Clear cache
+                state.orderCache.removeAll()
+                state.itemCache.removeAll()
+                
+                // 通知所有模块用户已登出 / Notify all modules user logged out
+                return .merge(
+                    EffectTask(value: .tradeModule(.userLoggedOut)),
+                    EffectTask(value: .userModule(.userLoggedOut)),
+                    EffectTask(value: .inventoryModule(.userLoggedOut)),
+                    EffectTask(value: .analyticsModule(.userLoggedOut))
+                )
+                
+            // MARK: - 网络状态管理 / Network Status Management
+            case let .networkStatusChanged(isOnline):
+                let wasOffline = !state.isOnline
+                state.isOnline = isOnline
+                
+                if wasOffline && isOnline {
+                    // 从离线恢复，同步数据 / Recovered from offline, sync data
+                    return .merge(
+                        EffectTask(value: .syncDataAcrossModules),
+                        EffectTask(value: .tradeModule(.retryFailedOperations)),
+                        EffectTask(value: .notifications(.showNetworkRecoveredMessage))
+                    )
+                } else if !isOnline {
+                    // 网络断开，进入离线模式 / Network disconnected, enter offline mode
+                    return EffectTask(value: .notifications(.showOfflineModeMessage))
+                }
+                return .none
+                
+            // MARK: - 数据同步 / Data Synchronization
+            case .syncDataAcrossModules:
+                guard state.isOnline, state.currentUser != nil else {
+                    return .none
+                }
+                
+                state.lastSyncTime = Date()
+                
+                return .task {
+                    do {
+                        // 并行同步各模块数据 / Sync module data in parallel
+                        async let ordersSync = syncService.syncOrders()
+                        async let inventorySync = syncService.syncInventory()
+                        async let marketDataSync = syncService.syncMarketData()
+                        
+                        let (orders, inventory, marketData) = try await (ordersSync, inventorySync, marketDataSync)
+                        
+                        // 这里可以发送多个同步完成的动作 / Can send multiple sync completion actions here
+                        return .tradeModule(.ordersSynced(orders))
+                        
+                    } catch {
+                        return .globalError(.syncFailed(error))
+                    }
+                }
+                
+            // MARK: - 订单管理 / Order Management
+            case let .orderCreated(order):
+                // 新订单创建，更新缓存并通知相关模块 / New order created, update cache and notify modules
+                state.orderCache[order.id] = order
+                
+                return .merge(
+                    EffectTask(value: .tradeModule(.orderCreated(order))),
+                    EffectTask(value: .analyticsModule(.trackOrderCreation(order))),
+                    EffectTask(value: .notifications(.showOrderCreatedNotification(order.id)))
+                )
+                
+            case let .orderUpdated(order):
+                // 订单更新，同步到缓存和相关模块 / Order updated, sync to cache and modules
+                state.orderCache[order.id] = order
+                
+                return .merge(
+                    EffectTask(value: .tradeModule(.orderUpdated(order))),
+                    EffectTask(value: .userModule(.updateOrderInHistory(order))),
+                    EffectTask(value: .analyticsModule(.trackOrderUpdate(order)))
+                )
+                
+            case let .orderCompleted(order):
+                // 订单完成，更新状态并触发相关逻辑 / Order completed, update state and trigger related logic
+                state.orderCache[order.id] = order
+                
+                return .merge(
+                    EffectTask(value: .tradeModule(.orderCompleted(order))),
+                    EffectTask(value: .inventoryModule(.updateInventoryAfterOrder(order))),
+                    EffectTask(value: .userModule(.addCompletedOrderToHistory(order))),
+                    EffectTask(value: .analyticsModule(.trackOrderCompletion(order))),
+                    EffectTask(value: .notifications(.showOrderCompletedNotification(order.id)))
+                )
+                
+            case let .orderCancelled(orderId):
+                // 订单取消，清理状态并通知 / Order cancelled, cleanup state and notify
+                state.orderCache.removeValue(forKey: orderId)
+                
+                return .merge(
+                    EffectTask(value: .tradeModule(.orderCancelled(orderId))),
+                    EffectTask(value: .analyticsModule(.trackOrderCancellation(orderId))),
+                    EffectTask(value: .notifications(.showOrderCancelledNotification(orderId)))
+                )
+                
+            // MARK: - 错误处理 / Error Handling
+            case let .globalError(error):
+                // 全局错误处理 / Global error handling
+                return .merge(
+                    EffectTask(value: .notifications(.showErrorMessage(error.localizedDescription))),
+                    EffectTask(value: .analyticsModule(.trackError(error)))
+                )
+                
+            case .recoverFromError:
+                // 从错误中恢复 / Recover from error
+                return .merge(
+                    EffectTask(value: .syncDataAcrossModules),
+                    EffectTask(value: .tradeModule(.retryFailedOperations))
+                )
+                
+            // MARK: - 模块动作处理 / Module Action Handling
+            case .tradeModule, .userModule, .inventoryModule, .analyticsModule:
+                // 模块动作由对应的 Scope 自动处理 / Module actions handled by corresponding Scope
+                return .none
+                
+            case .notifications, .chat, .locationService:
+                // 全局组件动作由对应的 Scope 处理 / Global component actions handled by corresponding Scope
+                return .none
+            }
+        }
+    }
+    
+    // MARK: - 辅助方法 / Helper Methods
+    private func saveAppState(_ state: State) async {
+        do {
+            let encoder = JSONEncoder()
+            
+            // 保存关键状态到本地存储 / Save critical state to local storage
+            if let userData = try? encoder.encode(state.currentUser) {
+                await LocalStorage.save(userData, forKey: "currentUser")
+            }
+            
+            if let orderCacheData = try? encoder.encode(state.orderCache) {
+                await LocalStorage.save(orderCacheData, forKey: "orderCache")
+            }
+            
+            await LocalStorage.save(Data(state.lastSyncTime?.timeIntervalSince1970.description.utf8 ?? ""), forKey: "lastSyncTime")
+            
+        } catch {
+            print("Failed to save app state: \(error)")
+        }
+    }
+}
+```
+
+### 典当流程 Reducer 详细实现
+
+```swift
+/**
+ * 典当流程 Reducer - 展示完整的典当业务流程
+ * Pawn Flow Reducer - Demonstrates complete pawn business process
+ */
+struct PawnFlowReducer: ReducerProtocol {
+    struct State: Equatable {
+        // 流程状态 / Flow state
+        var currentStep: PawnFlowStep = .collateralPhotos
+        var flowData = PawnFlowData()
+        var generatedOrderNumber: String?
+        var estimatedLoanAmount: Money?
+        var finalLoanTerms: LoanTerms?
+        
+        // 页面状态 / Page states
+        var collateralPhotos = CollateralPhotoReducer.State()
+        var loanAmount = LoanAmountReducer.State()
+        var repaymentTerms = RepaymentTermsReducer.State()
+        var pawnConfirmation = PawnConfirmationReducer.State()
+        
+        // 共享组件状态 / Shared component states
+        var appraisalService = AppraisalServiceReducer.State()
+        var riskAssessment = RiskAssessmentReducer.State()
+        var legalDocuments = LegalDocumentsReducer.State()
+        
+        // 流程元数据 / Flow metadata
+        var startedAt: Date?
+        var estimatedCompletionTime: TimeInterval = 1800 // 30 分钟 / 30 minutes
+        var userPermissions: TradePermissions?
+        
+        var errors: [FlowError] = []
+        var warnings: [FlowWarning] = []
+    }
+    
+    enum PawnFlowStep: String, CaseIterable, Equatable {
+        case collateralPhotos = "collateral_photos"    // 抵押品拍照 / Collateral photos
+        case loanAmount = "loan_amount"                 // 借款金额 / Loan amount
+        case repaymentTerms = "repayment_terms"        // 还款条件 / Repayment terms
+        case confirmation = "confirmation"              // 最终确认 / Final confirmation
+        case completed = "completed"                    // 完成 / Completed
+        
+        var displayName: String {
+            switch self {
+            case .collateralPhotos: return "拍摄抵押品 / Photo Collateral"
+            case .loanAmount: return "设定借款金额 / Set Loan Amount"
+            case .repaymentTerms: return "确认还款条件 / Confirm Repayment Terms"
+            case .confirmation: return "最终确认 / Final Confirmation"
+            case .completed: return "完成 / Completed"
+            }
+        }
+        
+        var nextStep: PawnFlowStep? {
+            switch self {
+            case .collateralPhotos: return .loanAmount
+            case .loanAmount: return .repaymentTerms
+            case .repaymentTerms: return .confirmation
+            case .confirmation: return .completed
+            case .completed: return nil
+            }
+        }
+        
+        var previousStep: PawnFlowStep? {
+            switch self {
+            case .collateralPhotos: return nil
+            case .loanAmount: return .collateralPhotos
+            case .repaymentTerms: return .loanAmount
+            case .confirmation: return .repaymentTerms
+            case .completed: return .confirmation
+            }
+        }
+    }
+    
+    enum Action: Equatable {
+        // 页面动作 / Page actions
+        case collateralPhotos(CollateralPhotoReducer.Action)
+        case loanAmount(LoanAmountReducer.Action)
+        case repaymentTerms(RepaymentTermsReducer.Action)
+        case pawnConfirmation(PawnConfirmationReducer.Action)
+        
+        // 共享组件动作 / Shared component actions
+        case appraisalService(AppraisalServiceReducer.Action)
+        case riskAssessment(RiskAssessmentReducer.Action)
+        case legalDocuments(LegalDocumentsReducer.Action)
+        
+        // 流程控制动作 / Flow control actions
+        case startFlow(TradePermissions)
+        case proceedToNextStep
+        case goBackToPreviousStep
+        case skipOptionalStep(PawnFlowStep)
+        case resetFlow
+        case completeFlow
+        
+        // 业务逻辑动作 / Business logic actions
+        case requestAppraisal(PawnItem)
+        case appraisalCompleted(Result<AppraisalResult, AppraisalError>)
+        case calculateLoanTerms(Money, TimeInterval)
+        case loanTermsCalculated(Result<LoanTerms, CalculationError>)
+        case generateOrderNumber
+        case orderNumberReceived(String)
+        case finalizeContract
+        case contractFinalized(Result<PawnContract, ContractError>)
+        
+        // 错误和警告 / Errors and warnings
+        case addError(FlowError)
+        case clearError(FlowError.ID)
+        case addWarning(FlowWarning)
+        case clearWarning(FlowWarning.ID)
+        
+        // 权限检查 / Permission checks
+        case checkUserPermissions
+        case permissionsChecked(Result<TradePermissions, PermissionError>)
+        case requestAdditionalVerification(VerificationType)
+    }
+    
+    @Dependency(\.pawnService) var pawnService
+    @Dependency(\.appraisalService) var appraisalService
+    @Dependency(\.riskAssessmentService) var riskAssessmentService
+    @Dependency(\.contractService) var contractService
+    @Dependency(\.orderService) var orderService
+    
+    var body: some ReducerProtocol<State, Action> {
+        // 页面组合 / Page composition
+        Scope(state: \.collateralPhotos, action: /Action.collateralPhotos) {
+            CollateralPhotoReducer()
+        }
+        
+        Scope(state: \.loanAmount, action: /Action.loanAmount) {
+            LoanAmountReducer()
+        }
+        
+        Scope(state: \.repaymentTerms, action: /Action.repaymentTerms) {
+            RepaymentTermsReducer()
+        }
+        
+        Scope(state: \.pawnConfirmation, action: /Action.pawnConfirmation) {
+            PawnConfirmationReducer()
+        }
+        
+        // 共享组件组合 / Shared component composition
+        Scope(state: \.appraisalService, action: /Action.appraisalService) {
+            AppraisalServiceReducer()
+        }
+        
+        Scope(state: \.riskAssessment, action: /Action.riskAssessment) {
+            RiskAssessmentReducer()
+        }
+        
+        Scope(state: \.legalDocuments, action: /Action.legalDocuments) {
+            LegalDocumentsReducer()
+        }
+        
+        // 主业务逻辑 / Main business logic
+        Reduce { state, action in
+            switch action {
+                
+            // MARK: - 流程控制 / Flow Control
+            case let .startFlow(permissions):
+                // 启动典当流程 / Start pawn flow
+                state.userPermissions = permissions
+                state.startedAt = Date()
+                state.currentStep = .collateralPhotos
+                state.errors.removeAll()
+                state.warnings.removeAll()
+                
+                // 检查用户是否有典当权限 / Check if user has pawn permissions
+                guard permissions.canPawn else {
+                    return EffectTask(value: .addError(.insufficientPermissions))
+                }
+                
+                return .merge(
+                    EffectTask(value: .collateralPhotos(.startPhotoCapture)),
+                    EffectTask(value: .riskAssessment(.assessUserRisk(permissions)))
+                )
+                
+            case .proceedToNextStep:
+                // 进入下一步 / Proceed to next step
+                guard let nextStep = state.currentStep.nextStep else {
+                    return EffectTask(value: .completeFlow)
+                }
+                
+                // 验证当前步骤是否完成 / Validate current step completion
+                guard validateCurrentStep(state: state) else {
+                    return EffectTask(value: .addError(.stepIncomplete(state.currentStep)))
+                }
+                
+                state.currentStep = nextStep
+                
+                switch nextStep {
+                case .loanAmount:
+                    // 进入借款金额设定页面前先进行估价 / Appraise before entering loan amount page
+                    guard let collateralItem = state.flowData.collateralItem else {
+                        return EffectTask(value: .addError(.missingCollateral))
+                    }
+                    return EffectTask(value: .requestAppraisal(collateralItem))
+                    
+                case .repaymentTerms:
+                    // 进入还款条件页面前计算贷款条件 / Calculate loan terms before entering repayment page
+                    guard let loanAmount = state.flowData.requestedLoanAmount,
+                          let term = state.flowData.preferredTerm else {
+                        return EffectTask(value: .addError(.missingLoanParameters))
+                    }
+                    return EffectTask(value: .calculateLoanTerms(loanAmount, term))
+                    
+                case .confirmation:
+                    // 进入确认页面前生成订单号 / Generate order number before entering confirmation page
+                    return EffectTask(value: .generateOrderNumber)
+                    
+                case .completed:
+                    return EffectTask(value: .completeFlow)
+                    
+                default:
+                    return .none
+                }
+                
+            case .goBackToPreviousStep:
+                // 返回上一步 / Go back to previous step
+                guard let previousStep = state.currentStep.previousStep else {
+                    return .none
+                }
+                
+                state.currentStep = previousStep
+                return .none
+                
+            case let .skipOptionalStep(step):
+                // 跳过可选步骤 / Skip optional step
+                // 只有某些步骤可以跳过 / Only certain steps can be skipped
+                guard step.isOptional else {
+                    return EffectTask(value: .addWarning(.cannotSkipRequiredStep(step)))
+                }
+                
+                if let nextStep = step.nextStep {
+                    state.currentStep = nextStep
+                }
+                return .none
+                
+            case .resetFlow:
+                // 重置整个流程 / Reset entire flow
+                state = State()
+                return .none
+                
+            case .completeFlow:
+                // 完成流程 / Complete flow
+                state.currentStep = .completed
+                
+                return .merge(
+                    EffectTask(value: .finalizeContract),
+                    EffectTask(value: .pawnConfirmation(.showCompletionMessage))
+                )
+                
+            // MARK: - 业务逻辑 / Business Logic
+            case let .requestAppraisal(item):
+                // 请求物品估价 / Request item appraisal
+                return .task {
+                    do {
+                        let appraisalResult = try await appraisalService.appraise(
+                            item: item,
+                            purpose: .pawnLoan
+                        )
+                        return .appraisalCompleted(.success(appraisalResult))
+                    } catch {
+                        return .appraisalCompleted(.failure(AppraisalError.serviceFailed(error)))
+                    }
+                }
+                
+            case let .appraisalCompleted(result):
+                // 估价完成 / Appraisal completed
+                switch result {
+                case let .success(appraisalResult):
+                    state.estimatedLoanAmount = appraisalResult.maxLoanAmount
+                    state.flowData.collateralItem?.currentValue = appraisalResult.estimatedValue
+                    
+                    return EffectTask(value: .loanAmount(.updateMaxLoanAmount(appraisalResult.maxLoanAmount)))
+                    
+                case let .failure(error):
+                    return EffectTask(value: .addError(.appraisalFailed(error)))
+                }
+                
+            case let .calculateLoanTerms(amount, term):
+                // 计算贷款条件 / Calculate loan terms
+                guard let permissions = state.userPermissions else {
+                    return EffectTask(value: .addError(.missingPermissions))
+                }
+                
+                return .task {
+                    do {
+                        let loanTerms = try await pawnService.calculateLoanTerms(
+                            amount: amount,
+                            term: term,
+                            userPermissions: permissions
+                        )
+                        return .loanTermsCalculated(.success(loanTerms))
+                    } catch {
+                        return .loanTermsCalculated(.failure(CalculationError.calculationFailed(error)))
+                    }
+                }
+                
+            case let .loanTermsCalculated(result):
+                // 贷款条件计算完成 / Loan terms calculation completed
+                switch result {
+                case let .success(loanTerms):
+                    state.finalLoanTerms = loanTerms
+                    state.flowData.acceptedInterestRate = loanTerms.interestRate
+                    
+                    return EffectTask(value: .repaymentTerms(.updateLoanTerms(loanTerms)))
+                    
+                case let .failure(error):
+                    return EffectTask(value: .addError(.calculationFailed(error)))
+                }
+                
+            case .generateOrderNumber:
+                // 生成订单号 / Generate order number
+                guard state.flowData.isValid else {
+                    return EffectTask(value: .addError(.invalidFlowData))
+                }
+                
+                return .task { [flowData = state.flowData] in
+                    do {
+                        let orderNumber = try await orderService.generateOrderNumber(
+                            tradeType: .pawn,
+                            data: flowData
+                        )
+                        return .orderNumberReceived(orderNumber)
+                    } catch {
+                        return .addError(.orderGenerationFailed(error))
+                    }
+                }
+                
+            case let .orderNumberReceived(orderNumber):
+                // 订单号接收成功 / Order number received successfully
+                state.generatedOrderNumber = orderNumber
+                
+                return EffectTask(value: .pawnConfirmation(.orderNumberUpdated(orderNumber)))
+                
+            case .finalizeContract:
+                // 最终确定合约 / Finalize contract
+                guard let orderNumber = state.generatedOrderNumber,
+                      let loanTerms = state.finalLoanTerms else {
+                    return EffectTask(value: .addError(.incompleteContractData))
+                }
+                
+                return .task { [flowData = state.flowData] in
+                    do {
+                        let contract = try await contractService.finalizeContract(
+                            orderNumber: orderNumber,
+                            flowData: flowData,
+                            loanTerms: loanTerms
+                        )
+                        return .contractFinalized(.success(contract))
+                    } catch {
+                        return .contractFinalized(.failure(ContractError.finalizationFailed(error)))
+                    }
+                }
+                
+            case let .contractFinalized(result):
+                // 合约完成 / Contract finalized
+                switch result {
+                case let .success(contract):
+                    return .merge(
+                        EffectTask(value: .pawnConfirmation(.contractFinalized(contract))),
+                        EffectTask(value: .legalDocuments(.generateDocuments(contract)))
+                    )
+                    
+                case let .failure(error):
+                    return EffectTask(value: .addError(.contractFinalizationFailed(error)))
+                }
+                
+            // MARK: - 错误和警告处理 / Error and Warning Handling
+            case let .addError(error):
+                state.errors.append(error)
+                return .none
+                
+            case let .clearError(errorId):
+                state.errors.removeAll { $0.id == errorId }
+                return .none
+                
+            case let .addWarning(warning):
+                state.warnings.append(warning)
+                return .none
+                
+            case let .clearWarning(warningId):
+                state.warnings.removeAll { $0.id == warningId }
+                return .none
+                
+            // MARK: - 权限检查 / Permission Checking
+            case .checkUserPermissions:
+                return .task {
+                    do {
+                        let permissions = try await pawnService.checkUserPermissions()
+                        return .permissionsChecked(.success(permissions))
+                    } catch {
+                        return .permissionsChecked(.failure(PermissionError.checkFailed(error)))
+                    }
+                }
+                
+            case let .permissionsChecked(result):
+                switch result {
+                case let .success(permissions):
+                    state.userPermissions = permissions
+                    return .none
+                    
+                case let .failure(error):
+                    return EffectTask(value: .addError(.permissionCheckFailed(error)))
+                }
+                
+            case let .requestAdditionalVerification(verificationType):
+                // 请求额外验证 / Request additional verification
+                return .task {
+                    // 启动验证流程 / Start verification process
+                    // 这里可能需要跳转到身份验证页面 / May need to navigate to identity verification page
+                    return .addWarning(.additionalVerificationRequired(verificationType))
+                }
+                
+            // MARK: - 页面和组件动作 / Page and Component Actions
+            default:
+                // 其他动作由对应的 Scope 处理 / Other actions handled by corresponding Scope
+                return .none
+            }
+        }
+    }
+    
+    // MARK: - 辅助方法 / Helper Methods
+    private func validateCurrentStep(state: State) -> Bool {
+        switch state.currentStep {
+        case .collateralPhotos:
+            return !state.flowData.itemPhotos.isEmpty && state.flowData.collateralItem != nil
+            
+        case .loanAmount:
+            return state.flowData.requestedLoanAmount != nil &&
+                   state.flowData.requestedLoanAmount! <= (state.estimatedLoanAmount ?? Money.zero)
+            
+        case .repaymentTerms:
+            return state.flowData.preferredTerm != nil &&
+                   state.flowData.acceptedInterestRate != nil &&
+                   state.flowData.repaymentPreference != nil
+            
+        case .confirmation:
+            return state.generatedOrderNumber != nil && state.finalLoanTerms != nil
+            
+        case .completed:
+            return true
+        }
+    }
+}
+
+// MARK: - 扩展：步骤属性 / Extension: Step Properties
+extension PawnFlowReducer.PawnFlowStep {
+    var isOptional: Bool {
+        switch self {
+        case .collateralPhotos, .loanAmount, .confirmation:
+            return false // 必需步骤 / Required steps
+        case .repaymentTerms:
+            return true  // 可选步骤，可以使用默认条件 / Optional step, can use default terms
+        case .completed:
+            return false
+        }
+    }
+    
+    var estimatedDuration: TimeInterval {
+        switch self {
+        case .collateralPhotos: return 300    // 5 分钟 / 5 minutes
+        case .loanAmount: return 180          // 3 分钟 / 3 minutes
+        case .repaymentTerms: return 240      // 4 分钟 / 4 minutes
+        case .confirmation: return 180        // 3 分钟 / 3 minutes
+        case .completed: return 0
+        }
+    }
+}
+```
+
+### 项目总结与最佳实践
+
+**架构特色 / Architecture Features:**
+
+1. **四层清晰分层**：应用层 → 模块层 → 流程层 → 页面层
+2. **完整业务闭环**：从拍照到合约签署的完整典当流程
+3. **权限分级控制**：基于用户信用评分的动态权限管理
+4. **智能风险评估**：实时的风险评估和决策支持
+5. **全面错误处理**：每个层级都有完善的错误处理机制
+
+**技术亮点 / Technical Highlights:**
+
+✅ **异步操作管理**：使用 async/await 处理复杂的业务流程
+✅ **状态持久化**：关键状态的本地存储和恢复
+✅ **实时数据同步**：多模块间的数据一致性保证
+✅ **智能缓存策略**：订单和物品数据的高效缓存
+✅ **用户体验优化**：流程进度跟踪和智能提示
+
+**扩展性设计 / Extensibility Design:**
+
+- 支持新的交易类型（如租赁、分期付款）
+- 可插拔的估价服务和风险评估算法
+- 多语言和多货币支持
+- 第三方支付和身份验证服务集成
+
+这个典当交易 App 案例展示了如何使用 TCA Redux 架构构建复杂的金融交易应用，提供了完整的代码实现和最佳实践指导。
+
 <function_calls>
 <invoke name="TodoWrite">
 <parameter name="todos">[{"content": "Research TCA architecture patterns for complex multi-API pages", "status": "completed", "activeForm": "Researching TCA architecture patterns for complex multi-API pages"}, {"content": "Investigate Redux composition strategies for e-commerce homepage scenarios", "status": "completed", "activeForm": "Investigating Redux composition strategies for e-commerce homepage scenarios"}, {"content": "Find best practices for sharing request logic across different pages", "status": "completed", "activeForm": "Finding best practices for sharing request logic across different pages"}, {"content": "Research app-level state composition patterns in TCA", "status": "completed", "activeForm": "Researching app-level state composition patterns in TCA"}, {"content": "Create comprehensive WholdAppTCAReduxBestpract document with detailed examples", "status": "completed", "activeForm": "Creating comprehensive WholdAppTCAReduxBestpract document with detailed examples"}]

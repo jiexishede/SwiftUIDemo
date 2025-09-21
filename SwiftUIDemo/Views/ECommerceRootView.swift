@@ -126,22 +126,32 @@ struct ECommerceRootView: View {
                  * 这确保了Store已正确创建
                  */
                 if let store = homeStore {
-                    ECommerceHomeView(store: store)
-                        .transition(.opacity)
-                        .onAppear {
-                            print("✨ ECommerceHomeView appeared - Login successful!")
-                            
-                            /**
-                             * 关键时机 - 视图出现时立即加载数据
-                             * Critical timing - Load data immediately when view appears
-                             * 
-                             * 发送.onAppear action会触发:
-                             * 1. 5个核心用户API并行请求
-                             * 2. 各组件数据加载
-                             * 3. 错误状态初始化
-                             */
-                            store.send(.onAppear)
+                    // iOS 版本适配的商城首页 / iOS version-adapted e-commerce home
+                    Group {
+                        if #available(iOS 16.0, *) {
+                            // iOS 16+ 使用完整功能版本 / iOS 16+ use full featured version
+                            ECommerceHomeView(store: store)
+                        } else {
+                            // iOS 15 使用优化版本 / iOS 15 use optimized version
+                            ECommerceHomeViewiOS15(store: store)
                         }
+                    }
+                    .transition(.opacity)
+                    .onAppear {
+                        print("✨ ECommerceHomeView appeared - Login successful!")
+                        print("📱 iOS Version: \(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)")
+                        
+                        /**
+                         * 关键时机 - 视图出现时立即加载数据
+                         * Critical timing - Load data immediately when view appears
+                         * 
+                         * 发送.onAppear action会触发:
+                         * 1. 5个核心用户API并行请求
+                         * 2. 各组件数据加载
+                         * 3. 错误状态初始化
+                         */
+                        store.send(.onAppear)
+                    }
                 } else {
                     // Loading state while creating store / 创建Store时的加载状态
                     ProgressView("Loading...")

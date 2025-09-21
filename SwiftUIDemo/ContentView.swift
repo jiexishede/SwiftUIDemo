@@ -389,6 +389,7 @@ struct iOS15DestinationView: View {
         case "advancedNetworkMonitoring":
             childStore = AnyView(AdvancedNetworkMonitoringDemoView())
         case "ecommerce":
+            // iOS 15 使用优化版本的商城首页 / iOS 15 use optimized e-commerce home page
             childStore = AnyView(
                 ECommerceRootView()
             )

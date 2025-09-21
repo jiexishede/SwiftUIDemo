@@ -277,8 +277,8 @@ In complex SwiftUI applications, multiple pages often need to reuse the same fun
    - 状态变更自动同步到所有订阅页面
 
 3. **API 请求去重复化** / **API Request Deduplication**
-   - 实现智能缓存机制避免重复请求
-   - 使用请求队列管理并发 API 调用
+   - 使用请求队列管理并发 API 调用，避免重复请求
+   - 实时数据同步确保多页面数据一致性
    - 提供统一的数据加载状态管理
 
 ### 实现案例：商品列表功能复用 / Implementation Case: Product List Functionality Reuse
@@ -294,13 +294,13 @@ In complex SwiftUI applications, multiple pages often need to reuse the same fun
  * - 支持多页面复用（首页推荐、分类页面、搜索结果、用户收藏）
  * - 统一的数据获取和状态管理
  * - 灵活的筛选和排序配置
- * - 高效的缓存和同步机制
+ * - 实时数据同步和请求去重机制
  * 
  * Design Goals:
  * - Support multi-page reuse (homepage recommendations, category pages, search results, user favorites)
  * - Unified data fetching and state management
  * - Flexible filtering and sorting configuration
- * - Efficient caching and synchronization mechanism
+ * - Real-time data synchronization and request deduplication mechanism
  */
 
 struct ProductListState: Equatable {
@@ -324,8 +324,8 @@ struct ProductListState: Equatable {
     var error: ProductListError?
     var retryCount = 0
     
-    // 缓存标识 / Cache Identifier
-    var cacheKey: String {
+    // 请求标识 / Request Identifier
+    var requestKey: String {
         "\(filterConfig.hashValue)-\(sortOption.rawValue)-\(searchQuery)"
     }
     
@@ -386,7 +386,7 @@ enum ProductListError: Error, Equatable {
     case networkError(String)
     case invalidParameters
     case noResults
-    case cacheMiss
+    case requestInProgress
 }
 
 enum ProductListAction: Equatable {
@@ -409,8 +409,8 @@ enum ProductListAction: Equatable {
     case toggleFavorite(Product.ID)
     case shareProduct(Product.ID)
     
-    // 缓存管理 / Cache Management
-    case invalidateCache
+    // 数据管理 / Data Management
+    case refreshData
     case preloadProducts([Product.ID])
     
     // 错误处理 / Error Handling
@@ -431,7 +431,7 @@ struct ProductListReducer: ReducerProtocol {
     typealias Action = ProductListAction
     
     @Dependency(\.productRepository) var productRepository
-    @Dependency(\.cacheManager) var cacheManager
+    @Dependency(\.requestManager) var requestManager
     @Dependency(\.analyticsService) var analyticsService
     @Dependency(\.mainQueue) var mainQueue
     
@@ -448,16 +448,18 @@ struct ProductListReducer: ReducerProtocol {
                              sortOption = state.sortOption,
                              searchQuery = state.searchQuery] send in
                     
-                    // 首先检查缓存 / First check cache
-                    let cacheKey = "\(filterConfig.hashValue)-\(sortOption.rawValue)-\(searchQuery)-page-0"
+                    // 检查是否有正在进行的相同请求 / Check for ongoing same request
+                    let requestKey = "\(filterConfig.hashValue)-\(sortOption.rawValue)-\(searchQuery)-page-0"
                     
-                    if let cachedResponse: ProductListResponse = cacheManager.get(key: cacheKey),
-                       !cacheManager.isExpired(key: cacheKey) {
-                        await send(.productsLoaded(.success(cachedResponse)))
+                    if requestManager.isRequestInProgress(key: requestKey) {
+                        await send(.errorOccurred(.requestInProgress))
                         return
                     }
                     
-                    // 缓存未命中，进行网络请求 / Cache miss, make network request
+                    // 标记请求开始 / Mark request as started
+                    requestManager.markRequestStarted(key: requestKey)
+                    
+                    // 进行网络请求 / Make network request
                     let result = await Result {
                         try await productRepository.loadProducts(
                             filter: filterConfig,
@@ -468,10 +470,8 @@ struct ProductListReducer: ReducerProtocol {
                         )
                     }
                     
-                    // 缓存成功的响应 / Cache successful response
-                    if case .success(let response) = result {
-                        cacheManager.set(response, key: cacheKey, ttl: 300) // 5分钟缓存
-                    }
+                    // 标记请求完成 / Mark request as completed
+                    requestManager.markRequestCompleted(key: requestKey)
                     
                     await send(.productsLoaded(result))
                 }
@@ -563,8 +563,8 @@ struct ProductListReducer: ReducerProtocol {
                     }
                 }
                 
-            case .invalidateCache:
-                cacheManager.removeAll(matching: state.cacheKey)
+            case .refreshData:
+                // 强制刷新数据，无论是否有请求在进行 / Force refresh data regardless of ongoing requests
                 return .send(.loadProducts)
                 
             default:
@@ -850,17 +850,17 @@ struct AppReducer: ReducerProtocol {
                 
                 // 更新首页商品列表 / Update homepage product lists
                 if state.homeState.featuredProductsState.products.contains(where: { $0.id == product.id }) {
-                    effects.append(.send(.home(.featuredProducts(.invalidateCache))))
+                    effects.append(.send(.home(.featuredProducts(.refreshData))))
                 }
                 
                 if state.homeState.recommendedProductsState.products.contains(where: { $0.id == product.id }) {
-                    effects.append(.send(.home(.recommendedProducts(.invalidateCache))))
+                    effects.append(.send(.home(.recommendedProducts(.refreshData))))
                 }
                 
                 // 更新分类页面 / Update category pages
                 for (categoryID, categoryState) in state.categoryStates {
                     if categoryState.productListState.products.contains(where: { $0.id == product.id }) {
-                        effects.append(.send(.category(categoryID, .productList(.invalidateCache))))
+                        effects.append(.send(.category(categoryID, .productList(.refreshData))))
                     }
                 }
                 
@@ -928,18 +928,18 @@ struct AppReducer: ReducerProtocol {
                 }
                 
             case .invalidateAllCaches:
-                // 清除所有页面缓存并重新加载 / Clear all page caches and reload
+                // 刷新所有页面数据 / Refresh all page data
                 var effects: [Effect<AppAction, Never>] = []
                 
-                effects.append(.send(.home(.featuredProducts(.invalidateCache))))
-                effects.append(.send(.home(.recommendedProducts(.invalidateCache))))
+                effects.append(.send(.home(.featuredProducts(.refreshData))))
+                effects.append(.send(.home(.recommendedProducts(.refreshData))))
                 
                 for categoryID in state.categoryStates.keys {
-                    effects.append(.send(.category(categoryID, .productList(.invalidateCache))))
+                    effects.append(.send(.category(categoryID, .productList(.refreshData))))
                 }
                 
-                effects.append(.send(.search(.productList(.invalidateCache))))
-                effects.append(.send(.favorite(.productList(.invalidateCache))))
+                effects.append(.send(.search(.productList(.refreshData))))
+                effects.append(.send(.favorite(.productList(.refreshData))))
                 
                 return .merge(effects)
                 
@@ -969,20 +969,20 @@ struct AppReducer: ReducerProtocol {
 }
 ```
 
-### 智能缓存策略 / Intelligent Caching Strategy
+### 请求去重管理 / Request Deduplication Management
 
 ```swift
 /**
- * CacheManager.swift
- * 智能缓存管理，避免重复 API 请求
+ * RequestManager.swift
+ * 请求去重管理，避免重复 API 请求
  */
 
-protocol CacheManagerProtocol {
-    func get<T: Codable>(key: String) -> T?
-    func set<T: Codable>(_ value: T, key: String, ttl: TimeInterval)
-    func remove(key: String)
-    func removeAll(matching pattern: String)
-    func isExpired(key: String) -> Bool
+protocol RequestManagerProtocol {
+    func isRequestInProgress(key: String) -> Bool
+    func markRequestStarted(key: String)
+    func markRequestCompleted(key: String)
+    func cancelRequest(key: String)
+    func waitForRequest<T>(key: String) async throws -> T?
 }
 
 class IntelligentCacheManager: CacheManagerProtocol {
@@ -1106,9 +1106,9 @@ extension ProductRepository {
         pageSize: Int
     ) async throws -> ProductListResponse {
         
-        let cacheKey = "products-\(filter.hashValue)-\(sort.rawValue)-\(query)-\(page)-\(pageSize)"
+        let requestKey = "products-\(filter.hashValue)-\(sort.rawValue)-\(query)-\(page)-\(pageSize)"
         
-        return try await cacheManager.getOrFetch(key: cacheKey, ttl: 300) {
+        return try await requestManager.executeRequest(key: requestKey) {
             // 实际的网络请求 / Actual network request
             return try await apiClient.request(ProductListEndpoint(
                 filter: filter,
@@ -1246,7 +1246,7 @@ extension AppReducer {
 Through the above architectural design, we have achieved:
 
 1. **高效的功能复用** / **Efficient Functionality Reuse**：单一的 ProductListReducer 可以在多个页面中使用，减少代码重复
-2. **智能的缓存机制** / **Intelligent Caching Mechanism**：避免重复 API 请求，提高性能
+2. **智能的请求去重** / **Intelligent Request Deduplication**：避免重复 API 请求，提高性能
 3. **实时数据同步** / **Real-time Data Synchronization**：确保所有页面的数据保持一致
 4. **清晰的状态管理** / **Clear State Management**：通过 TCA 的组合模式，实现复杂应用的状态管理
 

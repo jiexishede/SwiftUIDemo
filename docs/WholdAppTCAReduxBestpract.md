@@ -2648,6 +2648,1176 @@ jobs:
 */
 ```
 
+## 多页面功能复用与数据同步
+
+### 核心概念概述
+
+在现代移动应用中，多个页面经常需要展示相同或相似的数据，比如商品列表、用户信息、购物车状态等。TCA Redux 模式通过其强大的状态管理和 Reducer 组合能力，为多页面功能复用和数据同步提供了优雅的解决方案。
+
+In modern mobile applications, multiple pages often need to display the same or similar data, such as product lists, user information, shopping cart status, etc. The TCA Redux pattern provides an elegant solution for multi-page functionality reuse and data synchronization through its powerful state management and Reducer composition capabilities.
+
+本章节将详细介绍如何通过 TCA Redux 实现：
+- 通用页面功能的跨页面复用
+- 多页面共享 API 请求的高效处理
+- 实时数据同步机制
+
+This section will detail how to implement through TCA Redux:
+- Cross-page reuse of common page functionalities
+- Efficient handling of shared API requests across multiple pages
+- Real-time data synchronization mechanisms
+
+### 通用功能复用架构设计
+
+#### 1. 可复用 Reducer 设计模式
+
+通用功能复用的核心在于设计独立、可组合的 Reducer。这些 Reducer 应该：
+- 状态独立：不依赖特定页面的状态结构
+- 行为一致：在不同页面中表现出相同的业务逻辑
+- 易于组合：可以轻松集成到不同的页面 Reducer 中
+
+The core of common functionality reuse lies in designing independent, composable Reducers. These Reducers should be:
+- State independent: not dependent on specific page state structures
+- Behavior consistent: exhibiting the same business logic across different pages
+- Easy to compose: easily integrated into different page Reducers
+
+```swift
+/**
+ * 通用商品列表 Reducer - 可在多个页面中复用
+ * Universal Product List Reducer - Reusable across multiple pages
+ * 
+ * 设计理念：
+ * - 状态自包含：包含所有必要的列表管理状态
+ * - 接口标准化：提供统一的 Action 和 State 接口
+ * - 请求去重：避免重复的 API 调用
+ * 
+ * Design Philosophy:
+ * - Self-contained state: contains all necessary list management state
+ * - Standardized interface: provides unified Action and State interfaces
+ * - Request deduplication: avoids duplicate API calls
+ */
+struct ProductListReducer: ReducerProtocol {
+    
+    // MARK: - State Definition / 状态定义
+    struct State: Equatable {
+        // 商品数据 / Product data
+        var products: [Product] = []
+        
+        // 加载状态 / Loading states
+        var isLoading = false
+        var isRefreshing = false
+        var isLoadingMore = false
+        
+        // 错误处理 / Error handling
+        var errorMessage: String?
+        
+        // 分页信息 / Pagination info
+        var currentPage = 1
+        var hasMorePages = true
+        var totalCount = 0
+        
+        // 筛选和排序 / Filtering and sorting
+        var filters: ProductFilters = ProductFilters()
+        var sortOption: SortOption = .default
+        
+        // 请求去重标识 / Request deduplication identifier
+        var activeRequestId: String?
+        
+        // 上次更新时间 / Last update timestamp
+        var lastUpdated: Date?
+        
+        // MARK: - Computed Properties / 计算属性
+        
+        /// 是否有任何加载状态
+        /// Whether there's any loading state
+        var isAnyLoading: Bool {
+            isLoading || isRefreshing || isLoadingMore
+        }
+        
+        /// 是否为空状态
+        /// Whether it's an empty state
+        var isEmpty: Bool {
+            products.isEmpty && !isAnyLoading
+        }
+        
+        /// 当前筛选参数的唯一标识
+        /// Unique identifier for current filter parameters
+        var filterSignature: String {
+            "\(filters.hashValue)-\(sortOption.hashValue)"
+        }
+    }
+    
+    // MARK: - Action Definition / 动作定义
+    enum Action: Equatable {
+        // 基础操作 / Basic operations
+        case loadProducts
+        case refreshProducts
+        case loadMoreProducts
+        
+        // 筛选和排序 / Filtering and sorting
+        case updateFilters(ProductFilters)
+        case updateSort(SortOption)
+        case clearFilters
+        
+        // 网络响应 / Network responses
+        case productsLoaded(Result<ProductResponse, RequestError>)
+        case moreProductsLoaded(Result<ProductResponse, RequestError>)
+        
+        // 错误处理 / Error handling
+        case dismissError
+        case retryLastRequest
+        
+        // 请求管理 / Request management
+        case cancelActiveRequest
+        
+        // 数据同步 / Data synchronization
+        case syncProducts([Product])
+        case productUpdated(Product)
+        case productRemoved(Product.ID)
+    }
+    
+    // MARK: - Dependencies / 依赖项
+    @Dependency(\.productService) var productService
+    @Dependency(\.requestManager) var requestManager
+    @Dependency(\.mainQueue) var mainQueue
+    
+    // MARK: - Reducer Implementation / Reducer 实现
+    var body: some ReducerProtocol<State, Action> {
+        Reduce { state, action in
+            switch action {
+                
+            // MARK: - Loading Actions / 加载动作
+            case .loadProducts:
+                return handleLoadProducts(state: &state)
+                
+            case .refreshProducts:
+                return handleRefreshProducts(state: &state)
+                
+            case .loadMoreProducts:
+                return handleLoadMoreProducts(state: &state)
+                
+            // MARK: - Filter Actions / 筛选动作
+            case let .updateFilters(filters):
+                return handleUpdateFilters(state: &state, filters: filters)
+                
+            case let .updateSort(sortOption):
+                return handleUpdateSort(state: &state, sortOption: sortOption)
+                
+            case .clearFilters:
+                return handleClearFilters(state: &state)
+                
+            // MARK: - Response Actions / 响应动作
+            case let .productsLoaded(result):
+                return handleProductsLoaded(state: &state, result: result)
+                
+            case let .moreProductsLoaded(result):
+                return handleMoreProductsLoaded(state: &state, result: result)
+                
+            // MARK: - Error Actions / 错误动作
+            case .dismissError:
+                state.errorMessage = nil
+                return .none
+                
+            case .retryLastRequest:
+                return handleRetryLastRequest(state: &state)
+                
+            // MARK: - Request Management / 请求管理
+            case .cancelActiveRequest:
+                return handleCancelActiveRequest(state: &state)
+                
+            // MARK: - Sync Actions / 同步动作
+            case let .syncProducts(products):
+                return handleSyncProducts(state: &state, products: products)
+                
+            case let .productUpdated(product):
+                return handleProductUpdated(state: &state, product: product)
+                
+            case let .productRemoved(productId):
+                return handleProductRemoved(state: &state, productId: productId)
+            }
+        }
+    }
+    
+    // MARK: - Private Action Handlers / 私有动作处理器
+    
+    private func handleLoadProducts(state: inout State) -> EffectTask<Action> {
+        // 取消现有请求 / Cancel existing request
+        let cancelEffect = cancelActiveRequestIfNeeded(state: &state)
+        
+        // 检查请求去重 / Check request deduplication
+        let requestId = generateRequestId(filters: state.filters, sort: state.sortOption, page: 1)
+        
+        if let activeId = state.activeRequestId, activeId == requestId {
+            // 相同请求正在进行中，直接返回 / Same request in progress, return directly
+            return cancelEffect
+        }
+        
+        // 更新状态 / Update state
+        state.isLoading = true
+        state.errorMessage = nil
+        state.activeRequestId = requestId
+        state.currentPage = 1
+        
+        // 发起请求 / Initiate request
+        return .merge(cancelEffect, .task {
+            do {
+                let response = try await productService.fetchProducts(
+                    filters: state.filters,
+                    sort: state.sortOption,
+                    page: 1
+                )
+                return .productsLoaded(.success(response))
+            } catch {
+                return .productsLoaded(.failure(RequestError.network(error)))
+            }
+        })
+    }
+    
+    private func handleRefreshProducts(state: inout State) -> EffectTask<Action> {
+        // 刷新操作与加载类似，但使用不同的加载状态 / Refresh is similar to load but uses different loading state
+        let cancelEffect = cancelActiveRequestIfNeeded(state: &state)
+        
+        let requestId = generateRequestId(filters: state.filters, sort: state.sortOption, page: 1)
+        
+        state.isRefreshing = true
+        state.errorMessage = nil
+        state.activeRequestId = requestId
+        state.currentPage = 1
+        
+        return .merge(cancelEffect, .task {
+            do {
+                let response = try await productService.fetchProducts(
+                    filters: state.filters,
+                    sort: state.sortOption,
+                    page: 1
+                )
+                return .productsLoaded(.success(response))
+            } catch {
+                return .productsLoaded(.failure(RequestError.network(error)))
+            }
+        })
+    }
+    
+    private func handleLoadMoreProducts(state: inout State) -> EffectTask<Action> {
+        // 检查是否可以加载更多 / Check if more can be loaded
+        guard !state.isAnyLoading && state.hasMorePages else {
+            return .none
+        }
+        
+        let nextPage = state.currentPage + 1
+        let requestId = generateRequestId(filters: state.filters, sort: state.sortOption, page: nextPage)
+        
+        state.isLoadingMore = true
+        state.activeRequestId = requestId
+        
+        return .task {
+            do {
+                let response = try await productService.fetchProducts(
+                    filters: state.filters,
+                    sort: state.sortOption,
+                    page: nextPage
+                )
+                return .moreProductsLoaded(.success(response))
+            } catch {
+                return .moreProductsLoaded(.failure(RequestError.network(error)))
+            }
+        }
+    }
+    
+    private func handleUpdateFilters(state: inout State, filters: ProductFilters) -> EffectTask<Action> {
+        guard state.filters != filters else { return .none }
+        
+        state.filters = filters
+        
+        // 筛选改变时重新加载 / Reload when filters change
+        return EffectTask(value: .loadProducts)
+    }
+    
+    private func handleUpdateSort(state: inout State, sortOption: SortOption) -> EffectTask<Action> {
+        guard state.sortOption != sortOption else { return .none }
+        
+        state.sortOption = sortOption
+        
+        // 排序改变时重新加载 / Reload when sort changes
+        return EffectTask(value: .loadProducts)
+    }
+    
+    private func handleClearFilters(state: inout State) -> EffectTask<Action> {
+        let defaultFilters = ProductFilters()
+        guard state.filters != defaultFilters else { return .none }
+        
+        state.filters = defaultFilters
+        state.sortOption = .default
+        
+        return EffectTask(value: .loadProducts)
+    }
+    
+    private func handleProductsLoaded(state: inout State, result: Result<ProductResponse, RequestError>) -> EffectTask<Action> {
+        // 清除加载状态 / Clear loading states
+        state.isLoading = false
+        state.isRefreshing = false
+        state.activeRequestId = nil
+        
+        switch result {
+        case let .success(response):
+            state.products = response.products
+            state.currentPage = response.page
+            state.hasMorePages = response.hasMore
+            state.totalCount = response.total
+            state.lastUpdated = Date()
+            state.errorMessage = nil
+            
+        case let .failure(error):
+            state.errorMessage = error.localizedDescription
+        }
+        
+        return .none
+    }
+    
+    private func handleMoreProductsLoaded(state: inout State, result: Result<ProductResponse, RequestError>) -> EffectTask<Action> {
+        state.isLoadingMore = false
+        state.activeRequestId = nil
+        
+        switch result {
+        case let .success(response):
+            // 追加新产品 / Append new products
+            state.products.append(contentsOf: response.products)
+            state.currentPage = response.page
+            state.hasMorePages = response.hasMore
+            state.totalCount = response.total
+            state.lastUpdated = Date()
+            state.errorMessage = nil
+            
+        case let .failure(error):
+            state.errorMessage = error.localizedDescription
+        }
+        
+        return .none
+    }
+    
+    private func handleRetryLastRequest(state: inout State) -> EffectTask<Action> {
+        // 根据当前状态决定重试什么请求 / Decide what request to retry based on current state
+        if state.currentPage > 1 {
+            return EffectTask(value: .loadMoreProducts)
+        } else {
+            return EffectTask(value: .loadProducts)
+        }
+    }
+    
+    private func handleCancelActiveRequest(state: inout State) -> EffectTask<Action> {
+        state.activeRequestId = nil
+        state.isLoading = false
+        state.isRefreshing = false
+        state.isLoadingMore = false
+        
+        return .run { _ in
+            await requestManager.cancelAllRequests()
+        }
+    }
+    
+    private func handleSyncProducts(state: inout State, products: [Product]) -> EffectTask<Action> {
+        // 同步来自其他页面的产品数据 / Sync product data from other pages
+        state.products = products
+        state.lastUpdated = Date()
+        return .none
+    }
+    
+    private func handleProductUpdated(state: inout State, product: Product) -> EffectTask<Action> {
+        // 更新特定产品 / Update specific product
+        if let index = state.products.firstIndex(where: { $0.id == product.id }) {
+            state.products[index] = product
+            state.lastUpdated = Date()
+        }
+        return .none
+    }
+    
+    private func handleProductRemoved(state: inout State, productId: Product.ID) -> EffectTask<Action> {
+        // 移除特定产品 / Remove specific product
+        state.products.removeAll { $0.id == productId }
+        state.totalCount = max(0, state.totalCount - 1)
+        state.lastUpdated = Date()
+        return .none
+    }
+    
+    // MARK: - Utility Methods / 工具方法
+    
+    private func cancelActiveRequestIfNeeded(state: inout State) -> EffectTask<Action> {
+        guard state.activeRequestId != nil else { return .none }
+        
+        state.activeRequestId = nil
+        state.isLoading = false
+        state.isRefreshing = false
+        state.isLoadingMore = false
+        
+        return .run { _ in
+            await requestManager.cancelAllRequests()
+        }
+    }
+    
+    private func generateRequestId(filters: ProductFilters, sort: SortOption, page: Int) -> String {
+        return "products_\(filters.hashValue)_\(sort.hashValue)_\(page)"
+    }
+}
+
+/**
+ * 请求管理器 - 处理请求去重和并发控制
+ * Request Manager - Handles request deduplication and concurrency control
+ */
+actor RequestManager {
+    private var activeRequests: Set<String> = []
+    
+    func isRequestActive(_ requestId: String) -> Bool {
+        activeRequests.contains(requestId)
+    }
+    
+    func startRequest(_ requestId: String) {
+        activeRequests.insert(requestId)
+    }
+    
+    func endRequest(_ requestId: String) {
+        activeRequests.remove(requestId)
+    }
+    
+    func cancelAllRequests() {
+        activeRequests.removeAll()
+    }
+}
+```
+
+#### 2. 多页面集成示例
+
+以下示例展示了如何在不同页面中复用 ProductListReducer：
+
+The following examples show how to reuse ProductListReducer across different pages:
+
+```swift
+/**
+ * 首页 Reducer - 集成商品列表功能
+ * Homepage Reducer - Integrating product list functionality
+ */
+struct HomepageReducer: ReducerProtocol {
+    
+    struct State: Equatable {
+        // 页面特有状态 / Page-specific state
+        var banners: [Banner] = []
+        var recommendations: [Product] = []
+        var isLoadingBanners = false
+        
+        // 复用的商品列表状态 / Reused product list state
+        var productList = ProductListReducer.State()
+        
+        // 页面配置 / Page configuration
+        var pageConfig = PageConfig.homepage
+    }
+    
+    enum Action: Equatable {
+        // 页面特有动作 / Page-specific actions
+        case loadBanners
+        case bannersLoaded(Result<[Banner], RequestError>)
+        case loadRecommendations
+        case recommendationsLoaded(Result<[Product], RequestError>)
+        
+        // 委托给商品列表的动作 / Actions delegated to product list
+        case productList(ProductListReducer.Action)
+        
+        // 页面生命周期 / Page lifecycle
+        case onAppear
+        case onDisappear
+    }
+    
+    var body: some ReducerProtocol<State, Action> {
+        Scope(state: \.productList, action: /Action.productList) {
+            ProductListReducer()
+        }
+        
+        Reduce { state, action in
+            switch action {
+            case .onAppear:
+                // 页面出现时加载数据 / Load data when page appears
+                return .merge(
+                    EffectTask(value: .loadBanners),
+                    EffectTask(value: .productList(.loadProducts))
+                )
+                
+            case .loadBanners:
+                state.isLoadingBanners = true
+                return .task {
+                    do {
+                        let banners = try await bannerService.fetchBanners()
+                        return .bannersLoaded(.success(banners))
+                    } catch {
+                        return .bannersLoaded(.failure(RequestError.network(error)))
+                    }
+                }
+                
+            case let .bannersLoaded(result):
+                state.isLoadingBanners = false
+                if case let .success(banners) = result {
+                    state.banners = banners
+                }
+                return .none
+                
+            case .loadRecommendations:
+                return .task {
+                    do {
+                        let products = try await recommendationService.fetchRecommendations()
+                        return .recommendationsLoaded(.success(products))
+                    } catch {
+                        return .recommendationsLoaded(.failure(RequestError.network(error)))
+                    }
+                }
+                
+            case let .recommendationsLoaded(result):
+                if case let .success(products) = result {
+                    state.recommendations = products
+                }
+                return .none
+                
+            case .productList:
+                // 商品列表动作由 Scope 自动处理 / Product list actions handled automatically by Scope
+                return .none
+                
+            case .onDisappear:
+                return .none
+            }
+        }
+    }
+}
+
+/**
+ * 分类页面 Reducer - 同样复用商品列表功能
+ * Category Page Reducer - Also reusing product list functionality
+ */
+struct CategoryReducer: ReducerProtocol {
+    
+    struct State: Equatable {
+        // 分类特有状态 / Category-specific state
+        var categories: [Category] = []
+        var selectedCategory: Category?
+        var isLoadingCategories = false
+        
+        // 复用的商品列表状态 / Reused product list state
+        var productList = ProductListReducer.State()
+        
+        // 页面配置 / Page configuration
+        var pageConfig = PageConfig.category
+    }
+    
+    enum Action: Equatable {
+        // 分类特有动作 / Category-specific actions
+        case loadCategories
+        case categoriesLoaded(Result<[Category], RequestError>)
+        case selectCategory(Category)
+        
+        // 委托给商品列表的动作 / Actions delegated to product list
+        case productList(ProductListReducer.Action)
+        
+        // 页面生命周期 / Page lifecycle
+        case onAppear
+    }
+    
+    var body: some ReducerProtocol<State, Action> {
+        Scope(state: \.productList, action: /Action.productList) {
+            ProductListReducer()
+        }
+        
+        Reduce { state, action in
+            switch action {
+            case .onAppear:
+                return .merge(
+                    EffectTask(value: .loadCategories),
+                    EffectTask(value: .productList(.loadProducts))
+                )
+                
+            case .loadCategories:
+                state.isLoadingCategories = true
+                return .task {
+                    do {
+                        let categories = try await categoryService.fetchCategories()
+                        return .categoriesLoaded(.success(categories))
+                    } catch {
+                        return .categoriesLoaded(.failure(RequestError.network(error)))
+                    }
+                }
+                
+            case let .categoriesLoaded(result):
+                state.isLoadingCategories = false
+                if case let .success(categories) = result {
+                    state.categories = categories
+                }
+                return .none
+                
+            case let .selectCategory(category):
+                state.selectedCategory = category
+                
+                // 选择分类时更新商品列表筛选 / Update product list filters when selecting category
+                let filters = ProductFilters(categoryId: category.id)
+                return EffectTask(value: .productList(.updateFilters(filters)))
+                
+            case .productList:
+                // 商品列表动作由 Scope 自动处理 / Product list actions handled automatically by Scope
+                return .none
+            }
+        }
+    }
+}
+```
+
+### 共享 API 请求处理
+
+#### 1. 请求去重机制
+
+当多个页面同时请求相同的 API 时，我们需要避免重复请求：
+
+When multiple pages simultaneously request the same API, we need to avoid duplicate requests:
+
+```swift
+/**
+ * 全局请求去重管理器
+ * Global Request Deduplication Manager
+ * 
+ * 功能特点：
+ * - 自动识别重复请求
+ * - 合并多个页面的相同请求
+ * - 广播结果给所有等待的页面
+ * 
+ * Features:
+ * - Automatically identifies duplicate requests
+ * - Merges identical requests from multiple pages
+ * - Broadcasts results to all waiting pages
+ */
+actor RequestDeduplicationManager {
+    static let shared = RequestDeduplicationManager()
+    
+    private var activeRequests: [String: Task<Any, Error>] = [:]
+    
+    private init() {}
+    
+    /**
+     * 执行去重请求
+     * Execute deduplicated request
+     * 
+     * @param key 请求的唯一标识 / Unique identifier for the request
+     * @param request 实际的请求闭包 / Actual request closure
+     * @return 去重后的请求结果 / Deduplicated request result
+     */
+    func deduplicatedRequest<T>(
+        key: String,
+        request: @escaping () async throws -> T
+    ) async throws -> T {
+        
+        // 检查是否已有相同请求在进行 / Check if same request is already in progress
+        if let existingRequest = activeRequests[key] {
+            // 复用现有请求 / Reuse existing request
+            return try await existingRequest.value as! T
+        }
+        
+        // 创建新请求 / Create new request
+        let newRequest = Task<Any, Error> {
+            defer {
+                // 请求完成后清理 / Clean up after request completion
+                Task {
+                    await self.endRequest(key: key)
+                }
+            }
+            
+            return try await request() as Any
+        }
+        
+        // 缓存请求 / Cache request
+        activeRequests[key] = newRequest
+        
+        // 执行并返回结果 / Execute and return result
+        return try await newRequest.value as! T
+    }
+    
+    /**
+     * 取消特定请求
+     * Cancel specific request
+     */
+    func cancelRequest(key: String) {
+        if let request = activeRequests[key] {
+            request.cancel()
+            activeRequests.removeValue(forKey: key)
+        }
+    }
+    
+    /**
+     * 取消所有请求
+     * Cancel all requests
+     */
+    func cancelAllRequests() {
+        for (_, request) in activeRequests {
+            request.cancel()
+        }
+        activeRequests.removeAll()
+    }
+    
+    private func endRequest(key: String) {
+        activeRequests.removeValue(forKey: key)
+    }
+}
+
+/**
+ * 产品服务 - 集成请求去重
+ * Product Service - Integrated with request deduplication
+ */
+class ProductService {
+    private let networkClient: NetworkClient
+    private let deduplicationManager = RequestDeduplicationManager.shared
+    
+    init(networkClient: NetworkClient) {
+        self.networkClient = networkClient
+    }
+    
+    /**
+     * 获取产品列表 - 自动去重
+     * Fetch product list - Auto deduplication
+     */
+    func fetchProducts(
+        filters: ProductFilters,
+        sort: SortOption,
+        page: Int
+    ) async throws -> ProductResponse {
+        
+        // 生成请求唯一标识 / Generate unique request identifier
+        let requestKey = "products_\(filters.hashValue)_\(sort.hashValue)_\(page)"
+        
+        return try await deduplicationManager.deduplicatedRequest(key: requestKey) {
+            // 实际的网络请求 / Actual network request
+            try await self.networkClient.request(
+                endpoint: .products,
+                parameters: ProductRequest(
+                    filters: filters,
+                    sort: sort,
+                    page: page
+                )
+            )
+        }
+    }
+    
+    /**
+     * 获取产品详情 - 自动去重
+     * Fetch product details - Auto deduplication
+     */
+    func fetchProductDetails(productId: String) async throws -> Product {
+        let requestKey = "product_details_\(productId)"
+        
+        return try await deduplicationManager.deduplicatedRequest(key: requestKey) {
+            try await self.networkClient.request(
+                endpoint: .productDetails(productId),
+                parameters: nil
+            )
+        }
+    }
+}
+```
+
+### 多页面数据同步机制
+
+#### 1. 应用级状态同步
+
+通过应用级的状态管理实现跨页面数据同步：
+
+Implement cross-page data synchronization through app-level state management:
+
+```swift
+/**
+ * 应用级状态管理 - 全局数据同步中心
+ * App-level State Management - Global Data Sync Center
+ * 
+ * 职责：
+ * - 维护全局共享数据
+ * - 协调多页面间的数据同步
+ * - 处理数据冲突和一致性
+ * 
+ * Responsibilities:
+ * - Maintain globally shared data
+ * - Coordinate data sync between multiple pages
+ * - Handle data conflicts and consistency
+ */
+struct AppReducer: ReducerProtocol {
+    
+    struct State: Equatable {
+        // 全局共享数据 / Global shared data
+        var globalProductCache: [Product.ID: Product] = [:]
+        var globalUserInfo: UserInfo?
+        var globalCartState: CartState = CartState()
+        
+        // 页面状态 / Page states
+        var homepage = HomepageReducer.State()
+        var categoryPage = CategoryReducer.State()
+        var searchPage = SearchReducer.State()
+        var profilePage = ProfileReducer.State()
+        
+        // 同步状态 / Sync states
+        var lastDataSync: Date?
+        var pendingSyncActions: [SyncAction] = []
+        
+        // 网络状态 / Network status
+        var isOnline = true
+        var lastOnlineTime: Date?
+    }
+    
+    enum Action: Equatable {
+        // 页面动作 / Page actions
+        case homepage(HomepageReducer.Action)
+        case categoryPage(CategoryReducer.Action)
+        case searchPage(SearchReducer.Action)
+        case profilePage(ProfileReducer.Action)
+        
+        // 全局数据同步动作 / Global data sync actions
+        case syncProductData([Product])
+        case productUpdated(Product)
+        case productDeleted(Product.ID)
+        case userInfoUpdated(UserInfo)
+        case cartStateUpdated(CartState)
+        
+        // 网络状态动作 / Network status actions
+        case networkStatusChanged(Bool)
+        case performPendingSync
+        
+        // 应用生命周期 / App lifecycle
+        case appDidBecomeActive
+        case appWillResignActive
+    }
+    
+    var body: some ReducerProtocol<State, Action> {
+        // 子页面 Reducer 作用域 / Child page reducer scopes
+        Scope(state: \.homepage, action: /Action.homepage) {
+            HomepageReducer()
+        }
+        
+        Scope(state: \.categoryPage, action: /Action.categoryPage) {
+            CategoryReducer()
+        }
+        
+        Scope(state: \.searchPage, action: /Action.searchPage) {
+            SearchReducer()
+        }
+        
+        Scope(state: \.profilePage, action: /Action.profilePage) {
+            ProfileReducer()
+        }
+        
+        // 主 Reducer / Main reducer
+        Reduce { state, action in
+            switch action {
+                
+            // MARK: - Global Data Sync / 全局数据同步
+            case let .syncProductData(products):
+                return handleSyncProductData(state: &state, products: products)
+                
+            case let .productUpdated(product):
+                return handleProductUpdated(state: &state, product: product)
+                
+            case let .productDeleted(productId):
+                return handleProductDeleted(state: &state, productId: productId)
+                
+            case let .userInfoUpdated(userInfo):
+                return handleUserInfoUpdated(state: &state, userInfo: userInfo)
+                
+            case let .cartStateUpdated(cartState):
+                return handleCartStateUpdated(state: &state, cartState: cartState)
+                
+            // MARK: - Network Status / 网络状态
+            case let .networkStatusChanged(isOnline):
+                return handleNetworkStatusChanged(state: &state, isOnline: isOnline)
+                
+            case .performPendingSync:
+                return handlePerformPendingSync(state: &state)
+                
+            // MARK: - App Lifecycle / 应用生命周期
+            case .appDidBecomeActive:
+                return handleAppDidBecomeActive(state: &state)
+                
+            case .appWillResignActive:
+                return handleAppWillResignActive(state: &state)
+                
+            // MARK: - Page Actions / 页面动作
+            case .homepage, .categoryPage, .searchPage, .profilePage:
+                // 页面动作由各自的 Scope 处理，这里处理跨页面同步
+                // Page actions handled by respective Scopes, handle cross-page sync here
+                return handleCrossPageSync(state: &state, action: action)
+            }
+        }
+    }
+    
+    // MARK: - Private Handlers / 私有处理器
+    
+    private func handleSyncProductData(state: inout State, products: [Product]) -> EffectTask<Action> {
+        // 更新全局产品缓存 / Update global product cache
+        for product in products {
+            state.globalProductCache[product.id] = product
+        }
+        
+        state.lastDataSync = Date()
+        
+        // 同步到所有页面 / Sync to all pages
+        return .merge(
+            EffectTask(value: .homepage(.productList(.syncProducts(products)))),
+            EffectTask(value: .categoryPage(.productList(.syncProducts(products)))),
+            EffectTask(value: .searchPage(.productList(.syncProducts(products))))
+        )
+    }
+    
+    private func handleProductUpdated(state: inout State, product: Product) -> EffectTask<Action> {
+        // 更新全局缓存 / Update global cache
+        state.globalProductCache[product.id] = product
+        
+        // 广播到所有页面 / Broadcast to all pages
+        return .merge(
+            EffectTask(value: .homepage(.productList(.productUpdated(product)))),
+            EffectTask(value: .categoryPage(.productList(.productUpdated(product)))),
+            EffectTask(value: .searchPage(.productList(.productUpdated(product))))
+        )
+    }
+    
+    private func handleProductDeleted(state: inout State, productId: Product.ID) -> EffectTask<Action> {
+        // 从全局缓存删除 / Remove from global cache
+        state.globalProductCache.removeValue(forKey: productId)
+        
+        // 广播删除事件到所有页面 / Broadcast deletion event to all pages
+        return .merge(
+            EffectTask(value: .homepage(.productList(.productRemoved(productId)))),
+            EffectTask(value: .categoryPage(.productList(.productRemoved(productId)))),
+            EffectTask(value: .searchPage(.productList(.productRemoved(productId))))
+        )
+    }
+    
+    private func handleUserInfoUpdated(state: inout State, userInfo: UserInfo) -> EffectTask<Action> {
+        let oldUserInfo = state.globalUserInfo
+        state.globalUserInfo = userInfo
+        
+        // 如果用户权限发生变化，刷新所有页面数据 / If user permissions changed, refresh all page data
+        if oldUserInfo?.permissions != userInfo.permissions {
+            return .merge(
+                EffectTask(value: .homepage(.productList(.refreshProducts))),
+                EffectTask(value: .categoryPage(.productList(.refreshProducts))),
+                EffectTask(value: .searchPage(.productList(.refreshProducts)))
+            )
+        }
+        
+        return .none
+    }
+    
+    private func handleCartStateUpdated(state: inout State, cartState: CartState) -> EffectTask<Action> {
+        state.globalCartState = cartState
+        
+        // 通知所有页面购物车状态变化 / Notify all pages of cart state changes
+        return .merge(
+            EffectTask(value: .homepage(.cartStateChanged(cartState))),
+            EffectTask(value: .categoryPage(.cartStateChanged(cartState))),
+            EffectTask(value: .searchPage(.cartStateChanged(cartState)))
+        )
+    }
+    
+    private func handleNetworkStatusChanged(state: inout State, isOnline: Bool) -> EffectTask<Action> {
+        let wasOnline = state.isOnline
+        state.isOnline = isOnline
+        
+        if !wasOnline && isOnline {
+            // 从离线恢复到在线，执行待同步操作 / Recovered from offline to online, perform pending sync
+            state.lastOnlineTime = Date()
+            return EffectTask(value: .performPendingSync)
+        } else if wasOnline && !isOnline {
+            // 从在线变为离线，记录时间 / Changed from online to offline, record time
+            state.lastOnlineTime = Date()
+        }
+        
+        return .none
+    }
+    
+    private func handlePerformPendingSync(state: inout State) -> EffectTask<Action> {
+        guard state.isOnline else { return .none }
+        
+        let pendingActions = state.pendingSyncActions
+        state.pendingSyncActions.removeAll()
+        
+        // 执行所有待同步动作 / Execute all pending sync actions
+        let effects = pendingActions.map { syncAction in
+            // 将 SyncAction 转换为 EffectTask<Action>
+            // Convert SyncAction to EffectTask<Action>
+            convertSyncActionToEffect(syncAction, state: state)
+        }
+        
+        return .merge(effects)
+    }
+    
+    private func handleAppDidBecomeActive(state: inout State) -> EffectTask<Action> {
+        // 应用激活时检查数据新鲜度 / Check data freshness when app becomes active
+        let timeSinceLastSync = Date().timeIntervalSince(state.lastDataSync ?? Date.distantPast)
+        
+        if timeSinceLastSync > 300 { // 5 分钟 / 5 minutes
+            // 数据可能过期，刷新所有页面 / Data might be stale, refresh all pages
+            return .merge(
+                EffectTask(value: .homepage(.productList(.refreshProducts))),
+                EffectTask(value: .categoryPage(.productList(.refreshProducts))),
+                EffectTask(value: .searchPage(.productList(.refreshProducts)))
+            )
+        }
+        
+        return .none
+    }
+    
+    private func handleAppWillResignActive(state: inout State) -> EffectTask<Action> {
+        // 应用即将失活，保存状态 / App will resign active, save state
+        return .run { _ in
+            // 这里可以执行状态持久化 / Can perform state persistence here
+            await persistAppState(state)
+        }
+    }
+    
+    private func handleCrossPageSync(state: inout State, action: Action) -> EffectTask<Action> {
+        // 处理需要跨页面同步的特定动作 / Handle specific actions that require cross-page sync
+        switch action {
+        case .homepage(.productList(.productsLoaded(.success(let response)))):
+            // 首页加载了产品数据，同步到其他页面 / Homepage loaded product data, sync to other pages
+            return EffectTask(value: .syncProductData(response.products))
+            
+        case .categoryPage(.productList(.productsLoaded(.success(let response)))):
+            // 分类页加载了产品数据，同步到其他页面 / Category page loaded product data, sync to other pages
+            return EffectTask(value: .syncProductData(response.products))
+            
+        case .searchPage(.productList(.productsLoaded(.success(let response)))):
+            // 搜索页加载了产品数据，同步到其他页面 / Search page loaded product data, sync to other pages
+            return EffectTask(value: .syncProductData(response.products))
+            
+        default:
+            return .none
+        }
+    }
+    
+    // MARK: - Utility Methods / 工具方法
+    
+    private func convertSyncActionToEffect(_ syncAction: SyncAction, state: State) -> EffectTask<Action> {
+        switch syncAction {
+        case .refreshProducts:
+            return .merge(
+                EffectTask(value: .homepage(.productList(.refreshProducts))),
+                EffectTask(value: .categoryPage(.productList(.refreshProducts))),
+                EffectTask(value: .searchPage(.productList(.refreshProducts)))
+            )
+        case .syncUserInfo:
+            return EffectTask(value: .userInfoUpdated(state.globalUserInfo ?? UserInfo.guest))
+        }
+    }
+    
+    private func persistAppState(_ state: State) async {
+        // 实现状态持久化逻辑 / Implement state persistence logic
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(state.globalProductCache)
+            // 保存到本地存储 / Save to local storage
+            await LocalStorage.save(data, forKey: "globalProductCache")
+        } catch {
+            print("Failed to persist app state: \(error)")
+        }
+    }
+}
+
+/**
+ * 同步动作枚举
+ * Sync Action Enumeration
+ */
+enum SyncAction: Equatable, Codable {
+    case refreshProducts
+    case syncUserInfo
+}
+```
+
+### 性能优化策略
+
+#### 1. 数据分页和懒加载
+
+```swift
+/**
+ * 高性能分页加载策略
+ * High-performance Pagination Loading Strategy
+ */
+extension ProductListReducer {
+    
+    /**
+     * 智能预加载机制
+     * Intelligent preloading mechanism
+     */
+    private func shouldPreloadNextPage(state: State, currentIndex: Int) -> Bool {
+        let preloadThreshold = max(5, state.products.count / 4) // 25% 或至少 5 个 / 25% or at least 5
+        let remainingItems = state.products.count - currentIndex
+        
+        return remainingItems <= preloadThreshold && 
+               state.hasMorePages && 
+               !state.isAnyLoading
+    }
+    
+    /**
+     * 批量加载优化
+     * Batch loading optimization
+     */
+    private func optimizedBatchSize(for networkCondition: NetworkCondition) -> Int {
+        switch networkCondition {
+        case .wifi:
+            return 50 // WiFi 环境加载更多 / Load more on WiFi
+        case .cellular4G:
+            return 30 // 4G 环境中等 / Medium on 4G
+        case .cellular3G:
+            return 20 // 3G 环境较少 / Less on 3G
+        case .slow:
+            return 10 // 慢速网络最少 / Minimal on slow network
+        }
+    }
+}
+```
+
+#### 2. 内存管理优化
+
+```swift
+/**
+ * 内存优化的产品列表状态
+ * Memory-optimized Product List State
+ */
+extension ProductListReducer.State {
+    
+    /**
+     * 清理过期数据
+     * Clean up expired data
+     */
+    mutating func cleanupExpiredData() {
+        let expirationTime: TimeInterval = 300 // 5 分钟 / 5 minutes
+        
+        if let lastUpdated = lastUpdated,
+           Date().timeIntervalSince(lastUpdated) > expirationTime {
+            
+            // 清理非当前页数据 / Clear non-current page data
+            let currentPageStart = (currentPage - 1) * 20
+            let currentPageEnd = min(currentPageStart + 20, products.count)
+            
+            if currentPageStart < products.count {
+                let currentPageProducts = Array(products[currentPageStart..<currentPageEnd])
+                products = currentPageProducts
+                currentPage = 1
+            }
+        }
+    }
+    
+    /**
+     * 优化内存占用
+     * Optimize memory usage
+     */
+    mutating func optimizeMemoryUsage() {
+        // 限制最大缓存的产品数量 / Limit maximum cached products
+        let maxCachedProducts = 200
+        
+        if products.count > maxCachedProducts {
+            // 保留最近的产品 / Keep recent products
+            products = Array(products.suffix(maxCachedProducts))
+            
+            // 重新计算页码 / Recalculate page numbers
+            currentPage = max(1, products.count / 20)
+        }
+    }
+}
+```
+
 ## 总结
 
 Summary

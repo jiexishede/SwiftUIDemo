@@ -256,6 +256,1000 @@ if #available(iOS 14.0, *) {
 - **iOS 16.0+**: NavigationStack, .refreshable modifier improvements / NavigationStack，.refreshable 修饰符改进
 - **iOS 15.0**: NavigationView, basic .refreshable support / NavigationView，基础 .refreshable 支持
 
+## 📋 多页面 TCA Redux 共享功能最佳实践 / Multi-Page TCA Redux Shared Functionality Best Practices
+
+### 多页面共享功能架构设计
+
+在复杂的 SwiftUI 应用中，多个页面经常需要复用相同的功能模块，例如商品列表、用户信息、购物车等。本节详细说明如何使用 TCA 实现高效的多页面功能复用和数据同步。
+
+In complex SwiftUI applications, multiple pages often need to reuse the same functional modules, such as product lists, user information, shopping carts, etc. This section details how to use TCA to achieve efficient multi-page functionality reuse and data synchronization.
+
+### 核心设计原则 / Core Design Principles
+
+1. **功能模块独立性** / **Functional Module Independence**
+   - 每个共享功能作为独立的 Reducer 模块
+   - 状态和逻辑完全封装，不依赖特定页面
+   - 通过 Scope 机制集成到不同页面
+
+2. **数据单一来源** / **Single Source of Truth**
+   - 共享数据存储在应用级别的 Store 中
+   - 各页面通过状态订阅获取数据
+   - 状态变更自动同步到所有订阅页面
+
+3. **API 请求去重复化** / **API Request Deduplication**
+   - 实现智能缓存机制避免重复请求
+   - 使用请求队列管理并发 API 调用
+   - 提供统一的数据加载状态管理
+
+### 实现案例：商品列表功能复用 / Implementation Case: Product List Functionality Reuse
+
+#### 共享商品列表 Reducer / Shared Product List Reducer
+
+```swift
+/**
+ * ProductListFeature.swift
+ * 可复用的商品列表功能模块
+ * 
+ * 设计目标：
+ * - 支持多页面复用（首页推荐、分类页面、搜索结果、用户收藏）
+ * - 统一的数据获取和状态管理
+ * - 灵活的筛选和排序配置
+ * - 高效的缓存和同步机制
+ * 
+ * Design Goals:
+ * - Support multi-page reuse (homepage recommendations, category pages, search results, user favorites)
+ * - Unified data fetching and state management
+ * - Flexible filtering and sorting configuration
+ * - Efficient caching and synchronization mechanism
+ */
+
+struct ProductListState: Equatable {
+    // 商品数据 / Product Data
+    var products: IdentifiedArrayOf<Product> = []
+    var totalCount = 0
+    var hasMoreProducts = true
+    
+    // 分页状态 / Pagination State
+    var currentPage = 0
+    var pageSize = 20
+    var isLoading = false
+    var isLoadingMore = false
+    
+    // 筛选和排序 / Filtering and Sorting
+    var filterConfig: ProductFilterConfig
+    var sortOption: ProductSortOption = .default
+    var searchQuery: String = ""
+    
+    // 错误处理 / Error Handling
+    var error: ProductListError?
+    var retryCount = 0
+    
+    // 缓存标识 / Cache Identifier
+    var cacheKey: String {
+        "\(filterConfig.hashValue)-\(sortOption.rawValue)-\(searchQuery)"
+    }
+    
+    // 上次更新时间 / Last Update Time
+    var lastUpdated: Date?
+    
+    // 计算属性：显示的商品列表 / Computed Property: Displayed Product List
+    var displayedProducts: IdentifiedArrayOf<Product> {
+        products.filter { product in
+            filterConfig.matches(product) &&
+            (searchQuery.isEmpty || product.name.localizedCaseInsensitiveContains(searchQuery))
+        }
+    }
+}
+
+struct ProductFilterConfig: Equatable, Hashable {
+    var categoryID: Category.ID?
+    var priceRange: ClosedRange<Double>?
+    var inStock: Bool?
+    var brand: String?
+    var rating: Double?
+    
+    func matches(_ product: Product) -> Bool {
+        if let categoryID = categoryID, product.categoryID != categoryID {
+            return false
+        }
+        
+        if let priceRange = priceRange, !priceRange.contains(product.price) {
+            return false
+        }
+        
+        if let inStock = inStock, product.inStock != inStock {
+            return false
+        }
+        
+        if let brand = brand, product.brand != brand {
+            return false
+        }
+        
+        if let rating = rating, product.averageRating < rating {
+            return false
+        }
+        
+        return true
+    }
+}
+
+enum ProductSortOption: String, CaseIterable {
+    case `default` = "default"
+    case priceAsc = "price_asc"
+    case priceDesc = "price_desc"
+    case ratingDesc = "rating_desc"
+    case newest = "newest"
+    case popularity = "popularity"
+}
+
+enum ProductListError: Error, Equatable {
+    case networkError(String)
+    case invalidParameters
+    case noResults
+    case cacheMiss
+}
+
+enum ProductListAction: Equatable {
+    // 基础数据操作 / Basic Data Operations
+    case loadProducts
+    case loadMoreProducts
+    case refreshProducts
+    case productsLoaded(Result<ProductListResponse, APIError>)
+    case moreProductsLoaded(Result<[Product], APIError>)
+    
+    // 筛选和排序 / Filtering and Sorting
+    case updateFilter(ProductFilterConfig)
+    case updateSort(ProductSortOption)
+    case updateSearchQuery(String)
+    case clearFilters
+    
+    // 用户交互 / User Interactions
+    case productTapped(Product.ID)
+    case addToCart(Product.ID)
+    case toggleFavorite(Product.ID)
+    case shareProduct(Product.ID)
+    
+    // 缓存管理 / Cache Management
+    case invalidateCache
+    case preloadProducts([Product.ID])
+    
+    // 错误处理 / Error Handling
+    case errorOccurred(ProductListError)
+    case retryLoading
+    case dismissError
+}
+
+struct ProductListResponse: Equatable {
+    let products: [Product]
+    let totalCount: Int
+    let hasMore: Bool
+    let page: Int
+}
+
+struct ProductListReducer: ReducerProtocol {
+    typealias State = ProductListState
+    typealias Action = ProductListAction
+    
+    @Dependency(\.productRepository) var productRepository
+    @Dependency(\.cacheManager) var cacheManager
+    @Dependency(\.analyticsService) var analyticsService
+    @Dependency(\.mainQueue) var mainQueue
+    
+    var body: some ReducerProtocol<State, Action> {
+        Reduce { state, action in
+            switch action {
+            case .loadProducts:
+                state.isLoading = true
+                state.error = nil
+                state.currentPage = 0
+                state.products.removeAll()
+                
+                return .run { [filterConfig = state.filterConfig, 
+                             sortOption = state.sortOption,
+                             searchQuery = state.searchQuery] send in
+                    
+                    // 首先检查缓存 / First check cache
+                    let cacheKey = "\(filterConfig.hashValue)-\(sortOption.rawValue)-\(searchQuery)-page-0"
+                    
+                    if let cachedResponse: ProductListResponse = cacheManager.get(key: cacheKey),
+                       !cacheManager.isExpired(key: cacheKey) {
+                        await send(.productsLoaded(.success(cachedResponse)))
+                        return
+                    }
+                    
+                    // 缓存未命中，进行网络请求 / Cache miss, make network request
+                    let result = await Result {
+                        try await productRepository.loadProducts(
+                            filter: filterConfig,
+                            sort: sortOption,
+                            query: searchQuery,
+                            page: 0,
+                            pageSize: 20
+                        )
+                    }
+                    
+                    // 缓存成功的响应 / Cache successful response
+                    if case .success(let response) = result {
+                        cacheManager.set(response, key: cacheKey, ttl: 300) // 5分钟缓存
+                    }
+                    
+                    await send(.productsLoaded(result))
+                }
+                
+            case .productsLoaded(.success(let response)):
+                state.isLoading = false
+                state.products = IdentifiedArrayOf(uniqueElements: response.products)
+                state.totalCount = response.totalCount
+                state.hasMoreProducts = response.hasMore
+                state.currentPage = response.page
+                state.lastUpdated = Date()
+                return .none
+                
+            case .loadMoreProducts:
+                guard !state.isLoadingMore && state.hasMoreProducts else {
+                    return .none
+                }
+                
+                state.isLoadingMore = true
+                let nextPage = state.currentPage + 1
+                
+                return .run { [filterConfig = state.filterConfig,
+                             sortOption = state.sortOption,
+                             searchQuery = state.searchQuery] send in
+                    
+                    let result = await Result {
+                        try await productRepository.loadProducts(
+                            filter: filterConfig,
+                            sort: sortOption,
+                            query: searchQuery,
+                            page: nextPage,
+                            pageSize: 20
+                        )
+                    }
+                    
+                    await send(.moreProductsLoaded(result.map(\.products)))
+                }
+                
+            case .moreProductsLoaded(.success(let products)):
+                state.isLoadingMore = false
+                state.currentPage += 1
+                
+                // 去重并添加新商品 / Deduplicate and add new products
+                for product in products {
+                    if !state.products.contains(where: { $0.id == product.id }) {
+                        state.products.append(product)
+                    }
+                }
+                
+                state.hasMoreProducts = products.count >= state.pageSize
+                return .none
+                
+            case .updateFilter(let newFilter):
+                state.filterConfig = newFilter
+                return .send(.loadProducts)
+                
+            case .updateSort(let newSort):
+                state.sortOption = newSort
+                return .send(.loadProducts)
+                
+            case .updateSearchQuery(let query):
+                state.searchQuery = query
+                
+                // 搜索防抖 / Search debouncing
+                return .send(.loadProducts)
+                    .debounce(id: "search", for: 0.5, scheduler: mainQueue)
+                
+            case .addToCart(let productID):
+                return .run { send in
+                    await analyticsService.track(.productAddedToCart(productID: productID.uuidString))
+                    // 这里可以触发全局的购物车更新 / This can trigger global cart update
+                    await NotificationCenter.default.post(name: .productAddedToCart, object: productID)
+                }
+                
+            case .toggleFavorite(let productID):
+                // 乐观更新 / Optimistic update
+                if let index = state.products.firstIndex(where: { $0.id == productID }) {
+                    state.products[index].isFavorited.toggle()
+                }
+                
+                return .run { send in
+                    let result = await Result {
+                        try await productRepository.toggleFavorite(productID)
+                    }
+                    
+                    // 如果失败，回滚状态 / If failed, rollback state
+                    if case .failure = result {
+                        await send(.toggleFavorite(productID)) // 再次切换回来
+                    }
+                }
+                
+            case .invalidateCache:
+                cacheManager.removeAll(matching: state.cacheKey)
+                return .send(.loadProducts)
+                
+            default:
+                return .none
+            }
+        }
+    }
+}
+```
+
+### 多页面集成示例 / Multi-Page Integration Examples
+
+#### 1. 首页商品推荐 / Homepage Product Recommendations
+
+```swift
+/**
+ * HomePageReducer.swift
+ * 首页集成商品列表功能
+ */
+
+struct HomePageState: Equatable {
+    // 首页特有状态 / Homepage-specific state
+    var bannerState = BannerState()
+    var categoryState = CategoryState()
+    
+    // 集成的商品列表状态 / Integrated product list states
+    var featuredProductsState = ProductListState(
+        filterConfig: ProductFilterConfig(categoryID: nil), // 特色商品无分类限制
+        sortOption: .popularity
+    )
+    
+    var recommendedProductsState = ProductListState(
+        filterConfig: ProductFilterConfig(rating: 4.0), // 推荐商品评分≥4.0
+        sortOption: .ratingDesc
+    )
+    
+    // 首页元数据 / Homepage metadata
+    var pageLoadingState: PageLoadingState = .idle
+    var lastRefreshTime: Date?
+}
+
+enum HomePageAction {
+    // 页面生命周期 / Page lifecycle
+    case onAppear
+    case refreshPage
+    
+    // 子功能 Action 委托 / Sub-feature action delegation
+    case banner(BannerAction)
+    case category(CategoryAction)
+    case featuredProducts(ProductListAction)
+    case recommendedProducts(ProductListAction)
+    
+    // 跨功能交互 / Cross-feature interactions
+    case categorySelected(Category.ID)
+    case productAddedToCartFromFeatured(Product.ID)
+    case productAddedToCartFromRecommended(Product.ID)
+}
+
+struct HomePageReducer: ReducerProtocol {
+    typealias State = HomePageState
+    typealias Action = HomePageAction
+    
+    var body: some ReducerProtocol<State, Action> {
+        Reduce { state, action in
+            switch action {
+            case .onAppear:
+                state.pageLoadingState = .loading
+                
+                return .run { send in
+                    // 并行加载各个模块 / Parallel loading of modules
+                    async let banner = send(.banner(.loadBanners))
+                    async let categories = send(.category(.loadCategories))
+                    async let featured = send(.featuredProducts(.loadProducts))
+                    async let recommended = send(.recommendedProducts(.loadProducts))
+                    
+                    await banner
+                    await categories
+                    await featured
+                    await recommended
+                }
+                
+            case .categorySelected(let categoryID):
+                // 更新推荐商品的筛选条件 / Update recommended products filter
+                var newFilter = state.recommendedProductsState.filterConfig
+                newFilter.categoryID = categoryID
+                
+                return .send(.recommendedProducts(.updateFilter(newFilter)))
+                
+            case .productAddedToCartFromFeatured(let productID):
+                return .run { send in
+                    await send(.featuredProducts(.addToCart(productID)))
+                    // 发送全局通知 / Send global notification
+                    await NotificationCenter.default.post(
+                        name: .productAddedToCart,
+                        object: ["productID": productID, "source": "featured"]
+                    )
+                }
+                
+            default:
+                return .none
+            }
+        }
+        
+        // 集成子功能 Reducer / Integrate sub-feature reducers
+        Scope(state: \.bannerState, action: /Action.banner) {
+            BannerReducer()
+        }
+        
+        Scope(state: \.categoryState, action: /Action.category) {
+            CategoryReducer()
+        }
+        
+        Scope(state: \.featuredProductsState, action: /Action.featuredProducts) {
+            ProductListReducer()
+        }
+        
+        Scope(state: \.recommendedProductsState, action: /Action.recommendedProducts) {
+            ProductListReducer()
+        }
+    }
+}
+```
+
+#### 2. 分类页面商品列表 / Category Page Product List
+
+```swift
+/**
+ * CategoryPageReducer.swift
+ * 分类页面集成商品列表功能
+ */
+
+struct CategoryPageState: Equatable {
+    // 分类特有状态 / Category-specific state
+    var selectedCategory: Category?
+    var subcategories: [Category] = []
+    var filterPanelVisible = false
+    
+    // 集成的商品列表状态 / Integrated product list state
+    var productListState: ProductListState
+    
+    // 初始化指定分类的商品列表 / Initialize product list for specified category
+    init(categoryID: Category.ID?) {
+        self.productListState = ProductListState(
+            filterConfig: ProductFilterConfig(categoryID: categoryID),
+            sortOption: .default
+        )
+    }
+}
+
+enum CategoryPageAction {
+    // 分类相关 / Category related
+    case categorySelected(Category.ID)
+    case subcategorySelected(Category.ID)
+    case toggleFilterPanel
+    
+    // 商品列表委托 / Product list delegation
+    case productList(ProductListAction)
+    
+    // 筛选器 / Filters
+    case applyPriceFilter(ClosedRange<Double>)
+    case applyBrandFilter(String?)
+    case applyRatingFilter(Double?)
+    case clearAllFilters
+}
+
+struct CategoryPageReducer: ReducerProtocol {
+    typealias State = CategoryPageState
+    typealias Action = CategoryPageAction
+    
+    var body: some ReducerProtocol<State, Action> {
+        Reduce { state, action in
+            switch action {
+            case .categorySelected(let categoryID):
+                // 更新选中分类并重新加载商品 / Update selected category and reload products
+                var newFilter = state.productListState.filterConfig
+                newFilter.categoryID = categoryID
+                
+                return .send(.productList(.updateFilter(newFilter)))
+                
+            case .applyPriceFilter(let range):
+                var newFilter = state.productListState.filterConfig
+                newFilter.priceRange = range
+                
+                return .send(.productList(.updateFilter(newFilter)))
+                
+            case .clearAllFilters:
+                let newFilter = ProductFilterConfig(
+                    categoryID: state.productListState.filterConfig.categoryID // 保留分类筛选
+                )
+                
+                return .send(.productList(.updateFilter(newFilter)))
+                
+            default:
+                return .none
+            }
+        }
+        
+        // 集成商品列表 Reducer / Integrate product list reducer
+        Scope(state: \.productListState, action: /Action.productList) {
+            ProductListReducer()
+        }
+    }
+}
+```
+
+### 应用级数据同步机制 / App-Level Data Synchronization Mechanism
+
+#### 全局状态管理 / Global State Management
+
+```swift
+/**
+ * AppState.swift
+ * 应用级状态，管理全局数据同步
+ */
+
+struct AppState: Equatable {
+    // 用户相关 / User related
+    var userState = UserState()
+    var authState = AuthState()
+    
+    // 页面状态 / Page states
+    var homeState = HomePageState()
+    var categoryStates: [Category.ID: CategoryPageState] = [:]
+    var searchState = SearchPageState()
+    var favoriteState = FavoritePageState()
+    
+    // 全局共享数据 / Global shared data
+    var globalProductCache: [Product.ID: Product] = [:]
+    var cartState = CartState()
+    var userPreferences = UserPreferences()
+    
+    // 数据同步状态 / Data synchronization state
+    var syncStatus: DataSyncStatus = .idle
+    var lastGlobalSync: Date?
+}
+
+enum DataSyncStatus: Equatable {
+    case idle
+    case syncing
+    case completed
+    case failed(String)
+}
+
+enum AppAction {
+    // 页面路由 / Page routing
+    case home(HomePageAction)
+    case category(Category.ID, CategoryPageAction)
+    case search(SearchPageAction)
+    case favorite(FavoritePageAction)
+    
+    // 全局数据同步 / Global data synchronization
+    case syncGlobalData
+    case globalDataSyncCompleted(Result<GlobalSyncResponse, APIError>)
+    case invalidateAllCaches
+    
+    // 跨页面通信 / Cross-page communication
+    case productUpdated(Product)
+    case productAddedToCart(Product.ID, source: String)
+    case userFavoriteChanged(Product.ID, isFavorited: Bool)
+    case cartUpdated(CartState)
+    
+    // 应用生命周期 / App lifecycle
+    case appDidBecomeActive
+    case appWillResignActive
+}
+
+struct AppReducer: ReducerProtocol {
+    typealias State = AppState
+    typealias Action = AppAction
+    
+    @Dependency(\.globalSyncService) var globalSyncService
+    @Dependency(\.notificationCenter) var notificationCenter
+    
+    var body: some ReducerProtocol<State, Action> {
+        Reduce { state, action in
+            switch action {
+            case .productUpdated(let product):
+                // 更新全局商品缓存 / Update global product cache
+                state.globalProductCache[product.id] = product
+                
+                // 同步到所有相关页面的商品列表 / Sync to all related page product lists
+                var effects: [Effect<AppAction, Never>] = []
+                
+                // 更新首页商品列表 / Update homepage product lists
+                if state.homeState.featuredProductsState.products.contains(where: { $0.id == product.id }) {
+                    effects.append(.send(.home(.featuredProducts(.invalidateCache))))
+                }
+                
+                if state.homeState.recommendedProductsState.products.contains(where: { $0.id == product.id }) {
+                    effects.append(.send(.home(.recommendedProducts(.invalidateCache))))
+                }
+                
+                // 更新分类页面 / Update category pages
+                for (categoryID, categoryState) in state.categoryStates {
+                    if categoryState.productListState.products.contains(where: { $0.id == product.id }) {
+                        effects.append(.send(.category(categoryID, .productList(.invalidateCache))))
+                    }
+                }
+                
+                return .merge(effects)
+                
+            case .productAddedToCart(let productID, let source):
+                // 更新购物车状态 / Update cart state
+                if let product = state.globalProductCache[productID] {
+                    state.cartState.addItem(product, quantity: 1)
+                }
+                
+                // 发送分析事件 / Send analytics event
+                return .run { send in
+                    await analyticsService.track(.productAddedToCart(
+                        productID: productID.uuidString,
+                        source: source
+                    ))
+                    
+                    // 触发购物车状态广播 / Trigger cart state broadcast
+                    await send(.cartUpdated(state.cartState))
+                }
+                
+            case .userFavoriteChanged(let productID, let isFavorited):
+                // 同步收藏状态到所有显示该商品的页面 / Sync favorite status to all pages showing this product
+                var effects: [Effect<AppAction, Never>] = []
+                
+                // 更新全局缓存 / Update global cache
+                if var product = state.globalProductCache[productID] {
+                    product.isFavorited = isFavorited
+                    state.globalProductCache[productID] = product
+                }
+                
+                // 广播到所有页面 / Broadcast to all pages
+                effects.append(.send(.home(.featuredProducts(.toggleFavorite(productID)))))
+                effects.append(.send(.home(.recommendedProducts(.toggleFavorite(productID)))))
+                
+                for categoryID in state.categoryStates.keys {
+                    effects.append(.send(.category(categoryID, .productList(.toggleFavorite(productID)))))
+                }
+                
+                return .merge(effects)
+                
+            case .syncGlobalData:
+                state.syncStatus = .syncing
+                
+                return .run { send in
+                    let result = await Result {
+                        try await globalSyncService.syncAllData()
+                    }
+                    await send(.globalDataSyncCompleted(result))
+                }
+                
+            case .globalDataSyncCompleted(.success(let response)):
+                state.syncStatus = .completed
+                state.lastGlobalSync = Date()
+                
+                // 更新全局缓存 / Update global cache
+                for product in response.products {
+                    state.globalProductCache[product.id] = product
+                }
+                
+                // 触发所有页面数据刷新 / Trigger data refresh for all pages
+                return .run { send in
+                    await send(.invalidateAllCaches)
+                }
+                
+            case .invalidateAllCaches:
+                // 清除所有页面缓存并重新加载 / Clear all page caches and reload
+                var effects: [Effect<AppAction, Never>] = []
+                
+                effects.append(.send(.home(.featuredProducts(.invalidateCache))))
+                effects.append(.send(.home(.recommendedProducts(.invalidateCache))))
+                
+                for categoryID in state.categoryStates.keys {
+                    effects.append(.send(.category(categoryID, .productList(.invalidateCache))))
+                }
+                
+                effects.append(.send(.search(.productList(.invalidateCache))))
+                effects.append(.send(.favorite(.productList(.invalidateCache))))
+                
+                return .merge(effects)
+                
+            default:
+                return .none
+            }
+        }
+        
+        // 集成各页面 Reducer / Integrate page reducers
+        Scope(state: \.homeState, action: /Action.home) {
+            HomePageReducer()
+        }
+        
+        // 动态管理分类页面 Reducer / Dynamically manage category page reducers
+        .forEach(state: \.categoryStates, action: /Action.category) {
+            CategoryPageReducer()
+        }
+        
+        Scope(state: \.searchState, action: /Action.search) {
+            SearchPageReducer()
+        }
+        
+        Scope(state: \.favoriteState, action: /Action.favorite) {
+            FavoritePageReducer()
+        }
+    }
+}
+```
+
+### 智能缓存策略 / Intelligent Caching Strategy
+
+```swift
+/**
+ * CacheManager.swift
+ * 智能缓存管理，避免重复 API 请求
+ */
+
+protocol CacheManagerProtocol {
+    func get<T: Codable>(key: String) -> T?
+    func set<T: Codable>(_ value: T, key: String, ttl: TimeInterval)
+    func remove(key: String)
+    func removeAll(matching pattern: String)
+    func isExpired(key: String) -> Bool
+}
+
+class IntelligentCacheManager: CacheManagerProtocol {
+    private var memoryCache: [String: CacheItem] = [:]
+    private let diskCache: DiskCache
+    private let queue = DispatchQueue(label: "cache.queue", attributes: .concurrent)
+    
+    // 请求去重队列 / Request deduplication queue
+    private var ongoingRequests: [String: Task<Any, Error>] = [:]
+    
+    struct CacheItem {
+        let data: Data
+        let timestamp: Date
+        let ttl: TimeInterval
+        
+        var isExpired: Bool {
+            Date().timeIntervalSince(timestamp) > ttl
+        }
+    }
+    
+    init() {
+        self.diskCache = DiskCache()
+    }
+    
+    func get<T: Codable>(key: String) -> T? {
+        return queue.sync {
+            // 首先检查内存缓存 / First check memory cache
+            if let item = memoryCache[key], !item.isExpired {
+                return try? JSONDecoder().decode(T.self, from: item.data)
+            }
+            
+            // 然后检查磁盘缓存 / Then check disk cache
+            if let diskData = diskCache.data(forKey: key) {
+                let decoded = try? JSONDecoder().decode(T.self, from: diskData)
+                
+                // 将磁盘数据缓存到内存 / Cache disk data to memory
+                if decoded != nil {
+                    memoryCache[key] = CacheItem(
+                        data: diskData,
+                        timestamp: Date(),
+                        ttl: 300 // 默认5分钟
+                    )
+                }
+                
+                return decoded
+            }
+            
+            return nil
+        }
+    }
+    
+    func set<T: Codable>(_ value: T, key: String, ttl: TimeInterval) {
+        queue.async(flags: .barrier) {
+            guard let data = try? JSONEncoder().encode(value) else { return }
+            
+            let item = CacheItem(data: data, timestamp: Date(), ttl: ttl)
+            
+            // 存储到内存缓存 / Store to memory cache
+            self.memoryCache[key] = item
+            
+            // 异步存储到磁盘缓存 / Asynchronously store to disk cache
+            self.diskCache.setData(data, forKey: key)
+        }
+    }
+    
+    // 智能请求合并 / Intelligent request merging
+    func getOrFetch<T: Codable>(
+        key: String,
+        ttl: TimeInterval = 300,
+        fetcher: @escaping () async throws -> T
+    ) async throws -> T {
+        
+        // 首先检查缓存 / First check cache
+        if let cached: T = get(key: key), !isExpired(key: key) {
+            return cached
+        }
+        
+        // 检查是否有正在进行的相同请求 / Check for ongoing same request
+        if let ongoingTask = ongoingRequests[key] {
+            return try await ongoingTask.value as! T
+        }
+        
+        // 创建新的请求任务 / Create new request task
+        let task = Task<Any, Error> {
+            let result = try await fetcher()
+            set(result, key: key, ttl: ttl)
+            ongoingRequests[key] = nil
+            return result
+        }
+        
+        ongoingRequests[key] = task
+        
+        return try await task.value as! T
+    }
+    
+    func isExpired(key: String) -> Bool {
+        return queue.sync {
+            guard let item = memoryCache[key] else { return true }
+            return item.isExpired
+        }
+    }
+    
+    func removeAll(matching pattern: String) {
+        queue.async(flags: .barrier) {
+            let keysToRemove = self.memoryCache.keys.filter { $0.contains(pattern) }
+            for key in keysToRemove {
+                self.memoryCache.removeValue(forKey: key)
+                self.diskCache.removeData(forKey: key)
+            }
+        }
+    }
+}
+
+// 使用示例 / Usage Example
+extension ProductRepository {
+    func loadProducts(
+        filter: ProductFilterConfig,
+        sort: ProductSortOption,
+        query: String,
+        page: Int,
+        pageSize: Int
+    ) async throws -> ProductListResponse {
+        
+        let cacheKey = "products-\(filter.hashValue)-\(sort.rawValue)-\(query)-\(page)-\(pageSize)"
+        
+        return try await cacheManager.getOrFetch(key: cacheKey, ttl: 300) {
+            // 实际的网络请求 / Actual network request
+            return try await apiClient.request(ProductListEndpoint(
+                filter: filter,
+                sort: sort,
+                query: query,
+                page: page,
+                pageSize: pageSize
+            ))
+        }
+    }
+}
+```
+
+### 实时数据同步机制 / Real-time Data Synchronization Mechanism
+
+```swift
+/**
+ * RealtimeSyncService.swift
+ * 实时数据同步服务，确保多页面数据一致性
+ */
+
+protocol RealtimeSyncServiceProtocol {
+    func startSync()
+    func stopSync()
+    func subscribeToProductUpdates(_ handler: @escaping (Product) -> Void)
+    func subscribeToCartUpdates(_ handler: @escaping (CartState) -> Void)
+}
+
+class RealtimeSyncService: RealtimeSyncServiceProtocol {
+    private let webSocketManager: WebSocketManager
+    private let notificationCenter: NotificationCenter
+    
+    private var productUpdateHandlers: [(Product) -> Void] = []
+    private var cartUpdateHandlers: [(CartState) -> Void] = []
+    
+    init(webSocketManager: WebSocketManager, notificationCenter: NotificationCenter) {
+        self.webSocketManager = webSocketManager
+        self.notificationCenter = notificationCenter
+        setupWebSocketHandlers()
+    }
+    
+    func startSync() {
+        webSocketManager.connect()
+    }
+    
+    func stopSync() {
+        webSocketManager.disconnect()
+    }
+    
+    func subscribeToProductUpdates(_ handler: @escaping (Product) -> Void) {
+        productUpdateHandlers.append(handler)
+    }
+    
+    func subscribeToCartUpdates(_ handler: @escaping (CartState) -> Void) {
+        cartUpdateHandlers.append(handler)
+    }
+    
+    private func setupWebSocketHandlers() {
+        webSocketManager.onMessage { [weak self] message in
+            switch message.type {
+            case .productUpdated:
+                if let product = message.data as? Product {
+                    self?.handleProductUpdate(product)
+                }
+                
+            case .cartUpdated:
+                if let cartState = message.data as? CartState {
+                    self?.handleCartUpdate(cartState)
+                }
+                
+            case .inventoryChanged:
+                if let inventoryUpdate = message.data as? InventoryUpdate {
+                    self?.handleInventoryUpdate(inventoryUpdate)
+                }
+            }
+        }
+    }
+    
+    private func handleProductUpdate(_ product: Product) {
+        // 通知所有订阅者 / Notify all subscribers
+        productUpdateHandlers.forEach { $0(product) }
+        
+        // 发送本地通知 / Send local notification
+        notificationCenter.post(
+            name: .productDidUpdate,
+            object: product
+        )
+    }
+    
+    private func handleCartUpdate(_ cartState: CartState) {
+        cartUpdateHandlers.forEach { $0(cartState) }
+        
+        notificationCenter.post(
+            name: .cartDidUpdate,
+            object: cartState
+        )
+    }
+    
+    private func handleInventoryUpdate(_ update: InventoryUpdate) {
+        // 更新相关商品的库存信息 / Update inventory info for related products
+        for productID in update.affectedProductIDs {
+            Task {
+                let updatedProduct = try await productRepository.fetchProduct(id: productID)
+                handleProductUpdate(updatedProduct)
+            }
+        }
+    }
+}
+
+// 在 AppReducer 中集成实时同步 / Integrate real-time sync in AppReducer
+extension AppReducer {
+    static func withRealtimeSync() -> AppReducer {
+        var reducer = AppReducer()
+        
+        return reducer.onChange(of: \.globalProductCache) { _, newCache in
+            // 当全局商品缓存变化时，触发实时同步 / Trigger real-time sync when global product cache changes
+            .run { send in
+                for product in newCache.values {
+                    await realtimeSyncService.publishProductUpdate(product)
+                }
+            }
+        }
+        .onChange(of: \.cartState) { _, newCartState in
+            // 购物车状态变化时同步 / Sync when cart state changes
+            .run { _ in
+                await realtimeSyncService.publishCartUpdate(newCartState)
+            }
+        }
+    }
+}
+```
+
+通过以上架构设计，我们实现了：
+
+Through the above architectural design, we have achieved:
+
+1. **高效的功能复用** / **Efficient Functionality Reuse**：单一的 ProductListReducer 可以在多个页面中使用，减少代码重复
+2. **智能的缓存机制** / **Intelligent Caching Mechanism**：避免重复 API 请求，提高性能
+3. **实时数据同步** / **Real-time Data Synchronization**：确保所有页面的数据保持一致
+4. **清晰的状态管理** / **Clear State Management**：通过 TCA 的组合模式，实现复杂应用的状态管理
+
 ## 🚨 IMPORTANT: Auto-Build and Fix Rules / 重要：自动构建和修复规则
 
 ### Build Environment Setup / 构建环境设置

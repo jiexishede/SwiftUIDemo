@@ -48,6 +48,8 @@ struct AppFeature {
                     state.path.append(.ecommerceLogin(ECommerceLoginFeature.State()))
                 case "dynamicSheet":
                     state.path.append(.dynamicSheet)
+                case "textLayout":
+                    state.path.append(.textLayout(TextLayoutFeature.State()))
                 default:
                     break
                 }
@@ -78,6 +80,7 @@ struct AppFeature {
             case advancedNetworkMonitoring
             case ecommerceLogin(ECommerceLoginFeature.State)
             case dynamicSheet
+            case textLayout(TextLayoutFeature.State)
         }
 
         enum Action {
@@ -93,6 +96,7 @@ struct AppFeature {
             case advancedNetworkMonitoring
             case ecommerceLogin(ECommerceLoginFeature.Action)
             case dynamicSheet
+            case textLayout(TextLayoutFeature.Action)
         }
 
         var body: some ReducerOf<Self> {
@@ -116,6 +120,9 @@ struct AppFeature {
             }
             Scope(state: \.ecommerceLogin, action: \.ecommerceLogin) {
                 ECommerceLoginFeature()
+            }
+            Scope(state: \.textLayout, action: \.textLayout) {
+                TextLayoutFeature()
             }
         }
     }
@@ -188,6 +195,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "动态 Sheet / Dynamic Sheet",
             subtitle: "动态高度弹窗与表格视图 / Dynamic height popup with table view",
             systemImage: "rectangle.bottomthird.inset.filled"
+        ),
+        DemoItem(
+            id: "textLayout",
+            title: "文字布局框架 / Text Layout Framework",
+            subtitle: "横向流式、纵向流式、网格布局 / Horizontal flow, vertical flow, grid layout",
+            systemImage: "text.alignleft"
         )
     ]
 }

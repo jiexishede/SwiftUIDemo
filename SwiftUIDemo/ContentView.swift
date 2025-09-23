@@ -204,6 +204,10 @@ struct ContentView: View {
             ECommerceRootView()
         case .dynamicSheet:
             DynamicSheetDemoView()
+        case .textLayout:
+            if let store = store.scope(state: \.textLayout, action: \.textLayout) {
+                TextLayoutDemoView(store: store)
+            }
         }
     }
 }
@@ -397,6 +401,14 @@ struct iOS15DestinationView: View {
             )
         case "dynamicSheet":
             childStore = AnyView(DynamicSheetDemoView())
+        case "textLayout":
+            childStore = AnyView(
+                TextLayoutDemoView(
+                    store: Store(initialState: TextLayoutFeature.State()) {
+                        TextLayoutFeature()
+                    }
+                )
+            )
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

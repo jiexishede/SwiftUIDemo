@@ -197,8 +197,9 @@ enum TextLayoutAction: Equatable {
     // 布局配置调整 / Layout Configuration Adjustment
     case updateItemSpacing(CGFloat)
     case updateLineSpacing(CGFloat)
-    case updatePadding(EdgeInsets)
-    case updateItemPadding(CGFloat)  // 单独的内边距控制 / Individual padding control
+    case updatePadding(EdgeInsets)               // 容器内边距 / Container padding
+    case updateContainerPadding(CGFloat)         // 统一的容器内边距控制 / Unified container padding control
+    case updateItemPadding(CGFloat)              // 单个item的内边距控制 / Individual item padding control
     case updateMaxWidth(CGFloat?)
     case updateMaxHeight(CGFloat?)
     case updateAlignment(LayoutAlignment)
@@ -582,8 +583,9 @@ struct TextLayoutFeature: Reducer {
         // 布局配置调整 / Layout Configuration Adjustment
         case updateItemSpacing(CGFloat)
         case updateLineSpacing(CGFloat)
-        case updatePadding(EdgeInsets)
-        case updateItemPadding(CGFloat)  // 单独的内边距控制 / Individual padding control
+        case updatePadding(EdgeInsets)               // 容器内边距 / Container padding
+        case updateContainerPadding(CGFloat)         // 统一的容器内边距控制 / Unified container padding control
+        case updateItemPadding(CGFloat)              // 单个item的内边距控制 / Individual item padding control
         case updateMaxWidth(CGFloat?)
         case updateMaxHeight(CGFloat?)
         case updateAlignment(LayoutAlignment)
@@ -669,8 +671,14 @@ struct TextLayoutFeature: Reducer {
             state.layoutConfig.padding = padding
             return .none
             
+        case .updateContainerPadding(let padding):
+            // 更新容器的所有边内边距 / Update container padding for all edges
+            let newPadding = EdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding)
+            state.layoutConfig.padding = newPadding
+            return .none
+            
         case .updateItemPadding(let padding):
-            // 更新所有边的内边距 / Update padding for all edges
+            // 更新单个item的所有边内边距 / Update individual item padding for all edges
             let newPadding = EdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding)
             state.layoutConfig.itemStyle.padding = newPadding
             return .none

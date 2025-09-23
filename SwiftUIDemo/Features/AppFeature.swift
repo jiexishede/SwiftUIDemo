@@ -50,6 +50,8 @@ struct AppFeature {
                     state.path.append(.dynamicSheet)
                 case "textLayout":
                     state.path.append(.textLayout(TextLayoutFeature.State()))
+                case "alignmentGuideFlow":
+                    state.path.append(.alignmentGuideFlow)
                 default:
                     break
                 }
@@ -81,6 +83,7 @@ struct AppFeature {
             case ecommerceLogin(ECommerceLoginFeature.State)
             case dynamicSheet
             case textLayout(TextLayoutFeature.State)
+            case alignmentGuideFlow
         }
 
         enum Action {
@@ -97,6 +100,7 @@ struct AppFeature {
             case ecommerceLogin(ECommerceLoginFeature.Action)
             case dynamicSheet
             case textLayout(TextLayoutFeature.Action)
+            case alignmentGuideFlow
         }
 
         var body: some ReducerOf<Self> {
@@ -201,6 +205,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "文字布局框架 / Text Layout Framework",
             subtitle: "横向流式、纵向流式、网格布局 / Horizontal flow, vertical flow, grid layout",
             systemImage: "text.alignleft"
+        ),
+        DemoItem(
+            id: "alignmentGuideFlow",
+            title: "AlignmentGuide 流式布局 / AlignmentGuide Flow Layout",
+            subtitle: "轻量级流式布局实现 / Lightweight flow layout implementation",
+            systemImage: "rectangle.3.group"
         )
     ]
 }

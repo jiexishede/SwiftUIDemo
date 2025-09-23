@@ -208,6 +208,8 @@ struct ContentView: View {
             if let store = store.scope(state: \.textLayout, action: \.textLayout) {
                 TextLayoutDemoView(store: store)
             }
+        case .alignmentGuideFlow:
+            AlignmentGuideFlowLayoutDemoView()
         }
     }
 }
@@ -409,6 +411,8 @@ struct iOS15DestinationView: View {
                     }
                 )
             )
+        case "alignmentGuideFlow":
+            childStore = AnyView(AlignmentGuideFlowLayoutDemoView())
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

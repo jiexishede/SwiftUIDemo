@@ -2825,6 +2825,15 @@ xcrun llvm-cov show \
 ## Development Process / 开发流程
 
 ### Requirements Discussion First / 需求讨论优先
+
+**首先详细的讨论需求是第一位的，然后列出TODO，最后才是写代码。**
+
+**Detailed requirements discussion is the top priority first, then listing TODOs, and finally writing code.**
+
+详细需求讨论必须涵盖所有功能细节、技术实现方案、性能要求、兼容性考虑等方面，确保对需求有完整清晰的理解后再进入开发阶段。
+
+Detailed requirements discussion must cover all functional details, technical implementation plans, performance requirements, compatibility considerations, etc., ensuring a complete and clear understanding of requirements before entering the development phase.
+
 We need to discuss requirements first, then list TODOs, and finally write code with detailed bilingual comments.
 我们需要先讨论需求，需求讨论确定后列出TODO，最后再写出附带中英文详细注释的代码。
 

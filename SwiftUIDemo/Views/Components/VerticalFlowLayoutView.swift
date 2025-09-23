@@ -279,7 +279,7 @@ struct VerticalFlowLayoutView: View {
         }
         
         let maxHeight = config.maxHeight ?? 200
-        let itemSpacing = config.itemSpacing
+        let _ = config.itemSpacing  // 未使用但保留以备将来扩展 / Unused but kept for future extension
         
         // 计算所有文字项的尺寸 / Calculate sizes of all text items
         let itemSizes = texts.map { getTextSize(for: $0) }

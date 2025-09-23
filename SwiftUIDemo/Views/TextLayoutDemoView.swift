@@ -127,68 +127,93 @@ struct TextLayoutDemoView: View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             NavigationView {
                 VStack(spacing: 0) {
-                    // 顶部控制栏 / Top control bar
-                    topControlBar(viewStore: viewStore)
+                    // 紧凑顶部控制栏 / Compact top control bar
+                    compactTopControlBar(viewStore: viewStore)
                     
-                    // 主要内容区域 / Main content area
-                    mainContentArea(viewStore: viewStore)
+                    // 主要内容区域（扩大填充空间）/ Main content area (expanded to fill space)
+                    GeometryReader { geometry in
+                        mainContentArea(viewStore: viewStore)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                    }
                     
                     // 底部固定配置面板 / Bottom fixed configuration panel
                     compactConfigurationPanel(viewStore: viewStore)
                 }
-                .navigationTitle("文字布局框架 / Text Layout")
+                .navigationTitle("布局Demo")
                 .navigationBarTitleDisplayMode(.inline)
+                .navigationBarHidden(false)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Text("v1.0")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
     
     // MARK: - Top Control Bar / 顶部控制栏
     
     /**
-     * 顶部控制栏组件
-     * Top control bar component
+     * 紧凑顶部控制栏组件
+     * Compact top control bar component
      * 
-     * 包含布局类型切换和演示数据选择
-     * Contains layout type switching and demo data selection
+     * 使用最小高度，横向滚动节省空间
+     * Uses minimal height with horizontal scrolling to save space
      */
-    private func topControlBar(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-        VStack(spacing: 12) {
-            // 布局类型选择器 / Layout type selector
-            layoutTypeSelector(viewStore: viewStore)
+    private func compactTopControlBar(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
+        VStack(spacing: 0) {
+            // 单行紧凑控制 / Single row compact controls - 进一步缩短高度 / Further reduce height
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {  // 减少间距 / Reduce spacing
+                    // 布局类型选择 / Layout type selection
+                    compactLayoutTypeSelector(viewStore: viewStore)
+                    
+                    // 分隔线 / Separator - 缩短高度 / Reduce height
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 20)  // 缩短分隔线高度 / Reduce separator height
+                    
+                    // 演示数据切换 / Demo data switching
+                    compactDemoDataControls(viewStore: viewStore)
+                }
+                .padding(.horizontal, 8)  // 减少水平边距 / Reduce horizontal padding
+            }
+            .frame(height: 28) // 缩短固定高度 / Reduce fixed height
             
-            // 演示数据控制 / Demo data controls
-            demoDataControls(viewStore: viewStore)
-            
+            // 细分割线 / Thin divider
             Divider()
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
         .background(Color(.systemBackground))
     }
     
     /**
-     * 布局类型选择器
-     * Layout type selector
+     * 紧凑布局类型选择器
+     * Compact layout type selector
      */
-    private func layoutTypeSelector(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("布局类型 / Layout Type")
-                .font(.headline)
-                .foregroundColor(.primary)
+    private func compactLayoutTypeSelector(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
+        HStack(spacing: 6) {
+            Text("布局")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+                .frame(width: 30)
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(LayoutType.allCases, id: \.self) { layoutType in
-                        layoutTypeButton(
-                            layoutType: layoutType,
-                            isSelected: viewStore.layoutType == layoutType,
-                            action: {
-                                viewStore.send(.changeLayoutType(layoutType))
-                            }
+            ForEach(LayoutType.allCases.prefix(4), id: \.self) { layoutType in
+                Button(action: {
+                    viewStore.send(.changeLayoutType(layoutType))
+                }) {
+                    Image(systemName: layoutType.systemImage)
+                        .font(.system(size: 12))
+                        .foregroundColor(viewStore.layoutType == layoutType ? .white : .primary)
+                        .frame(width: 24, height: 24)
+                        .background(
+                            Circle()
+                                .fill(viewStore.layoutType == layoutType ? Color.blue : Color.gray.opacity(0.15))
                         )
-                    }
                 }
-                .padding(.horizontal, 4)
             }
         }
     }
@@ -220,48 +245,43 @@ struct TextLayoutDemoView: View {
     }
     
     /**
-     * 演示数据控制
-     * Demo data controls
+     * 紧凑演示数据控制
+     * Compact demo data controls
      */
-    private func demoDataControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("演示数据 / Demo Data")
-                    .font(.headline)
-                
-                Spacer()
-                
-                Button("模式切换 / Mode Toggle") {
-                    viewStore.send(.toggleDemoMode)
-                }
+    private func compactDemoDataControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
+        HStack(spacing: 6) {
+            Text("数据")
                 .font(.caption)
-                .foregroundColor(.blue)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+                .frame(width: 30)
+            
+            // 模式切换按钮 / Mode toggle button
+            Button(viewStore.isDemoMode ? "演示" : "自定义") {
+                viewStore.send(.toggleDemoMode)
             }
+            .font(.system(size: 11))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.blue.opacity(0.15))
+            )
+            .foregroundColor(.blue)
             
             if viewStore.isDemoMode {
-                // 预设数据选择 / Preset data selection
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(TextSampleType.allCases, id: \.self) { sampleType in
-                            Button(sampleType.displayName) {
-                                viewStore.send(.loadSampleTexts(sampleType))
-                            }
-                            .font(.caption)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
-                        }
+                // 紧凑预设数据选择 / Compact preset data selection
+                ForEach(TextSampleType.allCases.prefix(3), id: \.self) { sampleType in
+                    Button(sampleType.displayName.components(separatedBy: " / ").first?.prefix(2).description ?? "") {
+                        viewStore.send(.loadSampleTexts(sampleType))
                     }
-                    .padding(.horizontal, 4)
+                    .font(.system(size: 11))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.gray.opacity(0.15))
+                    .cornerRadius(6)
+                    .foregroundColor(.primary)
                 }
-            } else {
-                // 自定义文字输入 / Custom text input
-                TextField("输入文字，用逗号分隔 / Enter texts, separated by commas", text: viewStore.binding(
-                    get: \.customTexts,
-                    send: TextLayoutFeature.Action.updateCustomTexts
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
             }
         }
     }
@@ -269,58 +289,60 @@ struct TextLayoutDemoView: View {
     // MARK: - Main Content Area / 主要内容区域
     
     /**
-     * 主要内容区域
-     * Main content area
+     * 主要内容区域（扩大版）
+     * Main content area (expanded version)
      * 
-     * 根据选择的布局类型显示相应的布局组件
-     * Displays corresponding layout component based on selected layout type
+     * 最大化显示区域，充分利用可用空间
+     * Maximize display area, fully utilize available space
      */
     private func mainContentArea(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // 布局预览区域 / Layout preview area
-                layoutPreviewArea(viewStore: viewStore)
-                
-                // 统计信息 / Statistics information
-                statisticsSection(viewStore: viewStore)
-            }
-            .padding(16)
+        VStack(spacing: 4) {
+            // 最紧凑统计信息 / Ultra-compact statistics information
+            ultraCompactStatisticsSection(viewStore: viewStore)
+            
+            // 扩大布局预览区域（占据剩余空间）/ Expanded layout preview area (takes remaining space)
+            expandedLayoutPreviewArea(viewStore: viewStore)
         }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
         .background(Color(.systemGroupedBackground))
     }
     
     /**
-     * 布局预览区域
-     * Layout preview area
+     * 扩大布局预览区域
+     * Expanded layout preview area
      */
-    private func layoutPreviewArea(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private func expandedLayoutPreviewArea(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("预览效果 / Preview")
-                    .font(.headline)
+                Text("预览")
+                    .font(.caption)
+                    .fontWeight(.medium)
                 
                 Spacer()
                 
-                Text("\(viewStore.displayTexts.count) 项 / items")
-                    .font(.caption)
+                Text("\(viewStore.displayTexts.count)")
+                    .font(.caption2)
                     .foregroundColor(.secondary)
             }
             
-            // 根据布局类型渲染不同的布局组件 / Render different layout components based on layout type
+            // 扩大的布局显示区域 / Expanded layout display area
             Group {
                 switch viewStore.layoutType {
                 case .horizontalFlow:
-                    FlowLayoutView(
-                        texts: viewStore.displayTexts,
-                        config: viewStore.layoutConfig,
-                        selectedIndex: viewStore.binding(
-                            get: \.selectedTextIndex,
-                            send: TextLayoutFeature.Action.selectText
-                        ),
-                        onTextTapped: { text, index in
-                            viewStore.send(.textTapped(text, index))
-                        }
-                    )
+                    ScrollView {
+                        FlowLayoutView(
+                            texts: viewStore.displayTexts,
+                            config: viewStore.layoutConfig,
+                            selectedIndex: viewStore.binding(
+                                get: \.selectedTextIndex,
+                                send: TextLayoutFeature.Action.selectText
+                            ),
+                            onTextTapped: { text, index in
+                                viewStore.send(.textTapped(text, index))
+                            }
+                        )
+                    }
                     
                 case .verticalFlow:
                     VerticalFlowLayoutView(
@@ -336,107 +358,106 @@ struct TextLayoutDemoView: View {
                     )
                     
                 case .grid:
-                    GridLayoutView(
-                        texts: viewStore.displayTexts,
-                        config: viewStore.layoutConfig,
-                        gridType: .adaptive(minItemWidth: 100),
-                        selectedIndex: viewStore.binding(
-                            get: \.selectedTextIndex,
-                            send: TextLayoutFeature.Action.selectText
-                        ),
-                        onTextTapped: { text, index in
-                            viewStore.send(.textTapped(text, index))
-                        }
-                    )
+                    ScrollView {
+                        GridLayoutView(
+                            texts: viewStore.displayTexts,
+                            config: viewStore.layoutConfig,
+                            gridType: .adaptive(minItemWidth: 100),
+                            selectedIndex: viewStore.binding(
+                                get: \.selectedTextIndex,
+                                send: TextLayoutFeature.Action.selectText
+                            ),
+                            onTextTapped: { text, index in
+                                viewStore.send(.textTapped(text, index))
+                            }
+                        )
+                    }
                     
                 case .list:
-                    // 简单的列表布局实现 / Simple list layout implementation
-                    VStack(spacing: viewStore.layoutConfig.lineSpacing) {
-                        ForEach(Array(viewStore.displayTexts.enumerated()), id: \.offset) { index, text in
-                            HStack {
-                                Text(text)
-                                    .font(viewStore.layoutConfig.itemStyle.font)
-                                    .foregroundColor(viewStore.selectedTextIndex == index ? .white : viewStore.layoutConfig.itemStyle.foregroundColor)
-                                    .padding(EdgeInsets(
-                                        top: viewStore.layoutConfig.itemStyle.padding.top,
-                                        leading: viewStore.layoutConfig.itemStyle.padding.leading,
-                                        bottom: viewStore.layoutConfig.itemStyle.padding.bottom,
-                                        trailing: viewStore.layoutConfig.itemStyle.padding.trailing
-                                    ))
-                                    .background(
-                                        RoundedRectangle(cornerRadius: viewStore.layoutConfig.itemStyle.cornerRadius)
-                                            .fill(viewStore.selectedTextIndex == index ? Color.blue : viewStore.layoutConfig.itemStyle.backgroundColor)
-                                    )
-                                    .onTapGesture {
-                                        viewStore.send(.textTapped(text, index))
-                                    }
-                                
-                                Spacer()
+                    ScrollView {
+                        VStack(spacing: viewStore.layoutConfig.lineSpacing) {
+                            ForEach(Array(viewStore.displayTexts.enumerated()), id: \.offset) { index, text in
+                                HStack {
+                                    Text(text)
+                                        .font(viewStore.layoutConfig.itemStyle.font)
+                                        .foregroundColor(viewStore.selectedTextIndex == index ? .white : viewStore.layoutConfig.itemStyle.foregroundColor)
+                                        .padding(EdgeInsets(
+                                            top: viewStore.layoutConfig.itemStyle.padding.top,
+                                            leading: viewStore.layoutConfig.itemStyle.padding.leading,
+                                            bottom: viewStore.layoutConfig.itemStyle.padding.bottom,
+                                            trailing: viewStore.layoutConfig.itemStyle.padding.trailing
+                                        ))
+                                        .applyItemSizeConstraints(style: viewStore.layoutConfig.itemStyle)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: viewStore.layoutConfig.itemStyle.cornerRadius)
+                                                .fill(viewStore.selectedTextIndex == index ? Color.blue : viewStore.layoutConfig.itemStyle.backgroundColor)
+                                        )
+                                        .onTapGesture {
+                                            viewStore.send(.textTapped(text, index))
+                                        }
+                                    
+                                    Spacer()
+                                }
                             }
                         }
+                        .padding(.vertical, 4)
                     }
                     
                 case .waterfall:
-                    // 瀑布流布局的简化实现 / Simplified waterfall layout implementation
                     Text("瀑布流布局 / Waterfall Layout")
-                        .font(.title2)
+                        .font(.callout)
                         .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 100)
+                        .frame(maxWidth: .infinity, minHeight: 200)
                         .background(Color.gray.opacity(0.1))
-                        .cornerRadius(12)
+                        .cornerRadius(8)
                 }
             }
-            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity) // 充分利用可用空间 / Fully utilize available space
+            .padding(6)
             .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .cornerRadius(6)
+            .shadow(color: Color.black.opacity(0.03), radius: 1, x: 0, y: 1)
         }
     }
     
     /**
-     * 统计信息区域
-     * Statistics information area
+     * 超紧凑统计信息区域
+     * Ultra-compact statistics information area
      */
-    private func statisticsSection(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("统计信息 / Statistics")
-                .font(.headline)
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                statisticCard(title: "文字项数 / Items", value: "\(viewStore.displayTexts.count)")
-                statisticCard(title: "布局类型 / Layout", value: viewStore.layoutType.displayName.components(separatedBy: " / ").first ?? "")
-                statisticCard(title: "选中项 / Selected", value: viewStore.selectedTextIndex != nil ? "第\(viewStore.selectedTextIndex! + 1)项" : "无")
-            }
+    private func ultraCompactStatisticsSection(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
+        HStack(spacing: 8) {
+            ultraCompactStatisticCard(title: "项", value: "\(viewStore.displayTexts.count)")
+            ultraCompactStatisticCard(title: "布局", value: viewStore.layoutType.displayName.components(separatedBy: " / ").first?.prefix(2).description ?? "")
+            ultraCompactStatisticCard(title: "选中", value: viewStore.selectedTextIndex != nil ? "\(viewStore.selectedTextIndex! + 1)" : "-")
         }
-        .padding(16)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .cornerRadius(6)
+        .shadow(color: Color.black.opacity(0.03), radius: 1, x: 0, y: 1)
     }
     
     /**
-     * 统计卡片
-     * Statistics card
+     * 超紧凑统计卡片
+     * Ultra-compact statistics card
      */
-    private func statisticCard(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
+    private func ultraCompactStatisticCard(title: String, value: String) -> some View {
+        VStack(spacing: 1) {
             Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.caption)
+                .fontWeight(.medium)
                 .foregroundColor(.blue)
+                .lineLimit(1)
             
             Text(title)
-                .font(.caption)
+                .font(.system(size: 9))
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
         }
-        .padding(12)
-        .background(Color.blue.opacity(0.1))
-        .cornerRadius(8)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Color.blue.opacity(0.08))
+        .cornerRadius(4)
+        .frame(maxWidth: .infinity)
     }
     
     // MARK: - Configuration Panel / 配置面板
@@ -671,8 +692,16 @@ private func compactConfigurationPanel(viewStore: ViewStoreOf<TextLayoutFeature>
                     .fill(Color.gray.opacity(0.3))
                     .frame(width: 1, height: 60)
                 
-                // 内边距配置 / Padding configuration
+                // 容器内边距配置 / Container padding configuration
                 paddingCompactControls(viewStore: viewStore)
+                
+                // 垂直分隔 / Vertical separator
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 1, height: 60)
+                
+                // Item内边距配置 / Item padding configuration
+                itemPaddingCompactControls(viewStore: viewStore)
                 
                 // 垂直分隔 / Vertical separator
                 Rectangle()
@@ -698,10 +727,10 @@ private func compactConfigurationPanel(viewStore: ViewStoreOf<TextLayoutFeature>
                 // 文字截断控制 / Text truncation controls
                 textTruncationCompactControls(viewStore: viewStore)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 12)  // 减少水平边距 / Reduce horizontal padding
+            .padding(.vertical, 6)    // 减少垂直边距 / Reduce vertical padding
         }
-        .frame(height: 120) // 增加高度以适应更多控件 / Increase height for more controls
+        .frame(height: 40) // 进一步最小化高度 / Further minimize height
         .background(Color(.systemBackground))
     }
 }
@@ -711,21 +740,21 @@ private func compactConfigurationPanel(viewStore: ViewStoreOf<TextLayoutFeature>
  * Compact layout type selector
  */
 private func layoutTypeCompactSelector(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-        Text("布局 / Layout")
-            .font(.caption)
+    VStack(alignment: .leading, spacing: 1) {
+        Text("布局")
+            .font(.system(size: 9))
             .fontWeight(.medium)
             .foregroundColor(.secondary)
         
-        HStack(spacing: 6) {
-            ForEach(LayoutType.allCases, id: \.self) { layoutType in
+        HStack(spacing: 2) {
+            ForEach(LayoutType.allCases.prefix(4), id: \.self) { layoutType in
                 Button(action: {
                     viewStore.send(.changeLayoutType(layoutType))
                 }) {
                     Image(systemName: layoutType.systemImage)
-                        .font(.caption)
+                        .font(.system(size: 10))
                         .foregroundColor(viewStore.layoutType == layoutType ? .white : .primary)
-                        .frame(width: 24, height: 24)
+                        .frame(width: 16, height: 16)
                         .background(
                             Circle()
                                 .fill(viewStore.layoutType == layoutType ? Color.blue : Color.gray.opacity(0.2))
@@ -734,6 +763,7 @@ private func layoutTypeCompactSelector(viewStore: ViewStoreOf<TextLayoutFeature>
             }
         }
     }
+    .frame(width: 50)
 }
 
 /**
@@ -741,16 +771,16 @@ private func layoutTypeCompactSelector(viewStore: ViewStoreOf<TextLayoutFeature>
  * Compact spacing controls
  */
 private func spacingCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-        Text("间距 / Spacing")
-            .font(.caption)
+    VStack(alignment: .leading, spacing: 1) {
+        Text("间距")
+            .font(.system(size: 9))
             .fontWeight(.medium)
             .foregroundColor(.secondary)
         
-        HStack(spacing: 8) {
-            VStack(spacing: 2) {
-                Text("元素 / Item")
-                    .font(.caption2)
+        HStack(spacing: 4) {
+            VStack(spacing: 0) {
+                Text("元")
+                    .font(.system(size: 8))
                     .foregroundColor(.secondary)
                 Slider(
                     value: viewStore.binding(
@@ -760,15 +790,15 @@ private func spacingCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -
                     in: 0...24,
                     step: 1
                 )
-                .frame(width: 60)
+                .frame(width: 30, height: 20)
                 Text("\(Int(viewStore.layoutConfig.itemSpacing))")
-                    .font(.caption2)
+                    .font(.system(size: 8))
                     .foregroundColor(.primary)
             }
             
-            VStack(spacing: 2) {
-                Text("行 / Line")
-                    .font(.caption2)
+            VStack(spacing: 0) {
+                Text("行")
+                    .font(.system(size: 8))
                     .foregroundColor(.secondary)
                 Slider(
                     value: viewStore.binding(
@@ -778,29 +808,62 @@ private func spacingCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -
                     in: 0...24,
                     step: 1
                 )
-                .frame(width: 60)
+                .frame(width: 30, height: 20)
                 Text("\(Int(viewStore.layoutConfig.lineSpacing))")
-                    .font(.caption2)
+                    .font(.system(size: 8))
                     .foregroundColor(.primary)
             }
         }
     }
+    .frame(width: 70)
 }
 
 /**
- * 紧凑内边距控制
- * Compact padding controls
+ * 紧凑容器内边距控制
+ * Compact container padding controls
  */
 private func paddingCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-        Text("内边距 / Padding")
-            .font(.caption)
+    VStack(alignment: .leading, spacing: 1) {
+        Text("容器边距")
+            .font(.system(size: 9))
             .fontWeight(.medium)
             .foregroundColor(.secondary)
         
-        VStack(spacing: 2) {
-            Text("盒子内边距 / Box Padding")
-                .font(.caption2)
+        VStack(spacing: 0) {
+            Text("区")
+                .font(.system(size: 8))
+                .foregroundColor(.secondary)
+            Slider(
+                value: viewStore.binding(
+                    get: { $0.layoutConfig.padding.top },
+                    send: { .updateContainerPadding($0) }
+                ),
+                in: 0...40,
+                step: 2
+            )
+            .frame(width: 40, height: 20)
+            Text("\(Int(viewStore.layoutConfig.padding.top))")
+                .font(.system(size: 8))
+                .foregroundColor(.primary)
+        }
+    }
+    .frame(width: 60)
+}
+
+/**
+ * 紧凑Item内边距控制
+ * Compact item padding controls
+ */
+private func itemPaddingCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
+    VStack(alignment: .leading, spacing: 1) {
+        Text("Item边距")
+            .font(.system(size: 9))
+            .fontWeight(.medium)
+            .foregroundColor(.secondary)
+        
+        VStack(spacing: 0) {
+            Text("项")
+                .font(.system(size: 8))
                 .foregroundColor(.secondary)
             Slider(
                 value: viewStore.binding(
@@ -810,12 +873,13 @@ private func paddingCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -
                 in: 0...20,
                 step: 1
             )
-            .frame(width: 80)
+            .frame(width: 40, height: 20)
             Text("\(Int(viewStore.layoutConfig.itemStyle.padding.top))")
-                .font(.caption2)
+                .font(.system(size: 8))
                 .foregroundColor(.primary)
         }
     }
+    .frame(width: 55)
 }
 
 /**
@@ -823,29 +887,30 @@ private func paddingCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -
  * Compact alignment controls
  */
 private func alignmentCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-        Text("对齐 / Align")
-            .font(.caption)
+    VStack(alignment: .leading, spacing: 1) {
+        Text("对齐")
+            .font(.system(size: 9))
             .fontWeight(.medium)
             .foregroundColor(.secondary)
         
-        HStack(spacing: 4) {
-            ForEach(LayoutAlignment.allCases, id: \.self) { alignment in
+        HStack(spacing: 1) {
+            ForEach(LayoutAlignment.allCases.prefix(3), id: \.self) { alignment in
                 Button(action: {
                     viewStore.send(.updateAlignment(alignment))
                 }) {
                     Image(systemName: alignment.iconName)
-                        .font(.caption)
+                        .font(.system(size: 8))
                         .foregroundColor(viewStore.layoutConfig.alignment == alignment ? .white : .primary)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 14, height: 14)
                         .background(
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: 2)
                                 .fill(viewStore.layoutConfig.alignment == alignment ? Color.blue : Color.gray.opacity(0.2))
                         )
                 }
             }
         }
     }
+    .frame(width: 50)
 }
 
 /**
@@ -853,16 +918,16 @@ private func alignmentCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>)
  * Compact item size controls
  */
 private func itemSizeCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-        Text("尺寸 / Size")
-            .font(.caption)
+    VStack(alignment: .leading, spacing: 1) {
+        Text("尺寸")
+            .font(.system(size: 9))
             .fontWeight(.medium)
             .foregroundColor(.secondary)
         
-        HStack(spacing: 8) {
-            VStack(spacing: 2) {
-                Text("宽 / W")
-                    .font(.caption2)
+        HStack(spacing: 3) {
+            VStack(spacing: 0) {
+                Text("宽")
+                    .font(.system(size: 8))
                     .foregroundColor(.secondary)
                 Slider(
                     value: viewStore.binding(
@@ -872,15 +937,15 @@ private func itemSizeCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) 
                     in: 0...200,
                     step: 10
                 )
-                .frame(width: 50)
+                .frame(width: 28, height: 20)
                 Text("\(Int(viewStore.layoutConfig.itemStyle.maxWidth ?? 0))")
-                    .font(.caption2)
+                    .font(.system(size: 8))
                     .foregroundColor(.primary)
             }
             
-            VStack(spacing: 2) {
-                Text("高 / H")
-                    .font(.caption2)
+            VStack(spacing: 0) {
+                Text("高")
+                    .font(.system(size: 8))
                     .foregroundColor(.secondary)
                 Slider(
                     value: viewStore.binding(
@@ -890,13 +955,14 @@ private func itemSizeCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) 
                     in: 0...100,
                     step: 5
                 )
-                .frame(width: 50)
+                .frame(width: 28, height: 20)
                 Text("\(Int(viewStore.layoutConfig.itemStyle.maxHeight ?? 0))")
-                    .font(.caption2)
+                    .font(.system(size: 8))
                     .foregroundColor(.primary)
             }
         }
     }
+    .frame(width: 65)
 }
 
 /**
@@ -904,84 +970,79 @@ private func itemSizeCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) 
  * Compact text truncation controls
  */
 private func textTruncationCompactControls(viewStore: ViewStoreOf<TextLayoutFeature>) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-        Text("截断 / Trunc")
-            .font(.caption)
+    VStack(alignment: .leading, spacing: 1) {
+        Text("截断")
+            .font(.system(size: 9))
             .fontWeight(.medium)
             .foregroundColor(.secondary)
         
-        VStack(spacing: 2) {
-            HStack(spacing: 4) {
-                Button("1行") {
+        VStack(spacing: 1) {
+            HStack(spacing: 1) {
+                Button("1") {
                     viewStore.send(.updateLineLimit(1))
                 }
-                .font(.caption2)
-                .padding(4)
+                .font(.system(size: 8))
+                .padding(1)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(viewStore.layoutConfig.itemStyle.lineLimit == 1 ? Color.blue : Color.gray.opacity(0.2))
                 )
                 .foregroundColor(viewStore.layoutConfig.itemStyle.lineLimit == 1 ? .white : .primary)
+                .frame(width: 14, height: 14)
                 
-                Button("2行") {
+                Button("2") {
                     viewStore.send(.updateLineLimit(2))
                 }
-                .font(.caption2)
-                .padding(4)
+                .font(.system(size: 8))
+                .padding(1)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(viewStore.layoutConfig.itemStyle.lineLimit == 2 ? Color.blue : Color.gray.opacity(0.2))
                 )
                 .foregroundColor(viewStore.layoutConfig.itemStyle.lineLimit == 2 ? .white : .primary)
+                .frame(width: 14, height: 14)
                 
-                Button("无限") {
+                Button("∞") {
                     viewStore.send(.updateLineLimit(nil))
                 }
-                .font(.caption2)
-                .padding(4)
+                .font(.system(size: 8))
+                .padding(1)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(viewStore.layoutConfig.itemStyle.lineLimit == nil ? Color.blue : Color.gray.opacity(0.2))
                 )
                 .foregroundColor(viewStore.layoutConfig.itemStyle.lineLimit == nil ? .white : .primary)
+                .frame(width: 14, height: 14)
             }
             
-            HStack(spacing: 4) {
-                Button("...尾") {
+            HStack(spacing: 1) {
+                Button("...") {
                     viewStore.send(.updateTruncationMode(.tail))
                 }
-                .font(.caption2)
-                .padding(4)
+                .font(.system(size: 7))
+                .padding(1)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(viewStore.layoutConfig.itemStyle.truncationMode == .tail ? Color.blue : Color.gray.opacity(0.2))
                 )
                 .foregroundColor(viewStore.layoutConfig.itemStyle.truncationMode == .tail ? .white : .primary)
+                .frame(width: 20, height: 12)
                 
-                Button("...中") {
+                Button("•••") {
                     viewStore.send(.updateTruncationMode(.middle))
                 }
-                .font(.caption2)
-                .padding(4)
+                .font(.system(size: 7))
+                .padding(1)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(viewStore.layoutConfig.itemStyle.truncationMode == .middle ? Color.blue : Color.gray.opacity(0.2))
                 )
                 .foregroundColor(viewStore.layoutConfig.itemStyle.truncationMode == .middle ? .white : .primary)
-                
-                Button("头...") {
-                    viewStore.send(.updateTruncationMode(.head))
-                }
-                .font(.caption2)
-                .padding(4)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(viewStore.layoutConfig.itemStyle.truncationMode == .head ? Color.blue : Color.gray.opacity(0.2))
-                )
-                .foregroundColor(viewStore.layoutConfig.itemStyle.truncationMode == .head ? .white : .primary)
+                .frame(width: 20, height: 12)
             }
         }
     }
+    .frame(width: 50)
 }
 
 // MARK: - Constrained Text View / 约束文字视图

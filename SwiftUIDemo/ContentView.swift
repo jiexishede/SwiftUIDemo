@@ -202,6 +202,8 @@ struct ContentView: View {
             // Use ECommerceRootView which handles login-to-home transition
             // 使用 ECommerceRootView 处理登录到首页的转换
             ECommerceRootView()
+        case .dynamicSheet:
+            DynamicSheetDemoView()
         }
     }
 }
@@ -393,6 +395,8 @@ struct iOS15DestinationView: View {
             childStore = AnyView(
                 ECommerceRootView()
             )
+        case "dynamicSheet":
+            childStore = AnyView(DynamicSheetDemoView())
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

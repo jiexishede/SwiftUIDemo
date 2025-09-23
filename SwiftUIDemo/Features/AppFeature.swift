@@ -46,6 +46,8 @@ struct AppFeature {
                     state.path.append(.advancedNetworkMonitoring)
                 case "ecommerce":
                     state.path.append(.ecommerceLogin(ECommerceLoginFeature.State()))
+                case "dynamicSheet":
+                    state.path.append(.dynamicSheet)
                 default:
                     break
                 }
@@ -75,6 +77,7 @@ struct AppFeature {
             case networkAwareDemo
             case advancedNetworkMonitoring
             case ecommerceLogin(ECommerceLoginFeature.State)
+            case dynamicSheet
         }
 
         enum Action {
@@ -89,6 +92,7 @@ struct AppFeature {
             case networkAwareDemo
             case advancedNetworkMonitoring
             case ecommerceLogin(ECommerceLoginFeature.Action)
+            case dynamicSheet
         }
 
         var body: some ReducerOf<Self> {
@@ -178,6 +182,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "电商首页 / E-Commerce Home",
             subtitle: "登录+复杂首页+分层错误处理 / Login + Complex Home + Layered Error Handling",
             systemImage: "cart.fill.badge.plus"
+        ),
+        DemoItem(
+            id: "dynamicSheet",
+            title: "动态 Sheet / Dynamic Sheet",
+            subtitle: "动态高度弹窗与表格视图 / Dynamic height popup with table view",
+            systemImage: "rectangle.bottomthird.inset.filled"
         )
     ]
 }

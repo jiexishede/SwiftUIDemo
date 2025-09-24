@@ -210,6 +210,8 @@ struct ContentView: View {
             }
         case .alignmentGuideFlow:
             AlignmentGuideFlowLayoutDemoView()
+        case .alignmentGuideFlowSimple:
+            AlignmentGuideFlowLayoutSimpleView()
         }
     }
 }
@@ -413,6 +415,8 @@ struct iOS15DestinationView: View {
             )
         case "alignmentGuideFlow":
             childStore = AnyView(AlignmentGuideFlowLayoutDemoView())
+        case "alignmentGuideFlowSimple":
+            childStore = AnyView(AlignmentGuideFlowLayoutSimpleView())
         default:
             childStore = AnyView(Text("Unknown Demo"))
         }

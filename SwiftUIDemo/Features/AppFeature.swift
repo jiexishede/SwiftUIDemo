@@ -52,6 +52,8 @@ struct AppFeature {
                     state.path.append(.textLayout(TextLayoutFeature.State()))
                 case "alignmentGuideFlow":
                     state.path.append(.alignmentGuideFlow)
+                case "alignmentGuideFlowSimple":
+                    state.path.append(.alignmentGuideFlowSimple)
                 default:
                     break
                 }
@@ -84,6 +86,7 @@ struct AppFeature {
             case dynamicSheet
             case textLayout(TextLayoutFeature.State)
             case alignmentGuideFlow
+            case alignmentGuideFlowSimple
         }
 
         enum Action {
@@ -101,6 +104,7 @@ struct AppFeature {
             case dynamicSheet
             case textLayout(TextLayoutFeature.Action)
             case alignmentGuideFlow
+            case alignmentGuideFlowSimple
         }
 
         var body: some ReducerOf<Self> {
@@ -211,6 +215,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "AlignmentGuide 流式布局 / AlignmentGuide Flow Layout",
             subtitle: "轻量级流式布局实现 / Lightweight flow layout implementation",
             systemImage: "rectangle.3.group"
+        ),
+        DemoItem(
+            id: "alignmentGuideFlowSimple",
+            title: "极简流式布局 / Minimal Flow Layout",
+            subtitle: "最少代码实现流式布局 / Flow layout with minimal code",
+            systemImage: "square.grid.3x1.below.line.grid.1x2"
         )
     ]
 }

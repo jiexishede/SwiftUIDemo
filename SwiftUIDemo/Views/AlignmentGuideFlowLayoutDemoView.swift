@@ -410,8 +410,8 @@ struct AlignmentGuideFlowLayoutDemoView: View {
             
             // 添加文字按钮 / Add Text Button
             Button("添加") {
-                // 生成1-8个字符的随机文字 / Generate random text with 1-8 characters
-                let randomLength = Int.random(in: 1...8)  // 随机长度1-8 / Random length 1-8
+                // 生成1-12个字符的随机文字 / Generate random text with 1-12 characters
+                let randomLength = Int.random(in: 5...15)  // 随机长度5-15 / Random length 5-15
                 let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789中文测试数据内容展示效果"
                 let randomText = String((0..<randomLength).compactMap { _ in characters.randomElement() })
                 
@@ -544,8 +544,8 @@ struct AlignmentGuideFlowLayoutDemoView: View {
                             .frame(width: 80, alignment: .leading)
                         Slider(value: Binding(
                             get: { config.itemMaxWidth ?? 200 },
-                            set: { config.itemMaxWidth = $0 > 50 ? $0 : nil }
-                        ), in: 50...200, step: 10)
+                            set: { config.itemMaxWidth = $0 > 20 ? $0 : nil }
+                        ), in: 20...200, step: 10)  // 🎯 调整范围从 20-200 / Adjust range from 20-200
                         Text(config.itemMaxWidth != nil ? "\(Int(config.itemMaxWidth!))pt" : "无限制")
                             .font(.caption)
                             .frame(width: 50, alignment: .trailing)
@@ -683,14 +683,18 @@ struct AlignmentGuideFlowLayout: View {
     @State private var totalHeight: CGFloat = 0
     
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: Alignment(horizontal: config.alignment, vertical: .top)) {
-                // 使用 alignmentGuide 进行布局计算 / Layout calculation using alignmentGuide
-                flowLayoutContent(in: geometry)
+        WithPerceptionTracking {  // 🎯 添加感知追踪以修复警告 / Add perception tracking to fix warning
+            GeometryReader { geometry in
+                WithPerceptionTracking {  // 🎯 GeometryReader 需要单独的感知追踪 / GeometryReader needs separate perception tracking
+                    ZStack(alignment: Alignment(horizontal: config.alignment, vertical: .top)) {
+                        // 使用 alignmentGuide 进行布局计算 / Layout calculation using alignmentGuide
+                        flowLayoutContent(in: geometry)
+                    }
+                    .padding(config.containerPadding)
+                }
             }
-            .padding(config.containerPadding)
+            .frame(height: totalHeight)
         }
-        .frame(height: totalHeight)
     }
     
     /**
@@ -816,7 +820,7 @@ struct AlignmentGuideFlowLayout: View {
             // 🎨 文字样式配置 / Text style configuration
             .font(config.itemSizeMode == .adaptive ? .caption : config.font)  // 🔤 自适应模式使用更小字体 / Use smaller font for adaptive mode
             .foregroundColor(isSelected ? .white : config.foregroundColor)  // 🎨 前景色：选中时白色，否则配置色 / Foreground color: white when selected, config color otherwise
-            .lineLimit(config.lineLimit)  // 📏 行数限制 / Line limit
+            .lineLimit(config.itemSizeMode == .adaptive ? 1 : config.lineLimit)  // 📏 自适应模式强制单行以确保截断生效 / Force single line in adaptive mode to ensure truncation
             .truncationMode(config.truncationMode)  // ✂️ 截断模式 (.tail = "...") / Truncation mode (.tail = "...")
             .multilineTextAlignment(.center)  // 📐 多行文字居中对齐 / Multi-line text center alignment
             
@@ -828,9 +832,19 @@ struct AlignmentGuideFlowLayout: View {
             .if(config.itemSizeMode == .fixed) { view in
                 view.applyItemSizeConstraints(config: config)  // 🔒 固定模式：应用完整约束 / Fixed mode: apply full constraints
             }
-            // 🔄 自适应模式：使用fixedSize确保按照文字内容自然大小渲染 / Adaptive mode: use fixedSize to ensure rendering at natural content size
+            // 🔄 自适应模式：智能应用宽度约束 / Adaptive mode: intelligently apply width constraints
             .if(config.itemSizeMode == .adaptive) { view in
-                view.fixedSize()  // 📐 固定到理想尺寸，防止额外拉伸 / Fix to ideal size, prevent extra stretching
+                Group {
+                    if let maxWidth = config.itemMaxWidth {
+                        // 🔒 有最大宽度限制时：应用约束并确保截断生效 / With max width: apply constraint and ensure truncation works
+                        view
+                            .frame(minWidth: 0, maxWidth: maxWidth)  // 允许收缩到0，最大不超过设定值 / Allow shrink to 0, max to set value
+                            .fixedSize(horizontal: false, vertical: true)  // 仅垂直固定，水平允许截断 / Fix vertical only, allow horizontal truncation
+                    } else {
+                        // 🔓 无最大宽度限制时：保持自然尺寸 / Without max width: maintain natural size
+                        view.fixedSize()  // 完全固定到理想尺寸 / Fully fix to ideal size
+                    }
+                }
             }
             
             // 🎨 背景样式配置 / Background style configuration

@@ -288,55 +288,38 @@ struct SimpleFlowLayout: View {
         ZStack(alignment: .topLeading) {
             ForEach(0..<texts.count, id: \.self) { index in
                 // 🏷️ 创建文字标签 / Create text label
-                itemView(for: texts[index], at: index, in: geometry)
-            }
-        }
-    }
-    
-    /// 🏷️ 创建单个 item 视图 / Create single item view
-    private func itemView(for text: String, at index: Int, in geometry: GeometryProxy) -> some View {
-        Text(text)
-            // 🎨 样式：自适应模式的紧凑样式 / Style: Compact style for adaptive mode
-            .font(.caption)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.blue.opacity(0.1))
-            )
-            .foregroundColor(.blue)
-            // 📏 文字截断：单行显示，末尾省略 / Text truncation: Single line, ellipsis at end
-            .lineLimit(1)
-            .truncationMode(.tail)
-            // 🔧 宽度限制逻辑 / Width constraint logic
-            .modifier(WidthConstraintModifier(maxWidth: itemMaxWidth))
-            // 📍 使用 alignmentGuide 计算位置 / Use alignmentGuide to calculate position
-            .alignmentGuide(.leading) { dimension in
-                calculateLeadingAlignment(
+                ItemView(
+                    text: texts[index],
                     index: index,
-                    dimension: dimension,
-                    containerWidth: geometry.size.width
-                )
-            }
-            .alignmentGuide(.top) { dimension in
-                calculateTopAlignment(
-                    index: index,
-                    dimension: dimension,
-                    containerWidth: geometry.size.width
-                )
-            }
-            // 💾 记录尺寸供后续计算使用 / Record size for subsequent calculations
-            .background(
-                GeometryReader { itemGeometry in
-                    Color.clear.onAppear {
-                        if itemSizes.count <= index {
-                            itemSizes.append(itemGeometry.size)
-                        } else {
-                            itemSizes[index] = itemGeometry.size
+                    maxWidth: itemMaxWidth,
+                    onSizeCalculated: { size in
+                        // 💾 记录实际尺寸 / Record actual size
+                        DispatchQueue.main.async {
+                            if itemSizes.count <= index {
+                                itemSizes.append(size)
+                            } else {
+                                itemSizes[index] = size
+                            }
                         }
                     }
+                )
+                // 📍 使用 alignmentGuide 计算位置 / Use alignmentGuide to calculate position
+                .alignmentGuide(.leading) { dimension in
+                    calculateLeadingAlignment(
+                        index: index,
+                        dimension: dimension,
+                        containerWidth: geometry.size.width
+                    )
                 }
-            )
+                .alignmentGuide(.top) { dimension in
+                    calculateTopAlignment(
+                        index: index,
+                        dimension: dimension,
+                        containerWidth: geometry.size.width
+                    )
+                }
+            }
+        }
     }
     
     // MARK: - 📐 布局计算方法 / Layout Calculation Methods
@@ -448,29 +431,108 @@ struct SimpleFlowLayout: View {
     }
 }
 
-// MARK: - 🔧 宽度约束修饰符 / Width Constraint Modifier
+// MARK: - 🏷️ 单个 Item 视图 / Single Item View
 
 /**
- * 📏 宽度约束修饰符
- * Width constraint modifier
+ * 📦 单个 item 的视图组件
+ * Single item view component
  * 
- * 处理 item 的最大宽度限制，支持文字截断。
- * Handles item max width constraint with text truncation support.
+ * 负责渲染单个文字标签，并计算实际尺寸。
+ * Responsible for rendering single text label and calculating actual size.
  */
-struct WidthConstraintModifier: ViewModifier {
+struct ItemView: View {
+    let text: String
+    let index: Int
     let maxWidth: CGFloat?
+    let onSizeCalculated: (CGSize) -> Void
     
-    func body(content: Content) -> some View {
+    var body: some View {
+        // 🎯 根据是否有宽度限制创建不同的视图 / Create different views based on width constraint
         if let maxWidth = maxWidth {
-            // 🔒 有宽度限制：应用框架宽度，允许文字截断 / With constraint: Apply frame width, allow text truncation
-            content
-                .frame(minWidth: 0, maxWidth: maxWidth)  // 设置宽度范围 / Set width range
-                .fixedSize(horizontal: false, vertical: true)  // 垂直固定，水平可变 / Fixed vertically, flexible horizontally
+            // 有宽度限制：先限制文字宽度，再添加内边距 / With width constraint: Limit text width first, then add padding
+            Text(text)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                // 🔧 先限制文字宽度（考虑内边距） / Limit text width first (considering padding)
+                .frame(maxWidth: maxWidth - 16, alignment: .leading) // 减去水平内边距 16 = 8 * 2
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.blue.opacity(0.1))
+                )
+                .foregroundColor(.blue)
+                .fixedSize() // 固定尺寸，防止拉伸 / Fix size to prevent stretching
+                // 📏 测量实际尺寸 / Measure actual size
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: SizePreferenceKey.self,
+                            value: SizeData(index: index, size: geo.size)
+                        )
+                    }
+                )
+                .onPreferenceChange(SizePreferenceKey.self) { sizeData in
+                    if let data = sizeData, data.index == index {
+                        onSizeCalculated(data.size)
+                    }
+                }
         } else {
-            // 🔓 无宽度限制：保持原有的固定尺寸 / No constraint: Keep original fixed size
-            content
-                .fixedSize()
+            // 无宽度限制：完全自适应 / No width constraint: Fully adaptive
+            Text(text)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.blue.opacity(0.1))
+                )
+                .foregroundColor(.blue)
+                .fixedSize() // 完全固定到理想尺寸 / Fully fixed to ideal size
+                // 📏 测量实际尺寸 / Measure actual size
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: SizePreferenceKey.self,
+                            value: SizeData(index: index, size: geo.size)
+                        )
+                    }
+                )
+                .onPreferenceChange(SizePreferenceKey.self) { sizeData in
+                    if let data = sizeData, data.index == index {
+                        onSizeCalculated(data.size)
+                    }
+                }
         }
+    }
+}
+
+// MARK: - 📐 尺寸偏好键 / Size Preference Key
+
+/**
+ * 📏 尺寸数据结构
+ * Size data structure
+ */
+struct SizeData: Equatable {
+    let index: Int
+    let size: CGSize
+}
+
+/**
+ * 🔑 尺寸偏好键
+ * Size preference key
+ * 
+ * 用于从子视图传递尺寸信息到父视图。
+ * Used to pass size information from child view to parent view.
+ */
+struct SizePreferenceKey: PreferenceKey {
+    static var defaultValue: SizeData? = nil
+    
+    static func reduce(value: inout SizeData?, nextValue: () -> SizeData?) {
+        value = nextValue() ?? value
     }
 }
 
@@ -481,3 +543,30 @@ struct AlignmentGuideFlowLayoutSimpleView_Previews: PreviewProvider {
         AlignmentGuideFlowLayoutSimpleView()
     }
 }
+
+/*
+ 
+ ⏺ Looking at the conversation history and the current state of the code, I can see that all the requested features have been successfully implemented in the AlignmentGuide flow layout:
+
+   ✅ Completed Features
+
+   1. Container Padding Adjustment - Added a slider to control the padding inside the flow layout container (0-40pt)
+   2. Item Max Width Constraint - Added a toggle and slider to limit item maximum width (50-200pt), with text showing ellipsis when truncated
+   3. Item Spacing Controls - Added sliders to adjust:
+     - Horizontal spacing between items (0-20pt) with green accent
+     - Vertical spacing between lines (0-20pt) with purple accent
+   4. Fixed Spacing Issues - Resolved the problem where items had excessive spacing when max width was enabled
+   5. Adaptive Width Behavior - Ensured that items only get constrained when they exceed max width; shorter items maintain their natural width
+   6. Text Truncation - Fixed the issue where text wasn't being properly truncated with ellipsis when max width was applied
+
+   Current Implementation Status
+
+   The final implementation in AlignmentGuideFlowLayoutSimpleView.swift correctly handles all these requirements:
+
+   - Lines 453-466: Properly applies frame(maxWidth:) directly to the Text widget before padding, ensuring correct truncation
+   - Line 458: Subtracts padding from maxWidth calculation (maxWidth - 16) to account for horizontal padding
+   - Lines 451-509: Uses conditional rendering to handle cases with and without max width constraints
+   - Lines 67-70: Maintains separate state for itemSpacing and lineSpacing with dynamic updates
+
+   The implementation now provides a fully functional, minimal flow layout with essential configuration options while maintaining clean, readable code.
+ */

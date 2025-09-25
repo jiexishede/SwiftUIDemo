@@ -270,7 +270,8 @@ struct SimpleFlowLayout: View {
     // MARK: - 🏗️ 内部状态 / Internal State
     
     /// 布局计算状态 - 记录每个 item 的尺寸 / Layout calculation state - Record size of each item
-    @State private var itemSizes: [CGSize] = []
+    @State private var totalHeight: CGFloat = 100
+    @State private var containerWidth: CGFloat = 0
     
     // MARK: - 🎨 视图构建 / View Construction
     
@@ -278,261 +279,84 @@ struct SimpleFlowLayout: View {
         // 📐 使用 GeometryReader 获取容器宽度 / Use GeometryReader to get container width
         GeometryReader { geometry in
             self.generateContent(in: geometry)
+                .onAppear {
+                    self.containerWidth = geometry.size.width
+                }
         }
         // 🔧 根据内容计算实际高度 / Calculate actual height based on content
-        .frame(height: calculateHeight(in: UIScreen.main.bounds.width - containerPadding * 2))
+        .frame(height: totalHeight)
     }
     
     /// 🏗️ 生成布局内容 / Generate layout content
     private func generateContent(in geometry: GeometryProxy) -> some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(0..<texts.count, id: \.self) { index in
-                // 🏷️ 创建文字标签 / Create text label
-                ItemView(
-                    text: texts[index],
-                    index: index,
-                    maxWidth: itemMaxWidth,
-                    onSizeCalculated: { size in
-                        // 💾 记录实际尺寸 / Record actual size
-                        DispatchQueue.main.async {
-                            if itemSizes.count <= index {
-                                itemSizes.append(size)
-                            } else {
-                                itemSizes[index] = size
+        var width = CGFloat.zero
+        var height = CGFloat.zero  
+        var lineHeight = CGFloat.zero
+        
+        return ZStack(alignment: .topLeading) {
+            ForEach(Array(texts.enumerated()), id: \.offset) { index, text in
+                Text(text)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .conditionally(itemMaxWidth != nil) { view in
+                        view.frame(maxWidth: itemMaxWidth! - 16, alignment: .leading)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.blue.opacity(0.1))
+                    )
+                    .foregroundColor(.blue)
+                    .fixedSize()
+                    .alignmentGuide(.leading) { d in
+                        if abs(width - d.width) > geometry.size.width {
+                            width = 0
+                            height -= lineHeight + lineSpacing
+                            lineHeight = d.height
+                        } else {
+                            lineHeight = max(lineHeight, d.height)
+                        }
+                        
+                        let result = width
+                        
+                        if index == texts.count - 1 {
+                            DispatchQueue.main.async {
+                                self.totalHeight = abs(height) + lineHeight + 40
                             }
                         }
+                        
+                        width -= d.width + itemSpacing
+                        
+                        return result
                     }
-                )
-                // 📍 使用 alignmentGuide 计算位置 / Use alignmentGuide to calculate position
-                .alignmentGuide(.leading) { dimension in
-                    calculateLeadingAlignment(
-                        index: index,
-                        dimension: dimension,
-                        containerWidth: geometry.size.width
-                    )
-                }
-                .alignmentGuide(.top) { dimension in
-                    calculateTopAlignment(
-                        index: index,
-                        dimension: dimension,
-                        containerWidth: geometry.size.width
-                    )
-                }
+                    .alignmentGuide(.top) { _ in
+                        height
+                    }
             }
         }
     }
     
-    // MARK: - 📐 布局计算方法 / Layout Calculation Methods
-    
-    /// 📏 计算水平对齐位置 / Calculate horizontal alignment position
-    private func calculateLeadingAlignment(
-        index: Int,
-        dimension: ViewDimensions,
-        containerWidth: CGFloat
-    ) -> CGFloat {
-        // 如果是第一个 item，从左边开始 / If first item, start from left
-        guard index > 0 else { return 0 }
-        
-        // 计算当前行已使用的宽度 / Calculate used width of current row
-        var currentRowWidth: CGFloat = 0
-        
-        for i in 0..<index {
-            guard i < itemSizes.count else { continue }
-            
-            let itemWidth = itemSizes[i].width + itemSpacing  // 加上间距 / Add spacing
-            
-            // 检查是否需要换行 / Check if need to wrap line
-            if currentRowWidth + itemWidth > containerWidth {
-                currentRowWidth = 0  // 新行从头开始 / New line starts from beginning
-            }
-            
-            // 如果是当前 item 的前一个 / If it's the previous item
-            if i == index - 1 {
-                // 检查当前 item 是否需要换行 / Check if current item needs to wrap
-                if currentRowWidth + itemWidth + dimension.width > containerWidth {
-                    return 0  // 换行，从左边开始 / Wrap line, start from left
-                } else {
-                    return -(currentRowWidth + itemWidth)  // 继续在当前行 / Continue on current line
-                }
-            }
-            
-            currentRowWidth += itemWidth
-        }
-        
-        return 0
-    }
-    
-    /// 📐 计算垂直对齐位置 / Calculate vertical alignment position
-    private func calculateTopAlignment(
-        index: Int,
-        dimension: ViewDimensions,
-        containerWidth: CGFloat
-    ) -> CGFloat {
-        // 第一个 item 在顶部 / First item at top
-        guard index > 0 else { return 0 }
-        
-        var currentRowWidth: CGFloat = 0
-        var currentRowTop: CGFloat = 0
-        var maxHeightInRow: CGFloat = 0
-        
-        for i in 0..<index {
-            guard i < itemSizes.count else { continue }
-            
-            let itemSize = itemSizes[i]
-            let itemWidth = itemSize.width + itemSpacing  // 加上间距 / Add spacing
-            
-            // 检查是否需要换行 / Check if need to wrap line
-            if currentRowWidth + itemWidth > containerWidth {
-                // 换行：更新顶部位置 / Wrap line: Update top position
-                currentRowTop += maxHeightInRow + lineSpacing  // 加上行间距 / Add line spacing
-                currentRowWidth = itemWidth
-                maxHeightInRow = itemSize.height
-            } else {
-                // 同一行：更新宽度和最大高度 / Same line: Update width and max height
-                currentRowWidth += itemWidth
-                maxHeightInRow = max(maxHeightInRow, itemSize.height)
-            }
-        }
-        
-        // 检查当前 item 是否需要换行 / Check if current item needs to wrap
-        if currentRowWidth + dimension.width > containerWidth {
-            currentRowTop += maxHeightInRow + lineSpacing  // 换行 / Wrap line
-        }
-        
-        return -currentRowTop
-    }
-    
-    /// 📏 计算总高度 / Calculate total height
-    private func calculateHeight(in width: CGFloat) -> CGFloat {
-        guard !itemSizes.isEmpty else { return 100 }  // 默认最小高度 / Default minimum height
-        
-        var currentRowWidth: CGFloat = 0
-        var totalHeight: CGFloat = 0
-        var maxHeightInRow: CGFloat = 0
-        
-        for size in itemSizes {
-            let itemWidth = size.width + itemSpacing
-            
-            if currentRowWidth + itemWidth > width {
-                // 换行 / Wrap line
-                totalHeight += maxHeightInRow + lineSpacing
-                currentRowWidth = itemWidth
-                maxHeightInRow = size.height
-            } else {
-                currentRowWidth += itemWidth
-                maxHeightInRow = max(maxHeightInRow, size.height)
-            }
-        }
-        
-        // 加上最后一行的高度 / Add height of last row
-        totalHeight += maxHeightInRow
-        
-        return max(totalHeight + 16, 100)  // 确保最小高度 / Ensure minimum height
-    }
 }
 
-// MARK: - 🏷️ 单个 Item 视图 / Single Item View
+
+// MARK: - 📐 条件修饰符扩展 / Conditional Modifier Extension
 
 /**
- * 📦 单个 item 的视图组件
- * Single item view component
- * 
- * 负责渲染单个文字标签，并计算实际尺寸。
- * Responsible for rendering single text label and calculating actual size.
+ * 条件修饰符扩展
+ * Conditional modifier extension
  */
-struct ItemView: View {
-    let text: String
-    let index: Int
-    let maxWidth: CGFloat?
-    let onSizeCalculated: (CGSize) -> Void
-    
-    var body: some View {
-        // 🎯 根据是否有宽度限制创建不同的视图 / Create different views based on width constraint
-        if let maxWidth = maxWidth {
-            // 有宽度限制：先限制文字宽度，再添加内边距 / With width constraint: Limit text width first, then add padding
-            Text(text)
-                .font(.caption)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                // 🔧 先限制文字宽度（考虑内边距） / Limit text width first (considering padding)
-                .frame(maxWidth: maxWidth - 16, alignment: .leading) // 减去水平内边距 16 = 8 * 2
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.blue.opacity(0.1))
-                )
-                .foregroundColor(.blue)
-                .fixedSize() // 固定尺寸，防止拉伸 / Fix size to prevent stretching
-                // 📏 测量实际尺寸 / Measure actual size
-                .background(
-                    GeometryReader { geo in
-                        Color.clear.preference(
-                            key: SizePreferenceKey.self,
-                            value: SizeData(index: index, size: geo.size)
-                        )
-                    }
-                )
-                .onPreferenceChange(SizePreferenceKey.self) { sizeData in
-                    if let data = sizeData, data.index == index {
-                        onSizeCalculated(data.size)
-                    }
-                }
+extension View {
+    /// 根据条件应用视图修饰符
+    /// Apply view modifier based on condition
+    @ViewBuilder
+    func conditionally<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
         } else {
-            // 无宽度限制：完全自适应 / No width constraint: Fully adaptive
-            Text(text)
-                .font(.caption)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.blue.opacity(0.1))
-                )
-                .foregroundColor(.blue)
-                .fixedSize() // 完全固定到理想尺寸 / Fully fixed to ideal size
-                // 📏 测量实际尺寸 / Measure actual size
-                .background(
-                    GeometryReader { geo in
-                        Color.clear.preference(
-                            key: SizePreferenceKey.self,
-                            value: SizeData(index: index, size: geo.size)
-                        )
-                    }
-                )
-                .onPreferenceChange(SizePreferenceKey.self) { sizeData in
-                    if let data = sizeData, data.index == index {
-                        onSizeCalculated(data.size)
-                    }
-                }
+            self
         }
-    }
-}
-
-// MARK: - 📐 尺寸偏好键 / Size Preference Key
-
-/**
- * 📏 尺寸数据结构
- * Size data structure
- */
-struct SizeData: Equatable {
-    let index: Int
-    let size: CGSize
-}
-
-/**
- * 🔑 尺寸偏好键
- * Size preference key
- * 
- * 用于从子视图传递尺寸信息到父视图。
- * Used to pass size information from child view to parent view.
- */
-struct SizePreferenceKey: PreferenceKey {
-    static var defaultValue: SizeData? = nil
-    
-    static func reduce(value: inout SizeData?, nextValue: () -> SizeData?) {
-        value = nextValue() ?? value
     }
 }
 

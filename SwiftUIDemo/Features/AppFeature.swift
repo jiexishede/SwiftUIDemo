@@ -105,6 +105,7 @@ struct AppFeature {
             case textLayout(TextLayoutFeature.Action)
             case alignmentGuideFlow
             case alignmentGuideFlowSimple
+            case alignmentGuideFlowUIKit
         }
 
         var body: some ReducerOf<Self> {
@@ -221,6 +222,12 @@ struct DemoItem: Identifiable, Equatable, Hashable {
             title: "极简流式布局 / Minimal Flow Layout",
             subtitle: "最少代码实现流式布局 / Flow layout with minimal code",
             systemImage: "square.grid.3x1.below.line.grid.1x2"
+        ),
+        DemoItem(
+            id: "alignmentGuideFlowUIKit",
+            title: "UIKit 流式布局 / UIKit Flow Layout",
+            subtitle: "使用 UICollectionView 实现稳定布局 / Stable layout with UICollectionView",
+            systemImage: "rectangle.3.group.fill"
         )
     ]
 }
